@@ -5,6 +5,7 @@ import 'features/ledger/ledger.dart';
 import 'features/reports/reports.dart';
 import 'features/profile/profile.dart';
 import 'features/settings/settings.dart';
+import 'features/signup/signup_screen.dart';
 
 void main() {
   runApp(const MyApp());
@@ -32,7 +33,7 @@ class MyApp extends StatelessWidget {
           iconTheme: IconThemeData(color: Color(0xFF1A1C1E)),
         ),
       ),
-      home: const MainNavigation(),
+      home: const SignupScreen(),
     );
   }
 }
@@ -138,12 +139,12 @@ class _MainNavigationState extends State<MainNavigation> {
                   _selectedIndex = index;
                 });
               },
-              children: [
-                const DashboardScreen(),
-                const JournalScreen(),
-                const LedgerScreen(),
-                const ReportsScreen(),
-                const ProfileScreen(),
+              children: const [
+                DashboardScreen(),
+                JournalScreen(),
+                LedgerScreen(),
+                ReportsScreen(),
+                ProfileScreen(),
               ],
             ),
       bottomNavigationBar: BottomNavigationBar(
