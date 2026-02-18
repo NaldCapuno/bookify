@@ -7,6 +7,7 @@ import 'package:bookkeeping/features/reports/reports.dart';
 import 'package:bookkeeping/features/profile/profile.dart';
 import 'package:bookkeeping/features/settings/settings.dart';
 import 'package:bookkeeping/features/signup/signup_screen.dart';
+import 'package:bookkeeping/features/forgotpassword/forgot_password_screen.dart';
 
 void main() {
   runApp(const MyApp());
@@ -44,6 +45,7 @@ class MyApp extends StatelessWidget {
         '/reports': (context) => const ReportsScreen(),
         '/profile': (context) => const ProfileScreen(),
         '/settings': (context) => const SettingsScreen(),
+        '/forgotpassword': (context) => const ForgotPasswordScreen(),
       },
     );
   }
