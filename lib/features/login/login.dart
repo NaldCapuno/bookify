@@ -175,7 +175,7 @@ class _LoginScreenState extends State<LoginScreen> {
             ),
             TextButton(
               onPressed: () {
-                // Add navigation here later
+                Navigator.pushNamed(context, '/signup');
               },
               style: TextButton.styleFrom(
                 padding: EdgeInsets.zero,

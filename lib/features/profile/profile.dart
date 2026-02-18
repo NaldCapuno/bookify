@@ -16,7 +16,7 @@ class ProfileScreen extends StatelessWidget {
               borderRadius: BorderRadius.circular(20),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.03),
+                  color: Colors.black.withValues(alpha: 0.03),
                   blurRadius: 10,
                   offset: const Offset(0, 4),
                 ),
@@ -53,9 +53,9 @@ class ProfileScreen extends StatelessWidget {
   }
 
   Widget _buildProfileHeader() {
-    return Row(
+    return const Row(
       children: [
-        const CircleAvatar(
+        CircleAvatar(
           radius: 35,
           backgroundColor: Color(0xFF232D3F),
           child: Text(
@@ -67,10 +67,10 @@ class ProfileScreen extends StatelessWidget {
             ),
           ),
         ),
-        const SizedBox(width: 16),
+        SizedBox(width: 16),
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
-          children: const [
+          children: [
             Text(
               'Kenrick Lim',
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),

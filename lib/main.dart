@@ -6,6 +6,7 @@ import 'features/ledger/ledger.dart';
 import 'features/reports/reports.dart';
 import 'features/profile/profile.dart';
 import 'features/settings/settings.dart';
+import 'features/signup/signup_screen.dart';
 
 void main() {
   runApp(const MyApp());
@@ -35,6 +36,8 @@ class MyApp extends StatelessWidget {
       ),
       routes: {
         '/': (context) => const LoginScreen(),
+        '/signup': (context) => const SignupScreen(),
+        '/signin': (context) => const LoginScreen(),
         '/main': (context) => const MainNavigation(),
         '/journal': (context) => const JournalScreen(),
         '/ledger': (context) => const LedgerScreen(),
