@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'forgot_password_controller.dart';
-import '../signup/widgets/signup_input.dart'; // Reuse your custom input!
+import '../../core/widgets/signup_input.dart';
 
 class ForgotPasswordScreen extends StatefulWidget {
   const ForgotPasswordScreen({super.key});

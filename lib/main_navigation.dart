@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
-import '/features/dashboard/dashboard.dart';
-import '/features/journal/journal.dart';
-import '/features/ledger/ledger.dart';
-import '/features/reports/reports.dart';
-import '/features/profile/profile.dart';
-import '/features/settings/settings.dart';
+import 'package:bookkeeping/features/dashboard/dashboard_screen.dart';
+import 'package:bookkeeping/features/journal/journal_screen.dart';
+import 'package:bookkeeping/features/ledger/ledger_screen.dart';
+import 'package:bookkeeping/features/reports/reports_screen.dart';
+import 'package:bookkeeping/features/profile/profile_screen.dart';
+import 'package:bookkeeping/features/settings/settings_screen.dart';
+import 'package:bookkeeping/features/incomestatement/incomestatement_screen.dart';
+import 'package:bookkeeping/features/balancesheet/balance_sheet_screen.dart';
+import 'package:bookkeeping/features/cashflow/cash_flow_screen.dart';
 
 class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
   final String title;
@@ -26,10 +29,11 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
       title: Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
       elevation: 1,
 
-      leading: IconButton(
-        icon: Icon(showBackButton ? Icons.arrow_back : Icons.menu),
-        onPressed: showBackButton ? onBackTap : () {},
-      ),
+      automaticallyImplyLeading: false,
+
+      leading: showBackButton
+          ? IconButton(icon: const Icon(Icons.arrow_back), onPressed: onBackTap)
+          : null,
 
       actions: [
         if (!showBackButton)
@@ -63,14 +67,20 @@ class _MainNavigationState extends State<MainNavigation> {
     'Ledger',
     'Reports',
     'Profile',
+    'Income Statement',
+    'Balance Sheet',
+    'Cash Flow',
   ];
 
-  final List<Widget> _screens = [
-    const DashboardScreen(),
+  List<Widget> get _screens => [
+    DashboardScreen(onFeatureTap: _onItemTapped),
     const JournalScreen(),
     const LedgerScreen(),
-    const ReportsScreen(),
+    ReportsScreen(onFeatureTap: _onItemTapped),
     const ProfileScreen(),
+    const IncomeStatementScreen(),
+    const BalanceSheetScreen(),
+    const CashFlowScreen(),
   ];
 
   void _onItemTapped(int index) {
@@ -92,57 +102,79 @@ class _MainNavigationState extends State<MainNavigation> {
     });
   }
 
+  bool get _isSubReport => _selectedIndex >= 5;
+
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: CustomAppBar(
-        title: _isSettingsOpen ? "Settings" : _titles[_selectedIndex],
-        onSettingsTap: _openSettings,
-        showBackButton: _isSettingsOpen,
-        onBackTap: _closeSettings,
-      ),
+    bool canPopInternally = _isSettingsOpen || _isSubReport;
 
-      body: _isSettingsOpen
-          ? const SettingsScreen()
-          : IndexedStack(index: _selectedIndex, children: _screens),
+    return PopScope(
+      canPop: !canPopInternally,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) return;
 
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _selectedIndex,
-        type: BottomNavigationBarType.fixed,
-        backgroundColor: const Color(0xFFF2F4F7),
-        selectedItemColor: _isSettingsOpen
-            ? Colors.grey
-            : const Color(0xFF1A1C1E),
-        unselectedItemColor: Colors.grey,
-        showUnselectedLabels: true,
-        onTap: _onItemTapped,
-        items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.home_outlined),
-            activeIcon: Icon(Icons.home),
-            label: 'Home',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.book_outlined),
-            activeIcon: Icon(Icons.book),
-            label: 'Journal',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.description_outlined),
-            activeIcon: Icon(Icons.description),
-            label: 'Ledger',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.analytics_outlined),
-            activeIcon: Icon(Icons.analytics),
-            label: 'Reports',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.person_outline),
-            activeIcon: Icon(Icons.person),
-            label: 'Profile',
-          ),
-        ],
+        if (_isSettingsOpen) {
+          _closeSettings();
+        } else if (_isSubReport) {
+          _onItemTapped(3);
+        }
+      },
+      child: Scaffold(
+        appBar: CustomAppBar(
+          title: _isSettingsOpen ? "Settings" : _titles[_selectedIndex],
+          onSettingsTap: _openSettings,
+          showBackButton: _isSettingsOpen || _isSubReport,
+          onBackTap: () {
+            if (_isSettingsOpen) {
+              _closeSettings();
+            } else if (_isSubReport) {
+              _onItemTapped(3);
+            }
+          },
+        ),
+
+        body: _isSettingsOpen
+            ? const SettingsScreen()
+            : IndexedStack(index: _selectedIndex, children: _screens),
+
+        bottomNavigationBar: BottomNavigationBar(
+          currentIndex: _selectedIndex > 4 ? 3 : _selectedIndex,
+          type: BottomNavigationBarType.fixed,
+          backgroundColor: const Color(0xFFF2F4F7),
+          selectedItemColor: _isSettingsOpen
+              ? Colors.grey
+              : const Color(0xFF1A1C1E),
+          unselectedItemColor: Colors.grey,
+          showUnselectedLabels: true,
+          onTap: _onItemTapped,
+          items: const [
+            BottomNavigationBarItem(
+              icon: Icon(Icons.home_outlined),
+              activeIcon: Icon(Icons.home),
+              label: 'Home',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.book_outlined),
+              activeIcon: Icon(Icons.book),
+              label: 'Journal',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.description_outlined),
+              activeIcon: Icon(Icons.description),
+              label: 'Ledger',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.analytics_outlined),
+              activeIcon: Icon(Icons.analytics),
+              label: 'Reports',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.person_outline),
+              activeIcon: Icon(Icons.person),
+              label: 'Profile',
+            ),
+          ],
+        ),
       ),
     );
   }

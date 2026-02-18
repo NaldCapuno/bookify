@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-class IncomStatementScreen extends StatelessWidget {
-  const IncomStatementScreen({super.key});
+class IncomeStatementScreen extends StatelessWidget {
+  const IncomeStatementScreen({super.key});
 
   @override
   Widget build(BuildContext context) {

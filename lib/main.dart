@@ -1,11 +1,6 @@
-import 'package:bookkeeping/main_navigation.dart';
-import 'package:bookkeeping/features/login/login.dart';
 import 'package:flutter/material.dart';
-import 'package:bookkeeping/features/journal/journal.dart';
-import 'package:bookkeeping/features/ledger/ledger.dart';
-import 'package:bookkeeping/features/reports/reports.dart';
-import 'package:bookkeeping/features/profile/profile.dart';
-import 'package:bookkeeping/features/settings/settings.dart';
+import 'package:bookkeeping/main_navigation.dart';
+import 'package:bookkeeping/features/login/login_screen.dart';
 import 'package:bookkeeping/features/signup/signup_screen.dart';
 import 'package:bookkeeping/features/forgotpassword/forgot_password_screen.dart';
 
@@ -40,11 +35,6 @@ class MyApp extends StatelessWidget {
         '/signup': (context) => const SignupScreen(),
         '/signin': (context) => const LoginScreen(),
         '/main': (context) => const MainNavigation(),
-        '/journal': (context) => const JournalScreen(),
-        '/ledger': (context) => const LedgerScreen(),
-        '/reports': (context) => const ReportsScreen(),
-        '/profile': (context) => const ProfileScreen(),
-        '/settings': (context) => const SettingsScreen(),
         '/forgotpassword': (context) => const ForgotPasswordScreen(),
       },
     );

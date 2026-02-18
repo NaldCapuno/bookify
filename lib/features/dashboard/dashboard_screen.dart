@@ -2,65 +2,42 @@ import 'package:flutter/material.dart';
 import '../../core/widgets/feature_card.dart';
 
 class DashboardScreen extends StatelessWidget {
-  const DashboardScreen({super.key});
+  final Function(int) onFeatureTap;
+
+  const DashboardScreen({super.key, required this.onFeatureTap});
 
   @override
   Widget build(BuildContext context) {
-    // Corrected ListView structure
     return ListView(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
       children: [
         _buildWelcomeBanner(),
 
         const SizedBox(height: 24),
-
-        // --- Journal ---
-        const FeatureCard(
+        FeatureCard(
           title: 'Journal',
           subtitle: 'Record daily transactions',
           icon: Icons.menu_book_outlined,
-          color: Colors
-              .blue, // Changed from iconColor to color to match FeatureCard widget
-          // Add onTap if needed: onTap: () => Navigator.pushNamed(context, '/journal'),
+          color: Colors.blue,
+          onTap: () => onFeatureTap(1),
         ),
 
-        const SizedBox(height: 12), // Add spacing between cards
-        // --- Ledger ---
-        const FeatureCard(
+        const SizedBox(height: 12),
+        FeatureCard(
           title: 'Ledger',
           subtitle: 'View account summaries',
           icon: Icons.description_outlined,
           color: Colors.purple,
+          onTap: () => onFeatureTap(2),
         ),
 
         const SizedBox(height: 12),
-
-        // --- Income Statement ---
-        const FeatureCard(
-          title: 'Income Statement',
-          subtitle: 'Profit & loss report',
-          icon: Icons.trending_up,
+        FeatureCard(
+          title: 'Reports',
+          subtitle: 'Analyze your finances',
+          icon: Icons.analytics_outlined,
           color: Colors.green,
-        ),
-
-        const SizedBox(height: 12),
-
-        // --- Balance Sheet ---
-        const FeatureCard(
-          title: 'Balance Sheet',
-          subtitle: 'Assets & liabilities',
-          icon: Icons.balance_outlined,
-          color: Colors.orangeAccent,
-        ),
-
-        const SizedBox(height: 12),
-
-        // --- Cash Flow ---
-        const FeatureCard(
-          title: 'Cash Flow',
-          subtitle: 'Cash movement analysis',
-          icon: Icons.attach_money_outlined,
-          color: Colors.teal,
+          onTap: () => onFeatureTap(3),
         ),
       ],
     );
