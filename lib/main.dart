@@ -1,7 +1,6 @@
 import 'package:bookkeeping/core/widgets/navigation.dart';
 import 'package:bookkeeping/features/login/login.dart';
 import 'package:flutter/material.dart';
-import 'features/dashboard/dashboard.dart';
 import 'features/journal/journal.dart';
 import 'features/ledger/ledger.dart';
 import 'features/reports/reports.dart';
