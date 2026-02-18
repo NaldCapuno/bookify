@@ -1,11 +1,50 @@
 import 'package:flutter/material.dart';
-import '/core/widgets/appbar.dart';
 import '/features/dashboard/dashboard.dart';
 import '/features/journal/journal.dart';
 import '/features/ledger/ledger.dart';
 import '/features/reports/reports.dart';
 import '/features/profile/profile.dart';
 import '/features/settings/settings.dart';
+
+class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
+  final String title;
+  final VoidCallback onSettingsTap;
+  final bool showBackButton;
+  final VoidCallback? onBackTap;
+
+  const CustomAppBar({
+    super.key,
+    required this.title,
+    required this.onSettingsTap,
+    this.showBackButton = false,
+    this.onBackTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return AppBar(
+      title: Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
+      elevation: 1,
+
+      leading: IconButton(
+        icon: Icon(showBackButton ? Icons.arrow_back : Icons.menu),
+        onPressed: showBackButton ? onBackTap : () {},
+      ),
+
+      actions: [
+        if (!showBackButton)
+          IconButton(
+            icon: const Icon(Icons.settings),
+            onPressed: onSettingsTap,
+          ),
+        const SizedBox(width: 8),
+      ],
+    );
+  }
+
+  @override
+  Size get preferredSize => const Size.fromHeight(kToolbarHeight);
+}
 
 class MainNavigation extends StatefulWidget {
   const MainNavigation({super.key});

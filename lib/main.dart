@@ -1,12 +1,12 @@
-import 'package:bookkeeping/core/widgets/navigation.dart';
+import 'package:bookkeeping/main_navigation.dart';
 import 'package:bookkeeping/features/login/login.dart';
 import 'package:flutter/material.dart';
-import 'features/journal/journal.dart';
-import 'features/ledger/ledger.dart';
-import 'features/reports/reports.dart';
-import 'features/profile/profile.dart';
-import 'features/settings/settings.dart';
-import 'features/signup/signup_screen.dart';
+import 'package:bookkeeping/features/journal/journal.dart';
+import 'package:bookkeeping/features/ledger/ledger.dart';
+import 'package:bookkeeping/features/reports/reports.dart';
+import 'package:bookkeeping/features/profile/profile.dart';
+import 'package:bookkeeping/features/settings/settings.dart';
+import 'package:bookkeeping/features/signup/signup_screen.dart';
 
 void main() {
   runApp(const MyApp());
