@@ -41,7 +41,11 @@ class _SignupScreenState extends State<SignupScreen> {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     // LOGO SECTION
-                    const Icon(Icons.shield_outlined, size: 40, color: Color(0xFF374151)),
+                    const Icon(
+                      Icons.shield_outlined,
+                      size: 40,
+                      color: Color(0xFF374151),
+                    ),
                     const Text(
                       "BOOKKEEPING",
                       style: TextStyle(
@@ -72,7 +76,9 @@ class _SignupScreenState extends State<SignupScreen> {
                       style: OutlinedButton.styleFrom(
                         minimumSize: const Size(double.infinity, 50),
                         side: const BorderSide(color: Color(0xFFE5E7EB)),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
                       ),
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.center,
@@ -82,15 +88,18 @@ class _SignupScreenState extends State<SignupScreen> {
                             'assets/images/google_logo.png',
                             height: 20,
                             // Fallback if the image still fails to load
-                            errorBuilder: (context, error, stackTrace) => 
-                                const Icon(Icons.g_mobiledata, color: Colors.red),
+                            errorBuilder: (context, error, stackTrace) =>
+                                const Icon(
+                                  Icons.g_mobiledata,
+                                  color: Colors.red,
+                                ),
                           ),
                           const SizedBox(width: 12),
                           const Flexible(
                             child: Text(
                               "Continue with Google",
                               style: TextStyle(
-                                color: Color(0xFF374151), 
+                                color: Color(0xFF374151),
                                 fontWeight: FontWeight.w500,
                               ),
                               overflow: TextOverflow.ellipsis,
@@ -132,7 +141,10 @@ class _SignupScreenState extends State<SignupScreen> {
                       alignment: Alignment.centerLeft,
                       child: Text(
                         "Must be at least 8 characters",
-                        style: TextStyle(fontSize: 11, color: Color(0xFF6B7280)),
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: Color(0xFF6B7280),
+                        ),
                       ),
                     ),
                     const SizedBox(height: 16),
@@ -154,18 +166,26 @@ class _SignupScreenState extends State<SignupScreen> {
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFF0F172A),
                         minimumSize: const Size(double.infinity, 52),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
                         elevation: 0,
                       ),
                       child: controller.isLoading
                           ? const SizedBox(
                               height: 20,
                               width: 20,
-                              child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                              child: CircularProgressIndicator(
+                                color: Colors.white,
+                                strokeWidth: 2,
+                              ),
                             )
                           : const Text(
                               "Create account",
-                              style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
                     ),
 
@@ -195,7 +215,11 @@ class _Divider extends StatelessWidget {
             padding: EdgeInsets.symmetric(horizontal: 16),
             child: Text(
               "OR",
-              style: TextStyle(fontSize: 12, color: Color(0xFF9CA3AF), fontWeight: FontWeight.bold),
+              style: TextStyle(
+                fontSize: 12,
+                color: Color(0xFF9CA3AF),
+                fontWeight: FontWeight.bold,
+              ),
             ),
           ),
           Expanded(child: Divider(color: Color(0xFFE5E7EB))),
@@ -269,15 +293,25 @@ class _TermsText extends StatelessWidget {
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Text("Already have an account? ",
-                style: TextStyle(fontSize: 14, color: Color(0xFF6B7280))),
-            GestureDetector(
-              onTap: () {
-                // Future: Navigate back to Login
+            const Text(
+              "Already have an account? ",
+              style: TextStyle(fontSize: 14, color: Color(0xFF6B7280)),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.pushNamed(context, '/signin');
               },
+              style: TextButton.styleFrom(
+                padding: EdgeInsets.zero,
+                minimumSize: Size.zero,
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              ),
               child: const Text(
-                "Sign in",
-                style: TextStyle(fontSize: 14, color: Color(0xFF2563EB), fontWeight: FontWeight.bold),
+                'Sign in',
+                style: TextStyle(
+                  color: Color(0xFF2563EB),
+                  fontWeight: FontWeight.w500,
+                ),
               ),
             ),
           ],
