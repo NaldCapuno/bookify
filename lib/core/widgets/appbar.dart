@@ -4,7 +4,7 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
   final String title;
   final VoidCallback onSettingsTap;
   final bool showBackButton;
-  final VoidCallback? onBackTap; // Made nullable for safety
+  final VoidCallback? onBackTap;
 
   const CustomAppBar({
     super.key,
@@ -18,23 +18,14 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
   Widget build(BuildContext context) {
     return AppBar(
       title: Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
-      centerTitle: true,
-      backgroundColor: const Color(0xFFF5EFE6), // Your theme background color
-      elevation: 0,
+      elevation: 1,
 
-      // LOGIC: Only show back button if requested. Otherwise show nothing (or a Logo).
-      leading: showBackButton
-          ? IconButton(icon: const Icon(Icons.arrow_back), onPressed: onBackTap)
-          : Container(
-              padding: const EdgeInsets.all(12),
-              child: const Icon(
-                Icons.account_balance_wallet,
-                color: Colors.indigo,
-              ), // Placeholder Logo
-            ),
+      leading: IconButton(
+        icon: Icon(showBackButton ? Icons.arrow_back : Icons.menu),
+        onPressed: showBackButton ? onBackTap : () {},
+      ),
 
       actions: [
-        // Only show Settings button if we are NOT in the settings screen
         if (!showBackButton)
           IconButton(
             icon: const Icon(Icons.settings),
