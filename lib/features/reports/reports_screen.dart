@@ -16,7 +16,7 @@ class ReportsScreen extends StatelessWidget {
           subtitle: 'Profit & loss report',
           icon: Icons.trending_up,
           color: Colors.green,
-          onTap: () => onFeatureTap(5),
+          onTap: () => Navigator.pushNamed(context, '/income-statement'),
         ),
 
         const SizedBox(height: 12),
@@ -25,7 +25,7 @@ class ReportsScreen extends StatelessWidget {
           subtitle: 'Assets & liabilities',
           icon: Icons.balance_outlined,
           color: Colors.orangeAccent,
-          onTap: () => onFeatureTap(6),
+          onTap: () => Navigator.pushNamed(context, '/balance-sheet'),
         ),
 
         const SizedBox(height: 12),
@@ -34,7 +34,7 @@ class ReportsScreen extends StatelessWidget {
           subtitle: 'Cash movement analysis',
           icon: Icons.attach_money_outlined,
           color: Colors.teal,
-          onTap: () => onFeatureTap(7),
+          onTap: () => Navigator.pushNamed(context, '/cash-flow'),
         ),
       ],
     );

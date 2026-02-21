@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+// import 'package:bookkeeping/features/splash_screen/splash_screen.dart';
 import 'package:bookkeeping/main_navigation.dart';
-import 'package:bookkeeping/features/login/login_screen.dart';
-import 'package:bookkeeping/features/signup/signup_screen.dart';
-import 'package:bookkeeping/features/forgotpassword/forgot_password_screen.dart';
+import 'package:bookkeeping/features/settings/settings_screen.dart';
+import 'package:bookkeeping/features/incomestatement/incomestatement_screen.dart';
+import 'package:bookkeeping/features/balancesheet/balance_sheet_screen.dart';
+import 'package:bookkeeping/features/cashflow/cash_flow_screen.dart';
 
 void main() {
   runApp(const MyApp());
@@ -30,12 +32,14 @@ class MyApp extends StatelessWidget {
           iconTheme: IconThemeData(color: Color(0xFF1A1C1E)),
         ),
       ),
+      initialRoute: '/',
       routes: {
-        '/': (context) => const LoginScreen(),
-        '/signup': (context) => const SignupScreen(),
-        '/signin': (context) => const LoginScreen(),
-        '/main': (context) => const MainNavigation(),
-        '/forgotpassword': (context) => const ForgotPasswordScreen(),
+        // '/splash': (context) => const SplashScreen(),
+        '/': (context) => const MainNavigation(),
+        '/settings': (context) => const SettingsScreen(),
+        '/income-statement': (context) => const IncomeStatementScreen(),
+        '/balance-sheet': (context) => const BalanceSheetScreen(),
+        '/cash-flow': (context) => const CashFlowScreen(),
       },
     );
   }
