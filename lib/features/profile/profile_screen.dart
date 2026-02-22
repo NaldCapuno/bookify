@@ -1,53 +1,57 @@
 import 'package:flutter/material.dart';
+import 'package:bookkeeping/core/widgets/appbar.dart';
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(20),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.03),
-                  blurRadius: 10,
-                  offset: const Offset(0, 4),
-                ),
-              ],
+    return Scaffold(
+      appBar: const CustomAppBar(title: 'Profile', showBackButton: true),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.03),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildProfileHeader(),
+                  const SizedBox(height: 24),
+                  const Divider(),
+                  const SizedBox(height: 16),
+
+                  _buildFieldLabel('Business Name'),
+                  _buildTextField('Enter your business name'),
+
+                  _buildFieldLabel('Business Type'),
+                  _buildTextField('Select business type', isDropdown: true),
+
+                  _buildFieldLabel('Business Address'),
+                  _buildTextField('Enter your business address'),
+
+                  _buildFieldLabel('Contact Number'),
+                  _buildTextField('+63 912 345 6789'),
+
+                  const SizedBox(height: 32),
+                  _buildSaveButton(),
+                ],
+              ),
             ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _buildProfileHeader(),
-                const SizedBox(height: 24),
-                const Divider(),
-                const SizedBox(height: 16),
-
-                _buildFieldLabel('Business Name'),
-                _buildTextField('Enter your business name'),
-
-                _buildFieldLabel('Business Type'),
-                _buildTextField('Select business type', isDropdown: true),
-
-                _buildFieldLabel('Business Address'),
-                _buildTextField('Enter your business address'),
-
-                _buildFieldLabel('Contact Number'),
-                _buildTextField('+63 912 345 6789'),
-
-                const SizedBox(height: 32),
-                _buildSaveButton(),
-              ],
-            ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

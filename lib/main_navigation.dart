@@ -33,26 +33,35 @@ class _MainNavigationState extends State<MainNavigation> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: CustomAppBar(
-        title: _titles[_selectedIndex],
-        onSettingsTap: () => Navigator.pushNamed(context, '/settings'),
-      ),
+    return PopScope(
+      canPop: _selectedIndex == 0,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) return;
+        setState(() {
+          _selectedIndex = 0;
+        });
+      },
+      child: Scaffold(
+        appBar: CustomAppBar(
+          title: _titles[_selectedIndex],
+          onSettingsTap: () => Navigator.pushNamed(context, '/settings'),
+        ),
 
-      body: IndexedStack(
-        index: _selectedIndex,
-        children: [
-          DashboardScreen(onFeatureTap: _onItemTapped),
-          const JournalScreen(),
-          const LedgerScreen(),
-          ReportsScreen(onFeatureTap: _onItemTapped),
-          const AccountsScreen(),
-        ],
-      ),
+        body: IndexedStack(
+          index: _selectedIndex,
+          children: [
+            DashboardScreen(onFeatureTap: _onItemTapped),
+            const JournalScreen(),
+            const LedgerScreen(),
+            ReportsScreen(onFeatureTap: _onItemTapped),
+            const AccountsScreen(),
+          ],
+        ),
 
-      bottomNavigationBar: CustomNavBar(
-        currentIndex: _selectedIndex,
-        onTap: _onItemTapped,
+        bottomNavigationBar: CustomNavBar(
+          currentIndex: _selectedIndex,
+          onTap: _onItemTapped,
+        ),
       ),
     );
   }
