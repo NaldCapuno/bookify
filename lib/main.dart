@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-// import 'package:bookkeeping/features/splash_screen/splash_screen.dart';
+import 'package:bookkeeping/features/splash_screen/splash_screen.dart';
 import 'package:bookkeeping/main_navigation.dart';
 import 'package:bookkeeping/features/profile/profile_screen.dart';
 import 'package:bookkeeping/features/settings/settings_screen.dart';
@@ -35,8 +35,8 @@ class MyApp extends StatelessWidget {
       ),
       initialRoute: '/',
       routes: {
-        // '/splash': (context) => const SplashScreen(),
-        '/': (context) => const MainNavigation(),
+        '/': (context) => const SplashScreen(),
+        '/home': (context) => const MainNavigation(),
         '/profile': (context) => const ProfileScreen(),
         '/settings': (context) => const SettingsScreen(),
         '/income-statement': (context) => const IncomeStatementScreen(),
