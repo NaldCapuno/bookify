@@ -1,5 +1,5 @@
 If MODIFICATION on DATABASE FOLDER 
 - increase the schema version
-- flutter pub run build_runner build --delete-conflicting-outputs
+- dart run build_runner build -d
 - uninstall the app (via phone or emulator)
 
