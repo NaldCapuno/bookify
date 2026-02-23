@@ -5,7 +5,6 @@ import 'package:bookkeeping/core/widgets/report_control_bar.dart';
 import 'package:bookkeeping/core/widgets/appbar.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:drift/drift.dart' as drift;
 
 // Ensure these paths match your actual project structure
 // Standardized path
@@ -52,7 +51,7 @@ class _IncomeStatementScreenState extends State<IncomeStatementScreen> {
       _statementFuture = appDb.reportsDao.getIncomeStatement(
         startDate: _startDate,
         endDate: _endDate,
-        businessName: "Palawan iHub", // Personalized for your project
+        businessName: "Kyle", // Personalized for your project
       );
     });
   }

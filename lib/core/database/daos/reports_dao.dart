@@ -1,6 +1,7 @@
 import 'package:bookkeeping/core/database/tables/accounts_table.dart';
 import 'package:bookkeeping/core/database/tables/journal_table.dart';
 import 'package:bookkeeping/core/database/tables/transactions_table.dart';
+import 'package:bookkeeping/features/balancesheet/balance_sheet.dart';
 import 'package:bookkeeping/features/incomestatement/financial_item.dart';
 import 'package:bookkeeping/features/incomestatement/income_statement.dart';
 import 'package:drift/drift.dart';
@@ -101,6 +102,90 @@ class ReportsDao extends DatabaseAccessor<AppDatabase> with _$ReportsDaoMixin {
       totalRevenue: totalRev,
       totalExpenses: totalExp,
       netIncome: totalRev - totalExp,
+    );
+  }
+
+  // Inside ReportsDao
+  Future<BalanceSheet> getBalanceSheet({
+    required DateTime date,
+    required String businessName,
+  }) async {
+    final debitSum = db.transactions.debit.sum();
+    final creditSum = db.transactions.credit.sum();
+
+    // 1. Get balances for Assets, Liabilities, and Equity
+    final query =
+        db.select(db.accounts).join([
+            innerJoin(
+              db.transactions,
+              db.transactions.accountId.equalsExp(db.accounts.id),
+            ),
+            innerJoin(
+              db.journals,
+              db.journals.id.equalsExp(db.transactions.journalId),
+            ),
+          ])
+          ..where(db.journals.date.isSmallerOrEqualValue(date))
+          ..where(db.journals.isVoid.equals(false))
+          ..groupBy([db.accounts.id]);
+
+    query.addColumns([debitSum, creditSum]);
+    final results = await query.get();
+
+    // 2. Fetch Net Income for the same period to balance
+    // We reuse your Income Statement logic but for a 0-start-date range
+    final incomeStatement = await getIncomeStatement(
+      startDate: DateTime(1900), // All time revenue/expenses
+      endDate: date,
+      businessName: businessName,
+    );
+
+    List<FinancialItem> curAssets = [];
+    List<FinancialItem> nonCurAssets = [];
+    List<FinancialItem> curLiab = [];
+    List<FinancialItem> nonCurLiab = [];
+    List<FinancialItem> equity = [];
+
+    for (var row in results) {
+      final account = row.readTable(db.accounts);
+      final d = row.read(debitSum) ?? 0.0;
+      final c = row.read(creditSum) ?? 0.0;
+
+      // Assets: Debit - Credit | Liab/Equity: Credit - Debit
+      double amount = (account.code < 200) ? d - c : c - d;
+      if (amount == 0) continue;
+
+      final item = FinancialItem(name: account.name, amount: amount);
+
+      // Map to your migration categories (11, 12, 21, 22, 31)
+      switch (account.categoryId) {
+        case 11:
+          curAssets.add(item);
+          break;
+        case 12:
+          nonCurAssets.add(item);
+          break;
+        case 21:
+          curLiab.add(item);
+          break;
+        case 22:
+          nonCurLiab.add(item);
+          break;
+        case 31:
+          equity.add(item);
+          break;
+      }
+    }
+
+    return BalanceSheet(
+      businessName: businessName,
+      date: date,
+      currentAssets: curAssets,
+      nonCurrentAssets: nonCurAssets,
+      currentLiabilities: curLiab,
+      nonCurrentLiabilities: nonCurLiab,
+      equityItems: equity,
+      netIncome: incomeStatement.netIncome,
     );
   }
 }
