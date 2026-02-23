@@ -391,8 +391,30 @@ class $AccountsTable extends Accounts with TableInfo<$AccountsTable, Account> {
     ),
     defaultValue: const Constant(true),
   );
+  static const VerificationMeta _isLockedMeta = const VerificationMeta(
+    'isLocked',
+  );
   @override
-  List<GeneratedColumn> get $columns => [id, code, name, categoryId, isActive];
+  late final GeneratedColumn<bool> isLocked = GeneratedColumn<bool>(
+    'is_locked',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("is_locked" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    code,
+    name,
+    categoryId,
+    isActive,
+    isLocked,
+  ];
   @override
   String get aliasedName => _alias ?? actualTableName;
   @override
@@ -438,6 +460,12 @@ class $AccountsTable extends Accounts with TableInfo<$AccountsTable, Account> {
         isActive.isAcceptableOrUnknown(data['is_active']!, _isActiveMeta),
       );
     }
+    if (data.containsKey('is_locked')) {
+      context.handle(
+        _isLockedMeta,
+        isLocked.isAcceptableOrUnknown(data['is_locked']!, _isLockedMeta),
+      );
+    }
     return context;
   }
 
@@ -467,6 +495,10 @@ class $AccountsTable extends Accounts with TableInfo<$AccountsTable, Account> {
         DriftSqlType.bool,
         data['${effectivePrefix}is_active'],
       )!,
+      isLocked: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}is_locked'],
+      )!,
     );
   }
 
@@ -482,12 +514,14 @@ class Account extends DataClass implements Insertable<Account> {
   final String name;
   final int categoryId;
   final bool isActive;
+  final bool isLocked;
   const Account({
     required this.id,
     required this.code,
     required this.name,
     required this.categoryId,
     required this.isActive,
+    required this.isLocked,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -497,6 +531,7 @@ class Account extends DataClass implements Insertable<Account> {
     map['name'] = Variable<String>(name);
     map['category_id'] = Variable<int>(categoryId);
     map['is_active'] = Variable<bool>(isActive);
+    map['is_locked'] = Variable<bool>(isLocked);
     return map;
   }
 
@@ -507,6 +542,7 @@ class Account extends DataClass implements Insertable<Account> {
       name: Value(name),
       categoryId: Value(categoryId),
       isActive: Value(isActive),
+      isLocked: Value(isLocked),
     );
   }
 
@@ -521,6 +557,7 @@ class Account extends DataClass implements Insertable<Account> {
       name: serializer.fromJson<String>(json['name']),
       categoryId: serializer.fromJson<int>(json['categoryId']),
       isActive: serializer.fromJson<bool>(json['isActive']),
+      isLocked: serializer.fromJson<bool>(json['isLocked']),
     );
   }
   @override
@@ -532,6 +569,7 @@ class Account extends DataClass implements Insertable<Account> {
       'name': serializer.toJson<String>(name),
       'categoryId': serializer.toJson<int>(categoryId),
       'isActive': serializer.toJson<bool>(isActive),
+      'isLocked': serializer.toJson<bool>(isLocked),
     };
   }
 
@@ -541,12 +579,14 @@ class Account extends DataClass implements Insertable<Account> {
     String? name,
     int? categoryId,
     bool? isActive,
+    bool? isLocked,
   }) => Account(
     id: id ?? this.id,
     code: code ?? this.code,
     name: name ?? this.name,
     categoryId: categoryId ?? this.categoryId,
     isActive: isActive ?? this.isActive,
+    isLocked: isLocked ?? this.isLocked,
   );
   Account copyWithCompanion(AccountsCompanion data) {
     return Account(
@@ -557,6 +597,7 @@ class Account extends DataClass implements Insertable<Account> {
           ? data.categoryId.value
           : this.categoryId,
       isActive: data.isActive.present ? data.isActive.value : this.isActive,
+      isLocked: data.isLocked.present ? data.isLocked.value : this.isLocked,
     );
   }
 
@@ -567,13 +608,15 @@ class Account extends DataClass implements Insertable<Account> {
           ..write('code: $code, ')
           ..write('name: $name, ')
           ..write('categoryId: $categoryId, ')
-          ..write('isActive: $isActive')
+          ..write('isActive: $isActive, ')
+          ..write('isLocked: $isLocked')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode => Object.hash(id, code, name, categoryId, isActive);
+  int get hashCode =>
+      Object.hash(id, code, name, categoryId, isActive, isLocked);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -582,7 +625,8 @@ class Account extends DataClass implements Insertable<Account> {
           other.code == this.code &&
           other.name == this.name &&
           other.categoryId == this.categoryId &&
-          other.isActive == this.isActive);
+          other.isActive == this.isActive &&
+          other.isLocked == this.isLocked);
 }
 
 class AccountsCompanion extends UpdateCompanion<Account> {
@@ -591,12 +635,14 @@ class AccountsCompanion extends UpdateCompanion<Account> {
   final Value<String> name;
   final Value<int> categoryId;
   final Value<bool> isActive;
+  final Value<bool> isLocked;
   const AccountsCompanion({
     this.id = const Value.absent(),
     this.code = const Value.absent(),
     this.name = const Value.absent(),
     this.categoryId = const Value.absent(),
     this.isActive = const Value.absent(),
+    this.isLocked = const Value.absent(),
   });
   AccountsCompanion.insert({
     this.id = const Value.absent(),
@@ -604,6 +650,7 @@ class AccountsCompanion extends UpdateCompanion<Account> {
     required String name,
     required int categoryId,
     this.isActive = const Value.absent(),
+    this.isLocked = const Value.absent(),
   }) : code = Value(code),
        name = Value(name),
        categoryId = Value(categoryId);
@@ -613,6 +660,7 @@ class AccountsCompanion extends UpdateCompanion<Account> {
     Expression<String>? name,
     Expression<int>? categoryId,
     Expression<bool>? isActive,
+    Expression<bool>? isLocked,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
@@ -620,6 +668,7 @@ class AccountsCompanion extends UpdateCompanion<Account> {
       if (name != null) 'name': name,
       if (categoryId != null) 'category_id': categoryId,
       if (isActive != null) 'is_active': isActive,
+      if (isLocked != null) 'is_locked': isLocked,
     });
   }
 
@@ -629,6 +678,7 @@ class AccountsCompanion extends UpdateCompanion<Account> {
     Value<String>? name,
     Value<int>? categoryId,
     Value<bool>? isActive,
+    Value<bool>? isLocked,
   }) {
     return AccountsCompanion(
       id: id ?? this.id,
@@ -636,6 +686,7 @@ class AccountsCompanion extends UpdateCompanion<Account> {
       name: name ?? this.name,
       categoryId: categoryId ?? this.categoryId,
       isActive: isActive ?? this.isActive,
+      isLocked: isLocked ?? this.isLocked,
     );
   }
 
@@ -657,6 +708,9 @@ class AccountsCompanion extends UpdateCompanion<Account> {
     if (isActive.present) {
       map['is_active'] = Variable<bool>(isActive.value);
     }
+    if (isLocked.present) {
+      map['is_locked'] = Variable<bool>(isLocked.value);
+    }
     return map;
   }
 
@@ -667,7 +721,8 @@ class AccountsCompanion extends UpdateCompanion<Account> {
           ..write('code: $code, ')
           ..write('name: $name, ')
           ..write('categoryId: $categoryId, ')
-          ..write('isActive: $isActive')
+          ..write('isActive: $isActive, ')
+          ..write('isLocked: $isLocked')
           ..write(')'))
         .toString();
   }
@@ -738,6 +793,19 @@ class $JournalsTable extends Journals with TableInfo<$JournalsTable, Journal> {
     requiredDuringInsert: false,
     defaultValue: currentDateAndTime,
   );
+  static const VerificationMeta _isVoidMeta = const VerificationMeta('isVoid');
+  @override
+  late final GeneratedColumn<bool> isVoid = GeneratedColumn<bool>(
+    'is_void',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("is_void" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -745,6 +813,7 @@ class $JournalsTable extends Journals with TableInfo<$JournalsTable, Journal> {
     referenceNo,
     description,
     createdAt,
+    isVoid,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -795,6 +864,12 @@ class $JournalsTable extends Journals with TableInfo<$JournalsTable, Journal> {
         createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
       );
     }
+    if (data.containsKey('is_void')) {
+      context.handle(
+        _isVoidMeta,
+        isVoid.isAcceptableOrUnknown(data['is_void']!, _isVoidMeta),
+      );
+    }
     return context;
   }
 
@@ -824,6 +899,10 @@ class $JournalsTable extends Journals with TableInfo<$JournalsTable, Journal> {
         DriftSqlType.dateTime,
         data['${effectivePrefix}created_at'],
       )!,
+      isVoid: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}is_void'],
+      )!,
     );
   }
 
@@ -839,12 +918,14 @@ class Journal extends DataClass implements Insertable<Journal> {
   final String? referenceNo;
   final String description;
   final DateTime createdAt;
+  final bool isVoid;
   const Journal({
     required this.id,
     required this.date,
     this.referenceNo,
     required this.description,
     required this.createdAt,
+    required this.isVoid,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -856,6 +937,7 @@ class Journal extends DataClass implements Insertable<Journal> {
     }
     map['description'] = Variable<String>(description);
     map['created_at'] = Variable<DateTime>(createdAt);
+    map['is_void'] = Variable<bool>(isVoid);
     return map;
   }
 
@@ -868,6 +950,7 @@ class Journal extends DataClass implements Insertable<Journal> {
           : Value(referenceNo),
       description: Value(description),
       createdAt: Value(createdAt),
+      isVoid: Value(isVoid),
     );
   }
 
@@ -882,6 +965,7 @@ class Journal extends DataClass implements Insertable<Journal> {
       referenceNo: serializer.fromJson<String?>(json['referenceNo']),
       description: serializer.fromJson<String>(json['description']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+      isVoid: serializer.fromJson<bool>(json['isVoid']),
     );
   }
   @override
@@ -893,6 +977,7 @@ class Journal extends DataClass implements Insertable<Journal> {
       'referenceNo': serializer.toJson<String?>(referenceNo),
       'description': serializer.toJson<String>(description),
       'createdAt': serializer.toJson<DateTime>(createdAt),
+      'isVoid': serializer.toJson<bool>(isVoid),
     };
   }
 
@@ -902,12 +987,14 @@ class Journal extends DataClass implements Insertable<Journal> {
     Value<String?> referenceNo = const Value.absent(),
     String? description,
     DateTime? createdAt,
+    bool? isVoid,
   }) => Journal(
     id: id ?? this.id,
     date: date ?? this.date,
     referenceNo: referenceNo.present ? referenceNo.value : this.referenceNo,
     description: description ?? this.description,
     createdAt: createdAt ?? this.createdAt,
+    isVoid: isVoid ?? this.isVoid,
   );
   Journal copyWithCompanion(JournalsCompanion data) {
     return Journal(
@@ -920,6 +1007,7 @@ class Journal extends DataClass implements Insertable<Journal> {
           ? data.description.value
           : this.description,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      isVoid: data.isVoid.present ? data.isVoid.value : this.isVoid,
     );
   }
 
@@ -930,14 +1018,15 @@ class Journal extends DataClass implements Insertable<Journal> {
           ..write('date: $date, ')
           ..write('referenceNo: $referenceNo, ')
           ..write('description: $description, ')
-          ..write('createdAt: $createdAt')
+          ..write('createdAt: $createdAt, ')
+          ..write('isVoid: $isVoid')
           ..write(')'))
         .toString();
   }
 
   @override
   int get hashCode =>
-      Object.hash(id, date, referenceNo, description, createdAt);
+      Object.hash(id, date, referenceNo, description, createdAt, isVoid);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -946,7 +1035,8 @@ class Journal extends DataClass implements Insertable<Journal> {
           other.date == this.date &&
           other.referenceNo == this.referenceNo &&
           other.description == this.description &&
-          other.createdAt == this.createdAt);
+          other.createdAt == this.createdAt &&
+          other.isVoid == this.isVoid);
 }
 
 class JournalsCompanion extends UpdateCompanion<Journal> {
@@ -955,12 +1045,14 @@ class JournalsCompanion extends UpdateCompanion<Journal> {
   final Value<String?> referenceNo;
   final Value<String> description;
   final Value<DateTime> createdAt;
+  final Value<bool> isVoid;
   const JournalsCompanion({
     this.id = const Value.absent(),
     this.date = const Value.absent(),
     this.referenceNo = const Value.absent(),
     this.description = const Value.absent(),
     this.createdAt = const Value.absent(),
+    this.isVoid = const Value.absent(),
   });
   JournalsCompanion.insert({
     this.id = const Value.absent(),
@@ -968,6 +1060,7 @@ class JournalsCompanion extends UpdateCompanion<Journal> {
     this.referenceNo = const Value.absent(),
     required String description,
     this.createdAt = const Value.absent(),
+    this.isVoid = const Value.absent(),
   }) : date = Value(date),
        description = Value(description);
   static Insertable<Journal> custom({
@@ -976,6 +1069,7 @@ class JournalsCompanion extends UpdateCompanion<Journal> {
     Expression<String>? referenceNo,
     Expression<String>? description,
     Expression<DateTime>? createdAt,
+    Expression<bool>? isVoid,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
@@ -983,6 +1077,7 @@ class JournalsCompanion extends UpdateCompanion<Journal> {
       if (referenceNo != null) 'reference_no': referenceNo,
       if (description != null) 'description': description,
       if (createdAt != null) 'created_at': createdAt,
+      if (isVoid != null) 'is_void': isVoid,
     });
   }
 
@@ -992,6 +1087,7 @@ class JournalsCompanion extends UpdateCompanion<Journal> {
     Value<String?>? referenceNo,
     Value<String>? description,
     Value<DateTime>? createdAt,
+    Value<bool>? isVoid,
   }) {
     return JournalsCompanion(
       id: id ?? this.id,
@@ -999,6 +1095,7 @@ class JournalsCompanion extends UpdateCompanion<Journal> {
       referenceNo: referenceNo ?? this.referenceNo,
       description: description ?? this.description,
       createdAt: createdAt ?? this.createdAt,
+      isVoid: isVoid ?? this.isVoid,
     );
   }
 
@@ -1020,6 +1117,9 @@ class JournalsCompanion extends UpdateCompanion<Journal> {
     if (createdAt.present) {
       map['created_at'] = Variable<DateTime>(createdAt.value);
     }
+    if (isVoid.present) {
+      map['is_void'] = Variable<bool>(isVoid.value);
+    }
     return map;
   }
 
@@ -1030,7 +1130,8 @@ class JournalsCompanion extends UpdateCompanion<Journal> {
           ..write('date: $date, ')
           ..write('referenceNo: $referenceNo, ')
           ..write('description: $description, ')
-          ..write('createdAt: $createdAt')
+          ..write('createdAt: $createdAt, ')
+          ..write('isVoid: $isVoid')
           ..write(')'))
         .toString();
   }
@@ -1824,6 +1925,7 @@ typedef $$AccountsTableCreateCompanionBuilder =
       required String name,
       required int categoryId,
       Value<bool> isActive,
+      Value<bool> isLocked,
     });
 typedef $$AccountsTableUpdateCompanionBuilder =
     AccountsCompanion Function({
@@ -1832,6 +1934,7 @@ typedef $$AccountsTableUpdateCompanionBuilder =
       Value<String> name,
       Value<int> categoryId,
       Value<bool> isActive,
+      Value<bool> isLocked,
     });
 
 final class $$AccountsTableReferences
@@ -1902,6 +2005,11 @@ class $$AccountsTableFilterComposer
 
   ColumnFilters<bool> get isActive => $composableBuilder(
     column: $table.isActive,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get isLocked => $composableBuilder(
+    column: $table.isLocked,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -1983,6 +2091,11 @@ class $$AccountsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<bool> get isLocked => $composableBuilder(
+    column: $table.isLocked,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   $$AccountCategoriesTableOrderingComposer get categoryId {
     final $$AccountCategoriesTableOrderingComposer composer = $composerBuilder(
       composer: this,
@@ -2027,6 +2140,9 @@ class $$AccountsTableAnnotationComposer
 
   GeneratedColumn<bool> get isActive =>
       $composableBuilder(column: $table.isActive, builder: (column) => column);
+
+  GeneratedColumn<bool> get isLocked =>
+      $composableBuilder(column: $table.isLocked, builder: (column) => column);
 
   $$AccountCategoriesTableAnnotationComposer get categoryId {
     final $$AccountCategoriesTableAnnotationComposer composer =
@@ -2111,12 +2227,14 @@ class $$AccountsTableTableManager
                 Value<String> name = const Value.absent(),
                 Value<int> categoryId = const Value.absent(),
                 Value<bool> isActive = const Value.absent(),
+                Value<bool> isLocked = const Value.absent(),
               }) => AccountsCompanion(
                 id: id,
                 code: code,
                 name: name,
                 categoryId: categoryId,
                 isActive: isActive,
+                isLocked: isLocked,
               ),
           createCompanionCallback:
               ({
@@ -2125,12 +2243,14 @@ class $$AccountsTableTableManager
                 required String name,
                 required int categoryId,
                 Value<bool> isActive = const Value.absent(),
+                Value<bool> isLocked = const Value.absent(),
               }) => AccountsCompanion.insert(
                 id: id,
                 code: code,
                 name: name,
                 categoryId: categoryId,
                 isActive: isActive,
+                isLocked: isLocked,
               ),
           withReferenceMapper: (p0) => p0
               .map(
@@ -2231,6 +2351,7 @@ typedef $$JournalsTableCreateCompanionBuilder =
       Value<String?> referenceNo,
       required String description,
       Value<DateTime> createdAt,
+      Value<bool> isVoid,
     });
 typedef $$JournalsTableUpdateCompanionBuilder =
     JournalsCompanion Function({
@@ -2239,6 +2360,7 @@ typedef $$JournalsTableUpdateCompanionBuilder =
       Value<String?> referenceNo,
       Value<String> description,
       Value<DateTime> createdAt,
+      Value<bool> isVoid,
     });
 
 final class $$JournalsTableReferences
@@ -2295,6 +2417,11 @@ class $$JournalsTableFilterComposer
 
   ColumnFilters<DateTime> get createdAt => $composableBuilder(
     column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get isVoid => $composableBuilder(
+    column: $table.isVoid,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -2357,6 +2484,11 @@ class $$JournalsTableOrderingComposer
     column: $table.createdAt,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<bool> get isVoid => $composableBuilder(
+    column: $table.isVoid,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$JournalsTableAnnotationComposer
@@ -2386,6 +2518,9 @@ class $$JournalsTableAnnotationComposer
 
   GeneratedColumn<DateTime> get createdAt =>
       $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<bool> get isVoid =>
+      $composableBuilder(column: $table.isVoid, builder: (column) => column);
 
   Expression<T> transactionsRefs<T extends Object>(
     Expression<T> Function($$TransactionsTableAnnotationComposer a) f,
@@ -2446,12 +2581,14 @@ class $$JournalsTableTableManager
                 Value<String?> referenceNo = const Value.absent(),
                 Value<String> description = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
+                Value<bool> isVoid = const Value.absent(),
               }) => JournalsCompanion(
                 id: id,
                 date: date,
                 referenceNo: referenceNo,
                 description: description,
                 createdAt: createdAt,
+                isVoid: isVoid,
               ),
           createCompanionCallback:
               ({
@@ -2460,12 +2597,14 @@ class $$JournalsTableTableManager
                 Value<String?> referenceNo = const Value.absent(),
                 required String description,
                 Value<DateTime> createdAt = const Value.absent(),
+                Value<bool> isVoid = const Value.absent(),
               }) => JournalsCompanion.insert(
                 id: id,
                 date: date,
                 referenceNo: referenceNo,
                 description: description,
                 createdAt: createdAt,
+                isVoid: isVoid,
               ),
           withReferenceMapper: (p0) => p0
               .map(
