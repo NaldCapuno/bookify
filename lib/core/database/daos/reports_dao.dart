@@ -1,150 +1,106 @@
-import 'package:drift/drift.dart';
-import '../app_database.dart';
-
-import 'package:bookkeeping/core/database/tables/account_categories_table.dart';
 import 'package:bookkeeping/core/database/tables/accounts_table.dart';
 import 'package:bookkeeping/core/database/tables/journal_table.dart';
 import 'package:bookkeeping/core/database/tables/transactions_table.dart';
-
 import 'package:bookkeeping/features/incomestatement/financial_item.dart';
 import 'package:bookkeeping/features/incomestatement/income_statement.dart';
+import 'package:drift/drift.dart';
+import '../app_database.dart';
 
 part 'reports_dao.g.dart';
 
-@DriftAccessor(tables: [Accounts, AccountCategories, Journals, Transactions])
+@DriftAccessor(tables: [Accounts, Transactions, Journals])
 class ReportsDao extends DatabaseAccessor<AppDatabase> with _$ReportsDaoMixin {
-  ReportsDao(super.db);
+  ReportsDao(AppDatabase db) : super(db);
 
-  /// Generates the Income Statement for a specific date range, structured
-  /// strictly by Revenue, Cost of Sales, OPEX, Other Expenses, and Taxes.
   Future<IncomeStatement> getIncomeStatement({
     required DateTime startDate,
     required DateTime endDate,
-    String businessName = "My Business",
+    required String businessName,
   }) async {
-    // Prepare the lists to hold our line items
+    // 1. Define the aggregate columns
+    final debitSum = db.transactions.debit.sum();
+    final creditSum = db.transactions.credit.sum();
+
+    // 2. Build the base query with joins
+    final query = db.select(db.accounts).join([
+      innerJoin(
+        db.transactions,
+        db.transactions.accountId.equalsExp(db.accounts.id),
+      ),
+      innerJoin(
+        db.journals,
+        db.journals.id.equalsExp(db.transactions.journalId),
+      ),
+    ]);
+
+    // 3. Add filters and group by
+    query.where(db.journals.date.isBetweenValues(startDate, endDate));
+    query.where(db.journals.isVoid.equals(false));
+    query.groupBy([db.accounts.id]);
+
+    // 4. FIX: Add columns first (this returns void), THEN call get()
+    query.addColumns([debitSum, creditSum]); // This modifies the query in place
+    final List<TypedResult> results = await query
+        .get(); // Now execute the query
+
+    // --- Data Processing ---
     List<FinancialItem> revenues = [];
-    List<FinancialItem> costOfSales = []; // 500s
-    List<FinancialItem> operatingExpenses = []; // 600s
-    List<FinancialItem> otherExpenses = []; // 700s
-    List<FinancialItem> taxExpenses = []; // 800s
+    List<FinancialItem> costOfSales = [];
+    List<FinancialItem> operatingExpenses = [];
+    List<FinancialItem> otherExpenses = [];
+    List<FinancialItem> taxExpenses = [];
 
-    double totalRevenue = 0.0;
-    double totalExpenses = 0.0;
+    double totalRev = 0;
+    double totalExp = 0;
 
-    // 1. Query the database
-    // Join transactions with journals, accounts, and categories.
-    // Filter by the date range AND ensure the journal is not voided.
-    final query =
-        select(transactions).join([
-          innerJoin(journals, journals.id.equalsExp(transactions.journalId)),
-          innerJoin(accounts, accounts.id.equalsExp(transactions.accountId)),
-          innerJoin(
-            accountCategories,
-            accountCategories.id.equalsExp(accounts.categoryId),
-          ),
-        ])..where(
-          journals.date.isBetweenValues(startDate, endDate) &
-              journals.isVoid.equals(false),
-        );
+    for (var row in results) {
+      final account = row.readTable(db.accounts);
+      final totalDebit = row.read(debitSum) ?? 0.0;
+      final totalCredit = row.read(creditSum) ?? 0.0;
 
-    final results = await query.get();
+      double balance = 0;
 
-    // 2. Aggregate the balances grouped by Account ID
-    // We store the account's code so we can easily group the expenses later.
-    final Map<int, Map<String, dynamic>> accountBalances = {};
-
-    for (final row in results) {
-      final account = row.readTable(accounts);
-      final category = row.readTable(accountCategories);
-      final transaction = row.readTable(transactions);
-
-      // Check if the category or its parent is 4 (Revenue) or 5 (Expense)
-      final isRevenue = category.id == 4 || category.parent == 4;
-      final isExpense = category.id == 5 || category.parent == 5;
-
-      // Skip Assets (1), Liabilities (2), and Equity (3)
-      if (!isRevenue && !isExpense) continue;
-
-      if (!accountBalances.containsKey(account.id)) {
-        accountBalances[account.id] = {
-          'name': account.name,
-          'code': account.code, // <-- Crucial for grouping the 500s/600s
-          'isRevenue': isRevenue,
-          'balance': 0.0,
-        };
+      // Logic based on COA: 400s (Revenue) are Credit-normal. 500-800s (Expenses) are Debit-normal.
+      if (account.code >= 400 && account.code < 500) {
+        balance = totalCredit - totalDebit;
+      } else {
+        balance = totalDebit - totalCredit;
       }
 
-      // 3. Calculate the running balance using your NormalBalance enum
-      double amount = 0.0;
-      if (category.normalBalance == NormalBalance.credit) {
-        // Normal Balance Credit: Credits increase it, Debits decrease it
-        amount = transaction.credit - transaction.debit;
-      } else if (category.normalBalance == NormalBalance.debit) {
-        // Normal Balance Debit: Debits increase it, Credits decrease it
-        amount = transaction.debit - transaction.credit;
-      }
+      if (balance == 0) continue;
 
-      accountBalances[account.id]!['balance'] += amount;
+      final item = FinancialItem(name: account.name, amount: balance);
+
+      if (account.code >= 400 && account.code < 500) {
+        revenues.add(item);
+        totalRev += balance;
+      } else if (account.code >= 500 && account.code < 600) {
+        costOfSales.add(item);
+        totalExp += balance;
+      } else if (account.code >= 600 && account.code < 700) {
+        operatingExpenses.add(item);
+        totalExp += balance;
+      } else if (account.code >= 700 && account.code < 800) {
+        otherExpenses.add(item);
+        totalExp += balance;
+      } else if (account.code >= 800 && account.code < 900) {
+        taxExpenses.add(item);
+        totalExp += balance;
+      }
     }
 
-    // 4. Distribute the aggregated balances into their proper UI categories
-    accountBalances.forEach((id, data) {
-      final balance = data['balance'] as double;
-      final name = data['name'] as String;
-      final code = data['code'] as int;
-      final isRevenue = data['isRevenue'] as bool;
-
-      // Ignore accounts that had a net-zero balance for this period
-      if (balance != 0) {
-        if (isRevenue) {
-          revenues.add(FinancialItem(name: name, amount: balance));
-          totalRevenue += balance;
-        } else {
-          // Group the expenses by the hundreds series (e.g., 501 ~/ 100 = 5)
-          int series = code ~/ 100;
-
-          if (series == 5) {
-            costOfSales.add(FinancialItem(name: name, amount: balance));
-          } else if (series == 6) {
-            operatingExpenses.add(FinancialItem(name: name, amount: balance));
-          } else if (series == 7) {
-            otherExpenses.add(FinancialItem(name: name, amount: balance));
-          } else if (series == 8) {
-            taxExpenses.add(FinancialItem(name: name, amount: balance));
-          } else {
-            // Fallback for any unexpected expense codes (e.g. if someone adds a 900 account)
-            otherExpenses.add(FinancialItem(name: name, amount: balance));
-          }
-
-          totalExpenses += balance;
-        }
-      }
-    });
-
-    // 5. Sort all lists alphabetically for a clean presentation
-    revenues.sort((a, b) => a.name.compareTo(b.name));
-    costOfSales.sort((a, b) => a.name.compareTo(b.name));
-    operatingExpenses.sort((a, b) => a.name.compareTo(b.name));
-    otherExpenses.sort((a, b) => a.name.compareTo(b.name));
-    taxExpenses.sort((a, b) => a.name.compareTo(b.name));
-
-    // 6. Calculate the Bottom Line
-    final netIncome = totalRevenue - totalExpenses;
-
-    // 7. Return the neatly packaged UI Model
     return IncomeStatement(
       businessName: businessName,
       periodStart: startDate,
       periodEnd: endDate,
       revenues: revenues,
-      totalRevenue: totalRevenue,
       costOfSales: costOfSales,
       operatingExpenses: operatingExpenses,
       otherExpenses: otherExpenses,
       taxExpenses: taxExpenses,
-      totalExpenses: totalExpenses,
-      netIncome: netIncome,
+      totalRevenue: totalRev,
+      totalExpenses: totalExp,
+      netIncome: totalRev - totalExp,
     );
   }
 }
