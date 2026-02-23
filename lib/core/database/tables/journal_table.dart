@@ -6,4 +6,6 @@ class Journals extends Table {
   TextColumn get referenceNo => text().nullable()();
   TextColumn get description => text().withLength(min: 1, max: 500)();
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
+  BoolColumn get isVoid => boolean().withDefault(const Constant(false))();
+
 }
