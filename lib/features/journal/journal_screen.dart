@@ -11,12 +11,14 @@ class JournalScreen extends StatelessWidget {
         _buildNewEntryButton(),
         const SizedBox(height: 16),
         const JournalEntryCard(
+          id: '1',
           date: 'Feb 01, 2026',
           title: 'Initial capital investment',
           accounts: 2,
           amount: '80,000.00',
         ),
         const JournalEntryCard(
+          id: '1',
           date: 'Feb 03, 2026',
           title: 'Purchase equipment',
           accounts: 2,
@@ -49,6 +51,7 @@ class JournalScreen extends StatelessWidget {
 }
 
 class JournalEntryCard extends StatefulWidget {
+  final String id;
   final String date;
   final String title;
   final int accounts;
@@ -57,6 +60,7 @@ class JournalEntryCard extends StatefulWidget {
 
   const JournalEntryCard({
     super.key,
+    required this.id,
     required this.date,
     required this.title,
     required this.accounts,
@@ -71,7 +75,6 @@ class JournalEntryCard extends StatefulWidget {
 class _JournalEntryCardState extends State<JournalEntryCard> {
   late bool _isExpanded;
   bool _isVoided = false;
-  // Removed _isPressed, as InkWell handles this natively now
 
   @override
   void initState() {
@@ -79,10 +82,11 @@ class _JournalEntryCardState extends State<JournalEntryCard> {
     _isExpanded = widget.isInitiallyExpanded;
   }
 
-  void _showVoidConfirmation(BuildContext context) {
-    if (_isVoided) return;
+  // Changed to return a Future<bool> so Dismissible knows what the user chose
+  Future<bool> _showVoidConfirmation(BuildContext context) async {
+    if (_isVoided) return false;
 
-    showModalBottomSheet(
+    final result = await showModalBottomSheet<bool>(
       context: context,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
@@ -119,7 +123,8 @@ class _JournalEntryCardState extends State<JournalEntryCard> {
                 children: [
                   Expanded(
                     child: TextButton(
-                      onPressed: () => Navigator.pop(context),
+                      // Return false if canceled
+                      onPressed: () => Navigator.pop(context, false),
                       child: const Text(
                         'Cancel',
                         style: TextStyle(color: Colors.grey),
@@ -129,10 +134,8 @@ class _JournalEntryCardState extends State<JournalEntryCard> {
                   const SizedBox(width: 12),
                   Expanded(
                     child: ElevatedButton(
-                      onPressed: () {
-                        setState(() => _isVoided = true);
-                        Navigator.pop(context);
-                      },
+                      // Return true if confirmed
+                      onPressed: () => Navigator.pop(context, true),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.red.shade700,
                         shape: RoundedRectangleBorder(
@@ -153,6 +156,9 @@ class _JournalEntryCardState extends State<JournalEntryCard> {
         );
       },
     );
+
+    return result ??
+        false; // If user taps outside the bottom sheet, return false
   }
 
   @override
@@ -161,159 +167,239 @@ class _JournalEntryCardState extends State<JournalEntryCard> {
       children: [
         Container(
           margin: const EdgeInsets.only(bottom: 12),
-          child: Material(
-            color: _isVoided ? Colors.grey.shade50 : Colors.white,
-            // borderRadius removed from here
-            clipBehavior: Clip.antiAlias,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16),
-              side: BorderSide(
-                color: _isVoided ? Colors.grey.shade300 : Colors.grey.shade200,
+          // We wrap the Material inside a Dismissible for the slide effect
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(16),
+            child: Dismissible(
+              key: ValueKey('journal_entry_${widget.id}'),
+              direction: _isVoided
+                  ? DismissDirection
+                        .none // Disable swiping if already voided
+                  : DismissDirection.endToStart, // Swipe right to left
+              // What shows behind the card when swiping
+              background: Container(
+                color: Colors.red.shade50,
+                alignment: Alignment.centerRight,
+                padding: const EdgeInsets.symmetric(horizontal: 24.0),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.block, color: Colors.red.shade400, size: 28),
+                    const SizedBox(height: 4),
+                    Text(
+                      'VOID',
+                      style: TextStyle(
+                        color: Colors.red.shade400,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
+                ),
               ),
-            ),
-            child: InkWell(
-              onLongPress: () => _showVoidConfirmation(context),
-              onTap: () => setState(() => _isExpanded = !_isExpanded),
-              splashColor: Colors.black.withValues(alpha: 0.05),
-              highlightColor: Colors.black.withValues(alpha: 0.05),
-              child: Column(
-                children: [
-                  // --- HEADER SECTION ---
-                  Padding(
-                    padding: const EdgeInsets.all(16.0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+
+              // The logic when the swipe completes
+              confirmDismiss: (direction) async {
+                // Show bottom sheet
+                bool shouldVoid = await _showVoidConfirmation(context);
+                if (shouldVoid) {
+                  setState(() => _isVoided = true);
+                }
+                // ALWAYS return false so the card snaps back into the list.
+                // We don't want to actually delete the widget, just change it to voided!
+                return false;
+              },
+
+              child: Material(
+                color: _isVoided ? Colors.grey.shade50 : Colors.white,
+                clipBehavior: Clip.antiAlias,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                  side: BorderSide(
+                    color: _isVoided
+                        ? Colors.grey.shade300
+                        : Colors.grey.shade200,
+                  ),
+                ),
+                child: InkWell(
+                  // Removed onLongPress!
+                  onTap: () => setState(() => _isExpanded = !_isExpanded),
+                  splashColor: Colors.black.withValues(alpha: 0.05),
+                  highlightColor: Colors.black.withValues(alpha: 0.05),
+                  child: Column(
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.all(16.0),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
-                                Icon(
-                                  Icons.calendar_today_outlined,
-                                  size: 14,
-                                  color: Colors.grey.shade600,
+                                Row(
+                                  children: [
+                                    Icon(
+                                      Icons.calendar_today_outlined,
+                                      size: 14,
+                                      color: Colors.grey.shade600,
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Text(
+                                      widget.date,
+                                      style: TextStyle(
+                                        color: Colors.grey.shade600,
+                                        fontSize: 13,
+                                      ),
+                                    ),
+                                  ],
                                 ),
-                                const SizedBox(width: 8),
-                                Text(
-                                  widget.date,
-                                  style: TextStyle(
-                                    color: Colors.grey.shade600,
-                                    fontSize: 13,
+                                // Smooth animated rotation for the arrow!
+                                AnimatedRotation(
+                                  turns: _isExpanded ? 0.5 : 0.0,
+                                  duration: const Duration(milliseconds: 300),
+                                  curve: Curves.easeInOut,
+                                  child: Icon(
+                                    Icons.keyboard_arrow_down,
+                                    color: Colors.grey.shade400,
                                   ),
                                 ),
                               ],
                             ),
-                            Icon(
-                              _isExpanded
-                                  ? Icons.keyboard_arrow_up
-                                  : Icons.keyboard_arrow_down,
-                              color: Colors.grey.shade400,
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 10),
-                        Text(
-                          widget.title,
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                            color: _isVoided
-                                ? Colors.grey
-                                : const Color(0xFF1A1C1E),
-                            decoration: _isVoided
-                                ? TextDecoration.lineThrough
-                                : null,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Row(
-                          children: [
+                            const SizedBox(height: 10),
                             Text(
-                              'Accounts: ',
+                              widget.title,
                               style: TextStyle(
-                                color: Colors.grey.shade500,
-                                fontSize: 12,
-                              ),
-                            ),
-                            Text(
-                              '${widget.accounts}',
-                              style: const TextStyle(
+                                fontSize: 16,
                                 fontWeight: FontWeight.bold,
-                                fontSize: 12,
-                              ),
-                            ),
-                            const SizedBox(width: 12),
-                            Text(
-                              '|',
-                              style: TextStyle(color: Colors.grey.shade300),
-                            ),
-                            const SizedBox(width: 12),
-                            Text(
-                              'Amount: ',
-                              style: TextStyle(
-                                color: Colors.grey.shade500,
-                                fontSize: 12,
-                              ),
-                            ),
-                            Text(
-                              '₱${widget.amount}',
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 12,
-                                color: _isVoided ? Colors.grey : Colors.black,
+                                color: _isVoided
+                                    ? Colors.grey
+                                    : const Color(0xFF1A1C1E),
                                 decoration: _isVoided
                                     ? TextDecoration.lineThrough
                                     : null,
                               ),
                             ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-
-                  // --- EXPANDABLE SECTION (Animated) ---
-                  AnimatedSize(
-                    duration: const Duration(milliseconds: 300),
-                    curve: Curves.easeInOut,
-                    alignment: Alignment.topCenter,
-                    child: _isExpanded
-                        ? Column(
-                            children: [
-                              const Divider(height: 1),
-                              Padding(
-                                padding: const EdgeInsets.all(16.0),
-                                child: Opacity(
-                                  opacity: _isVoided ? 0.6 : 1.0,
-                                  child: Column(
-                                    children: [
-                                      _buildAccountDetail(
-                                        name: 'Cash',
-                                        amount: widget.amount,
-                                        isDebit: true,
-                                      ),
-                                      const SizedBox(height: 12),
-                                      _buildAccountDetail(
-                                        name: "Owner's Capital",
-                                        amount: widget.amount,
-                                        isDebit: false,
-                                      ),
-                                    ],
+                            const SizedBox(height: 8),
+                            Row(
+                              children: [
+                                Text(
+                                  'Accounts: ',
+                                  style: TextStyle(
+                                    color: Colors.grey.shade500,
+                                    fontSize: 12,
                                   ),
                                 ),
-                              ),
-                            ],
-                          )
-                        : const SizedBox.shrink(), // Takes zero space when collapsed
+                                Text(
+                                  '${widget.accounts}',
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 12,
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                Text(
+                                  '|',
+                                  style: TextStyle(color: Colors.grey.shade300),
+                                ),
+                                const SizedBox(width: 12),
+                                Text(
+                                  'Amount: ',
+                                  style: TextStyle(
+                                    color: Colors.grey.shade500,
+                                    fontSize: 12,
+                                  ),
+                                ),
+                                Text(
+                                  '₱${widget.amount}',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 12,
+                                    color: _isVoided
+                                        ? Colors.grey
+                                        : Colors.black,
+                                    decoration: _isVoided
+                                        ? TextDecoration.lineThrough
+                                        : null,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                      AnimatedSize(
+                        duration: const Duration(milliseconds: 300),
+                        curve: Curves.easeInOut,
+                        alignment: Alignment.topCenter,
+                        child: _isExpanded
+                            ? Column(
+                                children: [
+                                  const Divider(height: 1),
+                                  Padding(
+                                    padding: const EdgeInsets.all(16.0),
+                                    child: Opacity(
+                                      opacity: _isVoided ? 0.6 : 1.0,
+                                      child: Column(
+                                        children: [
+                                          _buildAccountDetail(
+                                            name: 'Cash',
+                                            amount: widget.amount,
+                                            isDebit: true,
+                                          ),
+                                          const SizedBox(height: 12),
+                                          _buildAccountDetail(
+                                            name: "Owner's Capital",
+                                            amount: widget.amount,
+                                            isDebit: false,
+                                          ),
+
+                                          // Optional: You can also show a subtle Void button here
+                                          // so users have two ways to void (Swipe AND Tap)
+                                          if (!_isVoided) ...[
+                                            const SizedBox(height: 16),
+                                            Align(
+                                              alignment: Alignment.centerRight,
+                                              child: TextButton.icon(
+                                                onPressed: () async {
+                                                  bool shouldVoid =
+                                                      await _showVoidConfirmation(
+                                                        context,
+                                                      );
+                                                  if (shouldVoid) {
+                                                    setState(
+                                                      () => _isVoided = true,
+                                                    );
+                                                  }
+                                                },
+                                                icon: const Icon(
+                                                  Icons.block,
+                                                  size: 16,
+                                                  color: Colors.red,
+                                                ),
+                                                label: const Text(
+                                                  'Void Entry',
+                                                  style: TextStyle(
+                                                    color: Colors.red,
+                                                  ),
+                                                ),
+                                              ),
+                                            ),
+                                          ],
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              )
+                            : const SizedBox.shrink(),
+                      ),
+                    ],
                   ),
-                ],
+                ),
               ),
             ),
           ),
         ),
-
-        // Visual indicator that doesn't block clicks
         if (_isVoided) _buildVoidStamp(),
       ],
     );
@@ -330,7 +416,7 @@ class _JournalEntryCardState extends State<JournalEntryCard> {
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
             decoration: BoxDecoration(
               border: Border.all(
-                color: Colors.red.withValues(alpha: 0.4), // Fixed here
+                color: Colors.red.withValues(alpha: 0.4),
                 width: 2,
               ),
               borderRadius: BorderRadius.circular(4),
@@ -338,7 +424,7 @@ class _JournalEntryCardState extends State<JournalEntryCard> {
             child: Text(
               'VOIDED',
               style: TextStyle(
-                color: Colors.red.withValues(alpha: 0.4), // Fixed here
+                color: Colors.red.withValues(alpha: 0.4),
                 fontWeight: FontWeight.bold,
                 letterSpacing: 1.2,
               ),
@@ -432,4 +518,88 @@ class _JournalEntryCardState extends State<JournalEntryCard> {
       ),
     );
   }
+}
+
+Widget _buildAccountDetail({
+  required String name,
+  required String amount,
+  required bool isDebit,
+}) {
+  return Container(
+    padding: const EdgeInsets.all(12),
+    decoration: BoxDecoration(
+      color: const Color(0xFFF8FAFC),
+      borderRadius: BorderRadius.circular(12),
+      border: Border.all(color: Colors.grey.shade100),
+    ),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          name,
+          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+        ),
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            Expanded(
+              child: _buildAmountBox(
+                'Debit',
+                isDebit ? '₱$amount' : '—',
+                isDebit ? const Color(0xFFE8F5E9) : Colors.transparent,
+                isDebit ? const Color(0xFF2E7D32) : Colors.grey.shade400,
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: _buildAmountBox(
+                'Credit',
+                !isDebit ? '₱$amount' : '—',
+                !isDebit ? const Color(0xFFE3F2FD) : Colors.transparent,
+                !isDebit ? const Color(0xFF1565C0) : Colors.grey.shade400,
+              ),
+            ),
+          ],
+        ),
+      ],
+    ),
+  );
+}
+
+Widget _buildAmountBox(
+  String label,
+  String value,
+  Color bgColor,
+  Color textColor,
+) {
+  return Container(
+    padding: const EdgeInsets.all(8),
+    decoration: BoxDecoration(
+      color: bgColor,
+      borderRadius: BorderRadius.circular(8),
+      border: Border.all(color: Colors.grey.shade200),
+    ),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 10,
+            color: textColor,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+        const SizedBox(height: 2),
+        Text(
+          value,
+          style: TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.bold,
+            color: textColor,
+          ),
+        ),
+      ],
+    ),
+  );
 }
