@@ -1,16 +1,64 @@
+import 'package:drift/drift.dart' hide Column;
 import 'package:flutter/material.dart';
 import '../../core/database/app_database.dart';
 import '../../core/database/daos/ledger_dao.dart';
 import 'widgets/ledger_entry_card.dart';
 
-class LedgerScreen extends StatelessWidget {
+/// Ensures Cash account has mock transactions so the dropdown can be tested. Runs once if Cash has none.
+Future<void> _ensureMockDataForCash() async {
+  final cashAccount = await (appDb.select(appDb.accounts)
+        ..where((t) => t.name.equals('Cash')))
+      .getSingleOrNull() ??
+      await (appDb.select(appDb.accounts)
+            ..where((t) => t.name.equals('Cash on Hand')))
+          .getSingleOrNull();
+  if (cashAccount == null) return;
+
+  final existing = await (appDb.select(appDb.transactions)
+        ..where((t) => t.accountId.equals(cashAccount.id)))
+      .get();
+  if (existing.isNotEmpty) return;
+
+  final mockData = [
+    (DateTime(2026, 2, 1), 'Initial capital investment', 80000.0, 0.0),
+    (DateTime(2026, 2, 3), 'Purchase equipment', 0.0, 40000.0),
+    (DateTime(2026, 2, 7), 'Sales - cash', 15000.0, 0.0),
+  ];
+  for (final e in mockData) {
+    final journalId = await appDb.into(appDb.journals).insert(
+          JournalsCompanion.insert(date: e.$1, description: e.$2),
+        );
+    await appDb.into(appDb.transactions).insert(
+      TransactionsCompanion.insert(
+        journalId: journalId,
+        accountId: cashAccount.id,
+        debit: Value(e.$3),
+        credit: Value(e.$4),
+      ),
+    );
+  }
+}
+
+class LedgerScreen extends StatefulWidget {
   const LedgerScreen({super.key});
+
+  @override
+  State<LedgerScreen> createState() => _LedgerScreenState();
+}
+
+class _LedgerScreenState extends State<LedgerScreen> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _ensureMockDataForCash());
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF2F4F7),
-      body: StreamBuilder<List<LedgerEntry>>(
+      body: SafeArea(
+        child: StreamBuilder<List<LedgerEntry>>(
         stream: appDb.ledgerDao.watchLedgerEntries(),
         builder: (context, snapshot) {
           if (snapshot.hasError) {
@@ -27,6 +75,7 @@ class LedgerScreen extends StatelessWidget {
             padding: const EdgeInsets.all(16.0),
             children: [
               _buildSection(
+                context,
                 entries,
                 1,
                 'Assets',
@@ -34,6 +83,7 @@ class LedgerScreen extends StatelessWidget {
                 displayedIds,
               ),
               _buildSection(
+                context,
                 entries,
                 2,
                 'Liabilities',
@@ -41,6 +91,7 @@ class LedgerScreen extends StatelessWidget {
                 displayedIds,
               ),
               _buildSection(
+                context,
                 entries,
                 3,
                 "Owner's Equity",
@@ -48,6 +99,7 @@ class LedgerScreen extends StatelessWidget {
                 displayedIds,
               ),
               _buildSection(
+                context,
                 entries,
                 4,
                 'Revenue',
@@ -55,21 +107,24 @@ class LedgerScreen extends StatelessWidget {
                 displayedIds,
               ),
               _buildSection(
+                context,
                 entries,
                 5,
                 'Expenses',
                 const Color(0xFFE65100),
                 displayedIds,
               ),
-              _buildMiscSection(entries, displayedIds),
+              _buildMiscSection(context, entries, displayedIds),
             ],
           );
         },
+        ),
       ),
     );
   }
 
   Widget _buildSection(
+    BuildContext context,
     List<LedgerEntry> allEntries,
     int rootId,
     String title,
@@ -121,6 +176,7 @@ class LedgerScreen extends StatelessWidget {
   }
 
   Widget _buildMiscSection(
+    BuildContext context,
     List<LedgerEntry> allEntries,
     Set<int> displayedIds,
   ) {

@@ -41,7 +41,10 @@ MigrationStrategy buildMigrationStrategy(AppDatabase db) {
         ]);
       });
 
-      // Accounts table is left empty; users add their own accounts.
+      // 3. Seed one "Cash" account so Mock Detail can be tested without manual setup
+      await db.into(db.accounts).insert(
+        AccountsCompanion.insert(code: 1000, name: 'Cash', categoryId: 11),
+      );
     },
     onUpgrade: (Migrator m, int from, int to) async {
       // Handle future schema updates here
