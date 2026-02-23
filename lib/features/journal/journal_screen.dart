@@ -1,39 +1,100 @@
+import 'package:bookkeeping/core/database/app_database.dart';
+import 'package:bookkeeping/core/database/daos/journal_entry_daos.dart';
+import 'package:bookkeeping/features/journal/add_transaction.dart';
+import 'package:intl/intl.dart';
 import 'package:flutter/material.dart';
 
 class JournalScreen extends StatelessWidget {
   const JournalScreen({super.key});
 
+  void _openAddTransaction(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => const AddJournalEntryForm(),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    return ListView(
-      padding: const EdgeInsets.all(16.0),
+    return Column(
       children: [
-        _buildNewEntryButton(),
-        const SizedBox(height: 16),
-        const JournalEntryCard(
-          id: '1',
-          date: 'Feb 01, 2026',
-          title: 'Initial capital investment',
-          accounts: 2,
-          amount: '80,000.00',
+        // 1. The New Entry Button fixed at the top
+        Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: _buildNewEntryButton(context),
         ),
-        const JournalEntryCard(
-          id: '1',
-          date: 'Feb 03, 2026',
-          title: 'Purchase equipment',
-          accounts: 2,
-          amount: '40,000.00',
+
+        // 2. The Dynamic List of Entries
+        Expanded(
+          // 1. Change the type to List<JournalSummary>
+          child: StreamBuilder<List<JournalSummary>>(
+            // 2. Listen to our new powerful joined query
+            stream: appDb.journalEntryDao.watchJournalSummaries(),
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const Center(child: CircularProgressIndicator());
+              }
+
+              if (snapshot.hasError) {
+                return Center(child: Text('Error: ${snapshot.error}'));
+              }
+
+              final summaryList = snapshot.data ?? [];
+
+              if (summaryList.isEmpty) {
+                return const Center(
+                  child: Text(
+                    'No journal entries yet. Tap above to create one!',
+                    style: TextStyle(color: Colors.grey),
+                  ),
+                );
+              }
+
+              return ListView.builder(
+                padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                itemCount: summaryList.length,
+                itemBuilder: (context, index) {
+                  // 'summary' now holds the Journal AND the computed totals
+                  final summary = summaryList[index];
+
+                  final dateString = DateFormat(
+                    'MMM dd, yyyy',
+                  ).format(summary.journal.date);
+
+                  // Format the amount with commas (e.g., 80000.0 becomes "80,000.00")
+                  final formattedAmount = NumberFormat(
+                    '#,##0.00',
+                  ).format(summary.totalAmount);
+
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 16.0),
+                    child: JournalEntryCard(
+                      id: summary.journal.id.toString(),
+                      date: dateString,
+                      title: summary.journal.description,
+
+                      // 3. Inject the live calculated data directly into your card!
+                      accounts: summary.accountCount,
+                      amount: formattedAmount,
+                    ),
+                  );
+                },
+              );
+            },
+          ),
         ),
       ],
     );
   }
 
-  Widget _buildNewEntryButton() {
+  Widget _buildNewEntryButton(BuildContext context) {
     return SizedBox(
       width: double.infinity,
       height: 55,
       child: ElevatedButton.icon(
-        onPressed: () {},
+        onPressed: () => _openAddTransaction(context),
         icon: const Icon(Icons.add, color: Colors.white, size: 20),
         label: const Text(
           'New Journal Entry',
