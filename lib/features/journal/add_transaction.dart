@@ -8,7 +8,25 @@ class JournalLine {
   double debit;
   double credit;
 
-  JournalLine({this.accountId, this.debit = 0.0, this.credit = 0.0});
+  // Controllers and FocusNodes for dynamic formatting
+  final TextEditingController debitController;
+  final TextEditingController creditController;
+  final FocusNode debitFocus;
+  final FocusNode creditFocus;
+
+  JournalLine({this.accountId, this.debit = 0.0, this.credit = 0.0})
+    : debitController = TextEditingController(),
+      creditController = TextEditingController(),
+      debitFocus = FocusNode(),
+      creditFocus = FocusNode();
+
+  // Prevents memory leaks when a row is deleted
+  void dispose() {
+    debitController.dispose();
+    creditController.dispose();
+    debitFocus.dispose();
+    creditFocus.dispose();
+  }
 }
 
 class AddJournalEntryForm extends StatefulWidget {
@@ -21,7 +39,7 @@ class AddJournalEntryForm extends StatefulWidget {
 class _AddJournalEntryFormState extends State<AddJournalEntryForm> {
   double totalDebit = 0.0;
   double totalCredit = 0.0;
-  List<JournalLine> lines = [JournalLine(), JournalLine()];
+  List<JournalLine> lines = [];
 
   final TextEditingController _refNoController = TextEditingController();
   final TextEditingController _descController = TextEditingController();
@@ -34,13 +52,78 @@ class _AddJournalEntryFormState extends State<AddJournalEntryForm> {
   List<Account> _availableAccounts = [];
   bool _isLoadingAccounts = true;
 
+  // Creates a new line and attaches the "Format on Leave" listeners
+  JournalLine _createNewRow() {
+    final line = JournalLine();
+
+    // Listen to the Debit box
+    line.debitFocus.addListener(() {
+      if (!line.debitFocus.hasFocus) {
+        _formatAmount(line.debitController, (val) {
+          line.debit = val;
+          _calculateTotals();
+        });
+      }
+    });
+
+    // Listen to the Credit box
+    line.creditFocus.addListener(() {
+      if (!line.creditFocus.hasFocus) {
+        _formatAmount(line.creditController, (val) {
+          line.credit = val;
+          _calculateTotals();
+        });
+      }
+    });
+
+    return line;
+  }
+
+  // Parses the text, adds commas, and updates the UI
+  void _formatAmount(
+    TextEditingController controller,
+    Function(double) updateValue,
+  ) {
+    if (controller.text.isEmpty) return;
+
+    // 1. Strip out any existing commas so Dart can parse it as a double
+    String cleanText = controller.text.replaceAll(',', '');
+    double? parsedValue = double.tryParse(cleanText);
+
+    if (parsedValue != null && parsedValue > 0) {
+      // 2. Format with commas and exactly 2 decimal places
+      controller.text = NumberFormat('#,##0.00').format(parsedValue);
+      updateValue(parsedValue);
+    } else {
+      // Clear the box if they typed garbage
+      controller.text = '';
+      updateValue(0.0);
+    }
+  }
+
   @override
   void initState() {
     super.initState();
-    // Initialize the date field with today's date
     _dateController.text = DateFormat('MM/dd/yyyy').format(_selectedDate);
-    // Fetch accounts from the database
     _loadAccounts();
+    _descController.addListener(() {
+      setState(() {});
+    });
+
+    // Initialize the first two rows using our new method
+    lines = [_createNewRow(), _createNewRow()];
+  }
+
+  @override
+  void dispose() {
+    _refNoController.dispose();
+    _descController.dispose();
+    _dateController.dispose();
+    // Dispose of all line controllers
+    for (var line in lines) {
+      line.dispose();
+    }
+    super.dispose();
   }
 
   // NEW: Fetch accounts from SQLite
@@ -89,19 +172,113 @@ class _AddJournalEntryFormState extends State<AddJournalEntryForm> {
     }
   }
 
-  @override
-  void dispose() {
-    _refNoController.dispose();
-    _descController.dispose();
-    _dateController.dispose(); // Don't forget to dispose the new controller
-    super.dispose();
-  }
-
   void _calculateTotals() {
     setState(() {
       totalDebit = lines.fold(0, (sum, item) => sum + item.debit);
       totalCredit = lines.fold(0, (sum, item) => sum + item.credit);
     });
+  }
+
+  void _showAccountSearchSheet(int lineIndex) {
+    // Temporary list to hold filtered results while searching
+    List<Account> filteredAccounts = List.from(_availableAccounts);
+    final TextEditingController searchController = TextEditingController();
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (BuildContext context, StateSetter setSheetState) {
+            return Padding(
+              // Push up when keyboard appears
+              padding: EdgeInsets.only(
+                bottom: MediaQuery.of(context).viewInsets.bottom,
+                top: 20,
+                left: 16,
+                right: 16,
+              ),
+              child: DraggableScrollableSheet(
+                initialChildSize: 0.6, // Takes up 60% of screen initially
+                minChildSize: 0.4,
+                maxChildSize: 0.9,
+                expand: false,
+                builder: (context, scrollController) {
+                  return Column(
+                    children: [
+                      const Text(
+                        "Select Account",
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+
+                      // Search Bar
+                      TextField(
+                        controller: searchController,
+                        decoration: InputDecoration(
+                          hintText: "Search accounts...",
+                          prefixIcon: const Icon(Icons.search),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          contentPadding: const EdgeInsets.symmetric(
+                            vertical: 0,
+                          ),
+                        ),
+                        onChanged: (query) {
+                          setSheetState(() {
+                            filteredAccounts = _availableAccounts
+                                .where(
+                                  (a) => a.name.toLowerCase().contains(
+                                    query.toLowerCase(),
+                                  ),
+                                )
+                                .toList();
+                          });
+                        },
+                      ),
+                      const SizedBox(height: 12),
+
+                      // The optimized ListView
+                      Expanded(
+                        child: ListView.separated(
+                          controller: scrollController,
+                          itemCount: filteredAccounts.length,
+                          separatorBuilder: (_, __) => const Divider(height: 1),
+                          itemBuilder: (context, idx) {
+                            final account = filteredAccounts[idx];
+                            return ListTile(
+                              title: Text(
+                                account.name,
+                                style: const TextStyle(fontSize: 15),
+                              ),
+                              onTap: () {
+                                // Update the main form state
+                                setState(() {
+                                  lines[lineIndex].accountId = account.id;
+                                });
+                                Navigator.pop(context); // Close sheet
+                              },
+                            );
+                          },
+                        ),
+                      ),
+                    ],
+                  );
+                },
+              ),
+            );
+          },
+        );
+      },
+    );
   }
 
   Future<void> _saveEntry() async {
@@ -177,7 +354,14 @@ class _AddJournalEntryFormState extends State<AddJournalEntryForm> {
 
   @override
   Widget build(BuildContext context) {
+    // 1. Check if the math balances
     bool isBalanced = (totalDebit - totalCredit).abs() < 0.01 && totalDebit > 0;
+
+    // 2. Check if the description is filled out
+    bool hasDescription = _descController.text.trim().isNotEmpty;
+
+    // 3. The button is ONLY active if BOTH are true
+    bool canSave = isBalanced && hasDescription;
 
     return Container(
       padding: EdgeInsets.only(
@@ -252,7 +436,8 @@ class _AddJournalEntryFormState extends State<AddJournalEntryForm> {
                 const SizedBox(width: 12),
                 Expanded(
                   child: ElevatedButton(
-                    onPressed: isBalanced ? _saveEntry : null,
+                    // Use 'canSave' instead of 'isBalanced'
+                    onPressed: canSave ? _saveEntry : null,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.blueGrey[800],
                       foregroundColor: Colors.white,
@@ -304,7 +489,6 @@ class _AddJournalEntryFormState extends State<AddJournalEntryForm> {
       ),
       child: Column(
         children: [
-          _buildRowHeader(),
           ...List.generate(lines.length, (index) => _buildRowInput(index)),
           _buildTableFooter(),
         ],
@@ -349,94 +533,170 @@ class _AddJournalEntryFormState extends State<AddJournalEntryForm> {
   }
 
   Widget _buildRowInput(int index) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
-      child: Row(
+    // Find the account name to display, or show placeholder
+    final selectedAccountId = lines[index].accountId;
+    final accountName = selectedAccountId != null
+        ? _availableAccounts.firstWhere((a) => a.id == selectedAccountId).name
+        : "Select Account";
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12.0),
+      padding: const EdgeInsets.all(12.0),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        border: Border.all(color: Colors.grey.shade300),
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withOpacity(0.05),
+            blurRadius: 4,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Expanded(
-            flex: 3,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8),
-              decoration: BoxDecoration(
-                border: Border.all(color: Colors.grey[300]!),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              // UPDATED: Dynamic Accounts Dropdown
-              child: _isLoadingAccounts
-                  ? const SizedBox(
-                      height: 48,
-                      child: Center(
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      ),
-                    )
-                  : DropdownButtonHideUnderline(
-                      child: DropdownButton<int>(
-                        hint: const Text(
-                          "Select",
-                          style: TextStyle(fontSize: 13),
-                        ),
-                        isExpanded: true,
-                        value: lines[index].accountId,
-                        // Map the database accounts to DropdownMenuItems
-                        items: _availableAccounts.map((account) {
-                          return DropdownMenuItem<int>(
-                            value: account.id,
-                            child: Text(
-                              account.name,
-                              style: const TextStyle(fontSize: 13),
-                              overflow: TextOverflow
-                                  .ellipsis, // Prevents long names from breaking UI
-                            ),
-                          );
-                        }).toList(),
-                        onChanged: (val) =>
-                            setState(() => lines[index].accountId = val),
-                      ),
+          // Top Row: Account Selector and Delete Button
+          Row(
+            children: [
+              Expanded(
+                child: InkWell(
+                  onTap: () => _showAccountSearchSheet(
+                    index,
+                  ), // Opens our new search sheet
+                  borderRadius: BorderRadius.circular(8),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 12,
                     ),
-            ),
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade50,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Colors.grey.shade200),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Expanded(
+                          child: Text(
+                            accountName,
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: selectedAccountId != null
+                                  ? FontWeight.w600
+                                  : FontWeight.normal,
+                              color: selectedAccountId != null
+                                  ? Colors.black87
+                                  : Colors.grey.shade600,
+                            ),
+                            overflow: TextOverflow
+                                .ellipsis, // Fades out if extremely long
+                          ),
+                        ),
+                        Icon(
+                          Icons.arrow_drop_down_circle_outlined,
+                          color: Colors.blueGrey.shade300,
+                          size: 20,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              IconButton(
+                icon: Icon(Icons.delete_outline, color: Colors.red.shade300),
+                onPressed: lines.length > 2
+                    ? () => setState(() {
+                        lines.removeAt(index);
+                        _calculateTotals();
+                      })
+                    : null, // Disable delete if only 2 lines remain
+              ),
+            ],
           ),
-          const SizedBox(width: 8),
-          Expanded(
-            flex: 2,
-            child: _buildAmountInput(
-              onChanged: (val) {
-                lines[index].debit = double.tryParse(val) ?? 0;
-                _calculateTotals();
-              },
-            ),
-          ),
-          const SizedBox(width: 8),
-          Expanded(
-            flex: 2,
-            child: _buildAmountInput(
-              onChanged: (val) {
-                lines[index].credit = double.tryParse(val) ?? 0;
-                _calculateTotals();
-              },
-            ),
-          ),
-          IconButton(
-            icon: Icon(Icons.delete_outline, color: Colors.red[300], size: 20),
-            onPressed: lines.length > 2
-                ? () => setState(() {
-                    lines.removeAt(index);
+          const SizedBox(height: 12),
+
+          // Bottom Row: Debit and Credit side-by-side (now much wider!)
+          Row(
+            children: [
+              Expanded(
+                child: _buildAmountInput(
+                  label: "Debit",
+                  // Pass the controller and focus node from your upgraded JournalLine
+                  controller: lines[index].debitController,
+                  focusNode: lines[index].debitFocus,
+                  onChanged: (val) {
+                    // Strip out commas before parsing so live math doesn't break
+                    String cleanVal = val.replaceAll(',', '');
+                    lines[index].debit = double.tryParse(cleanVal) ?? 0;
                     _calculateTotals();
-                  })
-                : null,
+                  },
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _buildAmountInput(
+                  label: "Credit",
+                  // Pass the controller and focus node from your upgraded JournalLine
+                  controller: lines[index].creditController,
+                  focusNode: lines[index].creditFocus,
+                  onChanged: (val) {
+                    // Strip out commas before parsing so live math doesn't break
+                    String cleanVal = val.replaceAll(',', '');
+                    lines[index].credit = double.tryParse(cleanVal) ?? 0;
+                    _calculateTotals();
+                  },
+                ),
+              ),
+            ],
           ),
         ],
       ),
     );
   }
 
-  Widget _buildAmountInput({required Function(String) onChanged}) {
-    return TextField(
+  Widget _buildAmountInput({
+    required String label,
+    required TextEditingController controller,
+    required FocusNode focusNode,
+    required Function(String) onChanged,
+  }) {
+    return TextFormField(
+      controller: controller, // Linked here
+      focusNode: focusNode, // Linked here
       keyboardType: const TextInputType.numberWithOptions(decimal: true),
-      textAlign: TextAlign.center,
-      style: const TextStyle(fontSize: 13),
+      textAlign: TextAlign.right,
+      style: const TextStyle(
+        fontSize: 16,
+        fontWeight: FontWeight.w600,
+        color: Colors.black87,
+      ),
       decoration: InputDecoration(
-        contentPadding: const EdgeInsets.symmetric(vertical: 8),
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+        labelText: label,
+        labelStyle: TextStyle(color: Colors.grey.shade600, fontSize: 13),
+        hintText: '0.00',
+        hintStyle: TextStyle(color: Colors.grey.shade400),
+        prefixText: '₱ ',
+        prefixStyle: const TextStyle(
+          color: Colors.black87,
+          fontSize: 16,
+          fontWeight: FontWeight.w600,
+        ),
+        filled: true,
+        fillColor: Colors.grey.shade50,
+        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        border: UnderlineInputBorder(
+          borderSide: BorderSide(color: Colors.grey.shade300),
+        ),
+        enabledBorder: UnderlineInputBorder(
+          borderSide: BorderSide(color: Colors.grey.shade300),
+        ),
+        focusedBorder: const UnderlineInputBorder(
+          borderSide: BorderSide(color: Colors.blueGrey, width: 2),
+        ),
         isDense: true,
       ),
       onChanged: onChanged,
@@ -445,40 +705,123 @@ class _AddJournalEntryFormState extends State<AddJournalEntryForm> {
 
   Widget _buildTableFooter() {
     bool isBalanced = (totalDebit - totalCredit).abs() < 0.01 && totalDebit > 0;
+    double difference = (totalDebit - totalCredit).abs();
+
     return Container(
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.grey[50],
-        borderRadius: const BorderRadius.vertical(bottom: Radius.circular(12)),
+        // Dynamic background color based on balance status
+        color: totalDebit == 0
+            ? Colors.grey.shade50
+            : (isBalanced ? Colors.green.shade50 : Colors.red.shade50),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: totalDebit == 0
+              ? Colors.grey.shade200
+              : (isBalanced ? Colors.green.shade200 : Colors.red.shade200),
+        ),
       ),
       child: Column(
         children: [
-          TextButton.icon(
-            onPressed: () => setState(() => lines.add(JournalLine())),
-            icon: const Icon(Icons.add, size: 18),
-            label: const Text("Add Line"),
-          ),
-          const Divider(),
+          // Totals aligned perfectly using SpaceBetween
           Row(
-            mainAxisAlignment: MainAxisAlignment.end,
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                "₱ ${totalDebit.toStringAsFixed(2)}",
+                "Total Debit",
                 style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  color: isBalanced ? Colors.green : Colors.black87,
+                  color: Colors.grey.shade700,
+                  fontWeight: FontWeight.w500,
                 ),
               ),
-              const SizedBox(width: 40),
+              Text(
+                "₱ ${totalDebit.toStringAsFixed(2)}",
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                "Total Credit",
+                style: TextStyle(
+                  color: Colors.grey.shade700,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
               Text(
                 "₱ ${totalCredit.toStringAsFixed(2)}",
-                style: TextStyle(
+                style: const TextStyle(
                   fontWeight: FontWeight.bold,
-                  color: isBalanced ? Colors.green : Colors.black87,
+                  fontSize: 16,
                 ),
               ),
-              const SizedBox(width: 40),
             ],
+          ),
+
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: 12),
+            child: Divider(height: 1),
+          ),
+
+          // Status Indicator
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                totalDebit == 0
+                    ? "Enter amounts"
+                    : (isBalanced ? "Balanced" : "Out of Balance"),
+                style: TextStyle(
+                  color: totalDebit == 0
+                      ? Colors.grey.shade600
+                      : (isBalanced
+                            ? Colors.green.shade700
+                            : Colors.red.shade700),
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              if (!isBalanced && totalDebit > 0)
+                Text(
+                  "Difference: ₱ ${difference.toStringAsFixed(2)}",
+                  style: TextStyle(
+                    color: Colors.red.shade700,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+            ],
+          ),
+
+          const SizedBox(height: 16),
+
+          // Full-width Add Line Button inside the footer
+          SizedBox(
+            width: double.infinity,
+            height: 48,
+            child: OutlinedButton.icon(
+              onPressed: () {
+                setState(() => lines.add(JournalLine()));
+                // Optional: You could scroll down here if the list gets too long
+              },
+              icon: const Icon(Icons.add, size: 20),
+              label: const Text(
+                "Add Another Line",
+                style: TextStyle(fontWeight: FontWeight.w600),
+              ),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: Colors.blueGrey.shade700,
+                side: BorderSide(color: Colors.blueGrey.shade200),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
+            ),
           ),
         ],
       ),
