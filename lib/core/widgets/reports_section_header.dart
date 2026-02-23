@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
-import '../theme/app_colors.dart';
+import 'package:bookkeeping/core/widgets/reports_color.dart';
 
 class SectionHeader extends StatelessWidget {
   final String title;
-  
+
   const SectionHeader({super.key, required this.title});
 
   @override

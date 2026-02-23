@@ -1,5 +1,5 @@
-import 'package:flutter/material.dart';
 import 'package:bookkeeping/core/widgets/reports_color.dart';
+import 'package:flutter/material.dart';
 
 class FinancialLineItem extends StatelessWidget {
   final String label;
@@ -34,15 +34,30 @@ class FinancialLineItem extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: 4.0),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        crossAxisAlignment:
+            CrossAxisAlignment.start, // Align to top if label wraps
         children: [
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: fontSize,
-              fontWeight: fontWeight,
-              color: textColor,
+          // 1. Wrap label in Expanded so it doesn't push the amount off-screen
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.only(
+                right: 12.0,
+              ), // Gap between text and numbers
+              child: Text(
+                label,
+                style: TextStyle(
+                  fontSize: fontSize,
+                  fontWeight: fontWeight,
+                  color: textColor,
+                ),
+                // 2. Add overflow handling for very long account names
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
             ),
           ),
+
+          // 3. Amount stays fixed-width
           Text(
             amount,
             style: TextStyle(
