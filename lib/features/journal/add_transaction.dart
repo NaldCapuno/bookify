@@ -1,7 +1,10 @@
 import 'package:bookkeeping/core/database/app_database.dart';
+import 'package:bookkeeping/core/database/daos/journal_entry_daos.dart';
+import 'package:bookkeeping/core/database/tables/account_categories_table.dart';
 import 'package:flutter/material.dart';
 import 'package:drift/drift.dart' as drift;
 import 'package:intl/intl.dart';
+import 'package:grouped_list/grouped_list.dart';
 
 class JournalLine {
   int? accountId;
@@ -48,8 +51,7 @@ class _AddJournalEntryFormState extends State<AddJournalEntryForm> {
   final TextEditingController _dateController = TextEditingController();
   DateTime _selectedDate = DateTime.now();
 
-  // NEW: State variables for accounts
-  List<Account> _availableAccounts = [];
+  List<AccountWithCategory> _availableAccounts = [];
   bool _isLoadingAccounts = true;
 
   // Creates a new line and attaches the "Format on Leave" listeners
@@ -126,10 +128,9 @@ class _AddJournalEntryFormState extends State<AddJournalEntryForm> {
     super.dispose();
   }
 
-  // NEW: Fetch accounts from SQLite
   Future<void> _loadAccounts() async {
     try {
-      final accounts = await appDb.journalEntryDao.getActiveAccounts();
+      final accounts = await appDb.journalEntryDao.getAccountsWithCategories();
       if (mounted) {
         setState(() {
           _availableAccounts = accounts;
@@ -180,8 +181,8 @@ class _AddJournalEntryFormState extends State<AddJournalEntryForm> {
   }
 
   void _showAccountSearchSheet(int lineIndex) {
-    // Temporary list to hold filtered results while searching
-    List<Account> filteredAccounts = List.from(_availableAccounts);
+    // Hold our filtered combined list
+    List<AccountWithCategory> filteredAccounts = List.from(_availableAccounts);
     final TextEditingController searchController = TextEditingController();
 
     showModalBottomSheet(
@@ -195,7 +196,6 @@ class _AddJournalEntryFormState extends State<AddJournalEntryForm> {
         return StatefulBuilder(
           builder: (BuildContext context, StateSetter setSheetState) {
             return Padding(
-              // Push up when keyboard appears
               padding: EdgeInsets.only(
                 bottom: MediaQuery.of(context).viewInsets.bottom,
                 top: 20,
@@ -203,7 +203,7 @@ class _AddJournalEntryFormState extends State<AddJournalEntryForm> {
                 right: 16,
               ),
               child: DraggableScrollableSheet(
-                initialChildSize: 0.6, // Takes up 60% of screen initially
+                initialChildSize: 0.6,
                 minChildSize: 0.4,
                 maxChildSize: 0.9,
                 expand: false,
@@ -223,7 +223,7 @@ class _AddJournalEntryFormState extends State<AddJournalEntryForm> {
                       TextField(
                         controller: searchController,
                         decoration: InputDecoration(
-                          hintText: "Search accounts...",
+                          hintText: "Search accounts or categories...",
                           prefixIcon: const Icon(Icons.search),
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
@@ -234,37 +234,107 @@ class _AddJournalEntryFormState extends State<AddJournalEntryForm> {
                         ),
                         onChanged: (query) {
                           setSheetState(() {
-                            filteredAccounts = _availableAccounts
-                                .where(
-                                  (a) => a.name.toLowerCase().contains(
-                                    query.toLowerCase(),
-                                  ),
-                                )
-                                .toList();
+                            // Filter by BOTH account name and category name
+                            filteredAccounts = _availableAccounts.where((a) {
+                              final matchAccount = a.account.name
+                                  .toLowerCase()
+                                  .contains(query.toLowerCase());
+                              final matchCategory = a.category.name
+                                  .toLowerCase()
+                                  .contains(query.toLowerCase());
+                              return matchAccount || matchCategory;
+                            }).toList();
                           });
                         },
                       ),
                       const SizedBox(height: 12),
 
-                      // The optimized ListView
+                      // THE STICKY GROUPED LIST
                       Expanded(
-                        child: ListView.separated(
+                        child: GroupedListView<AccountWithCategory, String>(
                           controller: scrollController,
-                          itemCount: filteredAccounts.length,
-                          separatorBuilder: (_, __) => const Divider(height: 1),
-                          itemBuilder: (context, idx) {
-                            final account = filteredAccounts[idx];
+                          elements: filteredAccounts,
+                          // 1. Tell it what to group by (the category name)
+                          groupBy: (element) => element.category.name,
+
+                          // 2. Turn on the sticky headers!
+                          useStickyGroupSeparators: true,
+
+                          // 3. Design the sticky header
+                          groupSeparatorBuilder: (String categoryName) =>
+                              Container(
+                                width: double.infinity,
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 8,
+                                  horizontal: 12,
+                                ),
+                                color: Colors
+                                    .grey
+                                    .shade100, // Light background to separate it
+                                child: Text(
+                                  categoryName.toUpperCase(), // e.g., "ASSETS"
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.blueGrey.shade700,
+                                    letterSpacing: 1.2,
+                                  ),
+                                ),
+                              ),
+
+                          // 4. Design the actual account list item with DR/CR Badge
+                          itemBuilder: (context, element) {
+                            // Determine if the normal balance is debit or credit
+                            final isDebit =
+                                element.category.normalBalance ==
+                                NormalBalance.debit;
+
+                            // Set up colors and text based on the balance type
+                            final badgeText = isDebit ? 'DR' : 'CR';
+                            final badgeColor = isDebit
+                                ? Colors.blue.shade700
+                                : Colors.orange.shade700;
+                            final badgeBg = isDebit
+                                ? Colors.blue.shade50
+                                : Colors.orange.shade50;
+
                             return ListTile(
                               title: Text(
-                                account.name,
-                                style: const TextStyle(fontSize: 15),
+                                element.account.name,
+                                style: const TextStyle(
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                              // THE NEW NORMAL BALANCE BADGE
+                              trailing: Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 8,
+                                  vertical: 4,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: badgeBg,
+                                  borderRadius: BorderRadius.circular(6),
+                                  border: Border.all(
+                                    color: badgeColor.withValues(alpha: 0.3),
+                                  ),
+                                ),
+                                child: Text(
+                                  badgeText,
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.bold,
+                                    color: badgeColor,
+                                    letterSpacing: 0.5,
+                                  ),
+                                ),
                               ),
                               onTap: () {
-                                // Update the main form state
                                 setState(() {
-                                  lines[lineIndex].accountId = account.id;
+                                  lines[lineIndex].accountId =
+                                      element.account.id;
                                 });
-                                Navigator.pop(context); // Close sheet
+                                Navigator.pop(context);
                               },
                             );
                           },
@@ -365,10 +435,10 @@ class _AddJournalEntryFormState extends State<AddJournalEntryForm> {
 
     return Container(
       padding: EdgeInsets.only(
-        top: 20,
+        top: 40,
         left: 20,
         right: 20,
-        bottom: MediaQuery.of(context).viewInsets.bottom + 20,
+        bottom: MediaQuery.of(context).viewInsets.bottom + 40,
       ),
       decoration: const BoxDecoration(
         color: Colors.white,
@@ -482,61 +552,54 @@ class _AddJournalEntryFormState extends State<AddJournalEntryForm> {
   }
 
   Widget _buildEntryTable() {
-    return Container(
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey[200]!),
-      ),
-      child: Column(
-        children: [
-          ...List.generate(lines.length, (index) => _buildRowInput(index)),
-          _buildTableFooter(),
-        ],
-      ),
-    );
-  }
+    return Column(
+      children: [
+        // 1. The individual account cards
+        ...List.generate(lines.length, (index) => _buildRowInput(index)),
 
-  Widget _buildRowHeader() {
-    return const Padding(
-      padding: EdgeInsets.symmetric(vertical: 12.0, horizontal: 12.0),
-      child: Row(
-        children: [
-          Expanded(
-            flex: 3,
-            child: Text(
-              "Account",
-              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+        const SizedBox(height: 8),
+
+        // 2. The new standalone "Add Another Account" Button
+        SizedBox(
+          width: double.infinity,
+          height: 48,
+          child: OutlinedButton.icon(
+            onPressed: () {
+              // Assuming you are using the _createNewRow() method we made earlier!
+              setState(() => lines.add(_createNewRow()));
+            },
+            icon: const Icon(Icons.add_circle_outline, size: 20),
+            label: const Text(
+              "Add Another Account",
+              style: TextStyle(fontWeight: FontWeight.w600),
             ),
-          ),
-          Expanded(
-            flex: 2,
-            child: Center(
-              child: Text(
-                "Debit",
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+            style: OutlinedButton.styleFrom(
+              backgroundColor: Colors.white, // Makes it pop like a button
+              foregroundColor: Colors.blueGrey.shade700,
+              side: BorderSide(color: Colors.blueGrey.shade200, width: 1.5),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
               ),
             ),
           ),
-          Expanded(
-            flex: 2,
-            child: Center(
-              child: Text(
-                "Credit",
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
-              ),
-            ),
-          ),
-          SizedBox(width: 40),
-        ],
-      ),
+        ),
+
+        const SizedBox(height: 16),
+
+        // 3. The cleaned-up totals footer
+        _buildTableFooter(),
+      ],
     );
   }
 
   Widget _buildRowInput(int index) {
-    // Find the account name to display, or show placeholder
     final selectedAccountId = lines[index].accountId;
     final accountName = selectedAccountId != null
-        ? _availableAccounts.firstWhere((a) => a.id == selectedAccountId).name
+        // Notice we added .account.id and .account.name here!
+        ? _availableAccounts
+              .firstWhere((a) => a.account.id == selectedAccountId)
+              .account
+              .name
         : "Select Account";
 
     return Container(
@@ -707,23 +770,24 @@ class _AddJournalEntryFormState extends State<AddJournalEntryForm> {
     bool isBalanced = (totalDebit - totalCredit).abs() < 0.01 && totalDebit > 0;
     double difference = (totalDebit - totalCredit).abs();
 
+    // Check if the user has entered any numbers yet
+    bool hasAmounts = totalDebit > 0 || totalCredit > 0;
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        // Dynamic background color based on balance status
-        color: totalDebit == 0
+        color: !hasAmounts
             ? Colors.grey.shade50
             : (isBalanced ? Colors.green.shade50 : Colors.red.shade50),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: totalDebit == 0
+          color: !hasAmounts
               ? Colors.grey.shade200
               : (isBalanced ? Colors.green.shade200 : Colors.red.shade200),
         ),
       ),
       child: Column(
         children: [
-          // Totals aligned perfectly using SpaceBetween
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -735,7 +799,7 @@ class _AddJournalEntryFormState extends State<AddJournalEntryForm> {
                 ),
               ),
               Text(
-                "₱ ${totalDebit.toStringAsFixed(2)}",
+                "₱ ${NumberFormat('#,##0.00').format(totalDebit)}",
                 style: const TextStyle(
                   fontWeight: FontWeight.bold,
                   fontSize: 16,
@@ -755,7 +819,7 @@ class _AddJournalEntryFormState extends State<AddJournalEntryForm> {
                 ),
               ),
               Text(
-                "₱ ${totalCredit.toStringAsFixed(2)}",
+                "₱ ${NumberFormat('#,##0.00').format(totalCredit)}",
                 style: const TextStyle(
                   fontWeight: FontWeight.bold,
                   fontSize: 16,
@@ -764,65 +828,36 @@ class _AddJournalEntryFormState extends State<AddJournalEntryForm> {
             ],
           ),
 
-          const Padding(
-            padding: EdgeInsets.symmetric(vertical: 12),
-            child: Divider(height: 1),
-          ),
-
-          // Status Indicator
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                totalDebit == 0
-                    ? "Enter amounts"
-                    : (isBalanced ? "Balanced" : "Out of Balance"),
-                style: TextStyle(
-                  color: totalDebit == 0
-                      ? Colors.grey.shade600
-                      : (isBalanced
-                            ? Colors.green.shade700
-                            : Colors.red.shade700),
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              if (!isBalanced && totalDebit > 0)
+          // Only show the Status and Difference if there are actual amounts typed in
+          if (hasAmounts) ...[
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 12),
+              child: Divider(height: 1),
+            ),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
                 Text(
-                  "Difference: ₱ ${difference.toStringAsFixed(2)}",
+                  isBalanced ? "Balanced" : "Out of Balance",
                   style: TextStyle(
-                    color: Colors.red.shade700,
-                    fontSize: 13,
-                    fontWeight: FontWeight.w500,
+                    color: isBalanced
+                        ? Colors.green.shade700
+                        : Colors.red.shade700,
+                    fontWeight: FontWeight.bold,
                   ),
                 ),
-            ],
-          ),
-
-          const SizedBox(height: 16),
-
-          // Full-width Add Line Button inside the footer
-          SizedBox(
-            width: double.infinity,
-            height: 48,
-            child: OutlinedButton.icon(
-              onPressed: () {
-                setState(() => lines.add(JournalLine()));
-                // Optional: You could scroll down here if the list gets too long
-              },
-              icon: const Icon(Icons.add, size: 20),
-              label: const Text(
-                "Add Another Line",
-                style: TextStyle(fontWeight: FontWeight.w600),
-              ),
-              style: OutlinedButton.styleFrom(
-                foregroundColor: Colors.blueGrey.shade700,
-                side: BorderSide(color: Colors.blueGrey.shade200),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10),
-                ),
-              ),
+                if (!isBalanced)
+                  Text(
+                    "Difference: ₱ ${difference.toStringAsFixed(2)}",
+                    style: TextStyle(
+                      color: Colors.red.shade700,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+              ],
             ),
-          ),
+          ],
         ],
       ),
     );

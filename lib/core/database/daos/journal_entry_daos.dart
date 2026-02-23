@@ -19,6 +19,13 @@ class JournalSummary {
   });
 }
 
+class AccountWithCategory {
+  final Account account;
+  final AccountCategory category;
+
+  AccountWithCategory({required this.account, required this.category});
+}
+
 @DriftAccessor(tables: [Journals, Transactions, Accounts])
 class JournalEntryDao extends DatabaseAccessor<AppDatabase>
     with _$JournalEntryDaoMixin {
@@ -55,12 +62,28 @@ class JournalEntryDao extends DatabaseAccessor<AppDatabase>
     });
   }
 
-  // 1. Fetch active accounts for your dropdown menu
+  Future<List<AccountWithCategory>> getAccountsWithCategories() async {
+    final query = select(accounts).join([
+      innerJoin(
+        accountCategories,
+        accountCategories.id.equalsExp(accounts.categoryId),
+      ),
+    ])..where(accounts.isActive.equals(true)); // Only fetch active accounts
+
+    final rows = await query.get();
+
+    return rows.map((row) {
+      return AccountWithCategory(
+        account: row.readTable(accounts),
+        category: row.readTable(accountCategories),
+      );
+    }).toList();
+  }
+
   Future<List<Account>> getActiveAccounts() {
     return (select(accounts)..where((a) => a.isActive.equals(true))).get();
   }
 
-  // 2. Save the Journal and its lines safely
   Future<void> insertFullJournalEntry({
     required DateTime date,
     required String description,
