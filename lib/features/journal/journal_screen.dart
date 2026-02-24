@@ -127,6 +127,7 @@ class JournalEntryCard extends StatefulWidget {
     required this.details, // Required now
     this.isInitiallyExpanded = false,
     this.isInitiallyVoided = false,
+    this.isInitiallyVoided = false,
   });
 
   @override
@@ -135,6 +136,7 @@ class JournalEntryCard extends StatefulWidget {
 
 class _JournalEntryCardState extends State<JournalEntryCard> {
   late bool _isExpanded;
+  late bool _isVoided;
   late bool _isVoided;
 
   @override

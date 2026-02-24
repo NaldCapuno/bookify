@@ -142,4 +142,10 @@ class JournalEntryDao extends DatabaseAccessor<AppDatabase>
       ),
     );
   }
+
+  /// Soft-delete: mark a journal entry as voided. Ledger and reports exclude voided entries.
+  Future<void> voidJournalEntry(int journalId) async {
+    await (update(journals)..where((j) => j.id.equals(journalId)))
+        .write(JournalsCompanion(isVoid: Value(true)));
+  }
 }
