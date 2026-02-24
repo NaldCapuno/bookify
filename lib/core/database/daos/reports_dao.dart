@@ -1,6 +1,7 @@
 import 'package:bookkeeping/core/database/tables/accounts_table.dart';
 import 'package:bookkeeping/core/database/tables/journal_table.dart';
-import 'package:bookkeeping/core/database/tables/transactions_table.dart';
+import 'package:bookkeeping/core/database/tables/transactions_table.dart'; // Ensure this is imported
+import 'package:bookkeeping/core/database/tables/user_table.dart';
 import 'package:bookkeeping/features/balancesheet/balance_sheet.dart';
 import 'package:bookkeeping/features/incomestatement/financial_item.dart';
 import 'package:bookkeeping/features/incomestatement/income_statement.dart';
@@ -9,20 +10,28 @@ import '../app_database.dart';
 
 part 'reports_dao.g.dart';
 
-@DriftAccessor(tables: [Accounts, Transactions, Journals])
+@DriftAccessor(tables: [Accounts, Transactions, Journals, Users])
 class ReportsDao extends DatabaseAccessor<AppDatabase> with _$ReportsDaoMixin {
   ReportsDao(AppDatabase db) : super(db);
+
+  // Helper to get dynamic business name from the Users table
+  Future<String> _getDynamicBusinessName() async {
+    final user =
+        await (db.select(db.users)
+              ..where((u) => u.isActive.equals(true))
+              ..limit(1))
+            .getSingleOrNull();
+    return user?.business ?? "My Business";
+  }
 
   Future<IncomeStatement> getIncomeStatement({
     required DateTime startDate,
     required DateTime endDate,
-    required String businessName,
   }) async {
-    // 1. Define the aggregate columns
+    final businessName = await _getDynamicBusinessName();
     final debitSum = db.transactions.debit.sum();
     final creditSum = db.transactions.credit.sum();
 
-    // 2. Build the base query with joins
     final query = db.select(db.accounts).join([
       innerJoin(
         db.transactions,
@@ -34,17 +43,13 @@ class ReportsDao extends DatabaseAccessor<AppDatabase> with _$ReportsDaoMixin {
       ),
     ]);
 
-    // 3. Add filters and group by
     query.where(db.journals.date.isBetweenValues(startDate, endDate));
     query.where(db.journals.isVoid.equals(false));
     query.groupBy([db.accounts.id]);
+    query.addColumns([debitSum, creditSum]);
 
-    // 4. FIX: Add columns first (this returns void), THEN call get()
-    query.addColumns([debitSum, creditSum]); // This modifies the query in place
-    final List<TypedResult> results = await query
-        .get(); // Now execute the query
+    final List<TypedResult> results = await query.get();
 
-    // --- Data Processing ---
     List<FinancialItem> revenues = [];
     List<FinancialItem> costOfSales = [];
     List<FinancialItem> operatingExpenses = [];
@@ -59,17 +64,11 @@ class ReportsDao extends DatabaseAccessor<AppDatabase> with _$ReportsDaoMixin {
       final totalDebit = row.read(debitSum) ?? 0.0;
       final totalCredit = row.read(creditSum) ?? 0.0;
 
-      double balance = 0;
-
-      // Logic based on COA: 400s (Revenue) are Credit-normal. 500-800s (Expenses) are Debit-normal.
-      if (account.code >= 400 && account.code < 500) {
-        balance = totalCredit - totalDebit;
-      } else {
-        balance = totalDebit - totalCredit;
-      }
+      double balance = (account.code >= 400 && account.code < 500)
+          ? totalCredit - totalDebit
+          : totalDebit - totalCredit;
 
       if (balance == 0) continue;
-
       final item = FinancialItem(name: account.name, amount: balance);
 
       if (account.code >= 400 && account.code < 500) {
@@ -105,15 +104,11 @@ class ReportsDao extends DatabaseAccessor<AppDatabase> with _$ReportsDaoMixin {
     );
   }
 
-  // Inside ReportsDao
-  Future<BalanceSheet> getBalanceSheet({
-    required DateTime date,
-    required String businessName,
-  }) async {
+  Future<BalanceSheet> getBalanceSheet({required DateTime date}) async {
+    final businessName = await _getDynamicBusinessName();
     final debitSum = db.transactions.debit.sum();
     final creditSum = db.transactions.credit.sum();
 
-    // 1. Get balances for Assets, Liabilities, and Equity
     final query =
         db.select(db.accounts).join([
             innerJoin(
@@ -132,12 +127,9 @@ class ReportsDao extends DatabaseAccessor<AppDatabase> with _$ReportsDaoMixin {
     query.addColumns([debitSum, creditSum]);
     final results = await query.get();
 
-    // 2. Fetch Net Income for the same period to balance
-    // We reuse your Income Statement logic but for a 0-start-date range
     final incomeStatement = await getIncomeStatement(
-      startDate: DateTime(1900), // All time revenue/expenses
+      startDate: DateTime(1900),
       endDate: date,
-      businessName: businessName,
     );
 
     List<FinancialItem> curAssets = [];
@@ -151,13 +143,11 @@ class ReportsDao extends DatabaseAccessor<AppDatabase> with _$ReportsDaoMixin {
       final d = row.read(debitSum) ?? 0.0;
       final c = row.read(creditSum) ?? 0.0;
 
-      // Assets: Debit - Credit | Liab/Equity: Credit - Debit
       double amount = (account.code < 200) ? d - c : c - d;
       if (amount == 0) continue;
 
       final item = FinancialItem(name: account.name, amount: amount);
 
-      // Map to your migration categories (11, 12, 21, 22, 31)
       switch (account.categoryId) {
         case 11:
           curAssets.add(item);

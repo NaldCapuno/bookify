@@ -22,16 +22,13 @@ class _BalanceSheetScreenState extends State<BalanceSheetScreen> {
   @override
   void initState() {
     super.initState();
-
     _fetchReport();
   }
 
   void _fetchReport() {
     setState(() {
-      _reportFuture = appDb.reportsDao.getBalanceSheet(
-        date: _asOfDate,
-        businessName: "Palawan iHub",
-      );
+      // businessName parameter is removed as it's now handled by the DAO
+      _reportFuture = appDb.reportsDao.getBalanceSheet(date: _asOfDate);
     });
   }
 
