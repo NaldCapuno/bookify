@@ -6,7 +6,6 @@ import 'package:bookkeeping/features/balancesheet/balance_sheet.dart';
 import 'package:bookkeeping/core/widgets/appbar.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:drift/drift.dart' as drift;
 
 class BalanceSheetScreen extends StatefulWidget {
   const BalanceSheetScreen({super.key});
@@ -23,13 +22,7 @@ class _BalanceSheetScreenState extends State<BalanceSheetScreen> {
   @override
   void initState() {
     super.initState();
-    _initAndFetch();
-  }
 
-  Future<void> _initAndFetch() async {
-    // 1. Seed data for testing the balance
-    await _seedBalanceSheetData();
-    // 2. Initial fetch
     _fetchReport();
   }
 
@@ -37,106 +30,9 @@ class _BalanceSheetScreenState extends State<BalanceSheetScreen> {
     setState(() {
       _reportFuture = appDb.reportsDao.getBalanceSheet(
         date: _asOfDate,
-        businessName: "Palawan iHub", //
+        businessName: "Palawan iHub",
       );
     });
-  }
-
-  // --- SEED DATA (Balances Asset = Liability + Equity) ---
-  Future<void> _seedBalanceSheetData() async {
-    final existing = await appDb.select(appDb.journals).get();
-    if (existing.isNotEmpty) return;
-
-    Future<int> getAccountId(int code) async {
-      final acc = await (appDb.select(
-        appDb.accounts,
-      )..where((t) => t.code.equals(code))).getSingle();
-      return acc.id;
-    }
-
-    // 1. Initial Investment (Debit Cash 102, Credit Capital 340)
-    final j1 = await appDb
-        .into(appDb.journals)
-        .insert(
-          JournalsCompanion.insert(
-            date: _asOfDate,
-            description: 'Initial Investment',
-          ),
-        );
-    await appDb
-        .into(appDb.transactions)
-        .insert(
-          TransactionsCompanion.insert(
-            journalId: j1,
-            accountId: await getAccountId(102),
-            debit: const drift.Value(20004812.0),
-          ),
-        );
-    await appDb
-        .into(appDb.transactions)
-        .insert(
-          TransactionsCompanion.insert(
-            journalId: j1,
-            accountId: await getAccountId(340),
-            credit: const drift.Value(20004812.0),
-          ),
-        );
-
-    // 2. Buy Equipment (Debit 157, Credit Cash 102)
-    final j2 = await appDb
-        .into(appDb.journals)
-        .insert(
-          JournalsCompanion.insert(
-            date: _asOfDate,
-            description: 'Buy Office Equipment',
-          ),
-        );
-    await appDb
-        .into(appDb.transactions)
-        .insert(
-          TransactionsCompanion.insert(
-            journalId: j2,
-            accountId: await getAccountId(157),
-            debit: const drift.Value(1030000.0),
-          ),
-        );
-    await appDb
-        .into(appDb.transactions)
-        .insert(
-          TransactionsCompanion.insert(
-            journalId: j2,
-            accountId: await getAccountId(102),
-            credit: const drift.Value(1030000.0),
-          ),
-        );
-
-    // 3. Current Liability (Debit Cash 102, Credit SSS Payable 210)
-    final j3 = await appDb
-        .into(appDb.journals)
-        .insert(
-          JournalsCompanion.insert(
-            date: _asOfDate,
-            description: 'Loan for SSS',
-          ),
-        );
-    await appDb
-        .into(appDb.transactions)
-        .insert(
-          TransactionsCompanion.insert(
-            journalId: j3,
-            accountId: await getAccountId(102),
-            debit: const drift.Value(20000000.0),
-          ),
-        );
-    await appDb
-        .into(appDb.transactions)
-        .insert(
-          TransactionsCompanion.insert(
-            journalId: j3,
-            accountId: await getAccountId(210),
-            credit: const drift.Value(20000000.0),
-          ),
-        );
   }
 
   @override
@@ -158,6 +54,7 @@ class _BalanceSheetScreenState extends State<BalanceSheetScreen> {
                 children: [
                   ReportControlBar(
                     selectedPeriod: _currentPeriod,
+                    currentData: report, // Pass data to enable PDF download
                     onPeriodChanged: (p) {
                       setState(() {
                         _currentPeriod = p;
@@ -193,11 +90,28 @@ class _BalanceSheetScreenState extends State<BalanceSheetScreen> {
 
                   // --- DYNAMIC CONTENT ---
                   if (snapshot.connectionState == ConnectionState.waiting)
-                    const Center(child: CircularProgressIndicator())
+                    const Center(
+                      child: Padding(
+                        padding: EdgeInsets.only(top: 50.0),
+                        child: CircularProgressIndicator(),
+                      ),
+                    )
                   else if (snapshot.hasError)
-                    Center(child: Text("Error: ${snapshot.error}"))
+                    Center(
+                      child: Padding(
+                        padding: const EdgeInsets.only(top: 50.0),
+                        child: Text("Error loading report: ${snapshot.error}"),
+                      ),
+                    )
                   else if (report != null)
-                    BalanceSheetCard(data: report),
+                    BalanceSheetCard(data: report)
+                  else
+                    const Center(
+                      child: Padding(
+                        padding: EdgeInsets.only(top: 50.0),
+                        child: Text("No financial data found for this period."),
+                      ),
+                    ),
                 ],
               ),
             );
