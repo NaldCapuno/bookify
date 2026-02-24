@@ -49,7 +49,7 @@ class JournalEntryDao extends DatabaseAccessor<AppDatabase>
       innerJoin(accounts, accounts.id.equalsExp(transactions.accountId)),
     ]);
 
-    query.orderBy([OrderingTerm.desc(journals.createdAt)]);
+    query.orderBy([OrderingTerm.desc(journals.date)]);
 
     return query.watch().map((rows) {
       final groupedData = <Journal, List<TransactionWithAccount>>{};
