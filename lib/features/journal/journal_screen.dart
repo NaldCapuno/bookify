@@ -1,6 +1,6 @@
 import 'package:bookkeeping/core/database/app_database.dart';
 import 'package:bookkeeping/core/database/daos/journal_entry_daos.dart';
-import 'package:bookkeeping/features/journal/add_transaction.dart';
+import 'package:bookkeeping/features/journal/logic/add_transaction.dart';
 import 'package:intl/intl.dart';
 import 'package:flutter/material.dart';
 
@@ -20,17 +20,13 @@ class JournalScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Column(
       children: [
-        // 1. The New Entry Button fixed at the top
         Padding(
           padding: const EdgeInsets.all(16.0),
           child: _buildNewEntryButton(context),
         ),
 
-        // 2. The Dynamic List of Entries
         Expanded(
-          // 1. Change the type to List<JournalSummary>
           child: StreamBuilder<List<JournalSummary>>(
-            // 2. Listen to our new powerful joined query
             stream: appDb.journalEntryDao.watchJournalSummaries(),
             builder: (context, snapshot) {
               if (snapshot.connectionState == ConnectionState.waiting) {
@@ -56,14 +52,11 @@ class JournalScreen extends StatelessWidget {
                 padding: const EdgeInsets.symmetric(horizontal: 16.0),
                 itemCount: summaryList.length,
                 itemBuilder: (context, index) {
-                  // 'summary' now holds the Journal AND the computed totals
                   final summary = summaryList[index];
 
                   final dateString = DateFormat(
                     'MMM dd, yyyy',
                   ).format(summary.journal.date);
-
-                  // Format the amount with commas (e.g., 80000.0 becomes "80,000.00")
                   final formattedAmount = NumberFormat(
                     '#,##0.00',
                   ).format(summary.totalAmount);
@@ -71,13 +64,16 @@ class JournalScreen extends StatelessWidget {
                   return Padding(
                     padding: const EdgeInsets.only(bottom: 16.0),
                     child: JournalEntryCard(
+                      // IMPORTANT: The key prevents State Leakage
+                      key: ValueKey(summary.journal.id),
                       id: summary.journal.id.toString(),
                       date: dateString,
                       title: summary.journal.description,
-
-                      // 3. Inject the live calculated data directly into your card!
                       accounts: summary.accountCount,
                       amount: formattedAmount,
+                      // Pass database state and nested details to the card!
+                      isInitiallyVoided: summary.journal.isVoid,
+                      details: summary.details,
                     ),
                   );
                 },
@@ -118,6 +114,8 @@ class JournalEntryCard extends StatefulWidget {
   final int accounts;
   final String amount;
   final bool isInitiallyExpanded;
+  final bool isInitiallyVoided;
+  final List<TransactionWithAccount> details; // Receives nested DB details
 
   const JournalEntryCard({
     super.key,
@@ -126,7 +124,9 @@ class JournalEntryCard extends StatefulWidget {
     required this.title,
     required this.accounts,
     required this.amount,
+    required this.details, // Required now
     this.isInitiallyExpanded = false,
+    this.isInitiallyVoided = false,
   });
 
   @override
@@ -135,15 +135,15 @@ class JournalEntryCard extends StatefulWidget {
 
 class _JournalEntryCardState extends State<JournalEntryCard> {
   late bool _isExpanded;
-  bool _isVoided = false;
+  late bool _isVoided;
 
   @override
   void initState() {
     super.initState();
     _isExpanded = widget.isInitiallyExpanded;
+    _isVoided = widget.isInitiallyVoided; // Initialize with real DB state
   }
 
-  // Changed to return a Future<bool> so Dismissible knows what the user chose
   Future<bool> _showVoidConfirmation(BuildContext context) async {
     if (_isVoided) return false;
 
@@ -184,7 +184,6 @@ class _JournalEntryCardState extends State<JournalEntryCard> {
                 children: [
                   Expanded(
                     child: TextButton(
-                      // Return false if canceled
                       onPressed: () => Navigator.pop(context, false),
                       child: const Text(
                         'Cancel',
@@ -195,7 +194,6 @@ class _JournalEntryCardState extends State<JournalEntryCard> {
                   const SizedBox(width: 12),
                   Expanded(
                     child: ElevatedButton(
-                      // Return true if confirmed
                       onPressed: () => Navigator.pop(context, true),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.red.shade700,
@@ -218,8 +216,7 @@ class _JournalEntryCardState extends State<JournalEntryCard> {
       },
     );
 
-    return result ??
-        false; // If user taps outside the bottom sheet, return false
+    return result ?? false;
   }
 
   @override
@@ -228,16 +225,13 @@ class _JournalEntryCardState extends State<JournalEntryCard> {
       children: [
         Container(
           margin: const EdgeInsets.only(bottom: 12),
-          // We wrap the Material inside a Dismissible for the slide effect
           child: ClipRRect(
             borderRadius: BorderRadius.circular(16),
             child: Dismissible(
               key: ValueKey('journal_entry_${widget.id}'),
               direction: _isVoided
-                  ? DismissDirection
-                        .none // Disable swiping if already voided
-                  : DismissDirection.endToStart, // Swipe right to left
-              // What shows behind the card when swiping
+                  ? DismissDirection.none
+                  : DismissDirection.endToStart,
               background: Container(
                 color: Colors.red.shade50,
                 alignment: Alignment.centerRight,
@@ -258,19 +252,17 @@ class _JournalEntryCardState extends State<JournalEntryCard> {
                   ],
                 ),
               ),
-
-              // The logic when the swipe completes
               confirmDismiss: (direction) async {
-                // Show bottom sheet
                 bool shouldVoid = await _showVoidConfirmation(context);
                 if (shouldVoid) {
+                  // UPDATE DATABASE ON SWIPE
+                  await appDb.journalEntryDao.markJournalAsVoided(
+                    int.parse(widget.id),
+                  );
                   setState(() => _isVoided = true);
                 }
-                // ALWAYS return false so the card snaps back into the list.
-                // We don't want to actually delete the widget, just change it to voided!
                 return false;
               },
-
               child: Material(
                 color: _isVoided ? Colors.grey.shade50 : Colors.white,
                 clipBehavior: Clip.antiAlias,
@@ -283,7 +275,6 @@ class _JournalEntryCardState extends State<JournalEntryCard> {
                   ),
                 ),
                 child: InkWell(
-                  // Removed onLongPress!
                   onTap: () => setState(() => _isExpanded = !_isExpanded),
                   splashColor: Colors.black.withValues(alpha: 0.05),
                   highlightColor: Colors.black.withValues(alpha: 0.05),
@@ -314,7 +305,6 @@ class _JournalEntryCardState extends State<JournalEntryCard> {
                                     ),
                                   ],
                                 ),
-                                // Smooth animated rotation for the arrow!
                                 AnimatedRotation(
                                   turns: _isExpanded ? 0.5 : 0.0,
                                   duration: const Duration(milliseconds: 300),
@@ -402,20 +392,35 @@ class _JournalEntryCardState extends State<JournalEntryCard> {
                                       opacity: _isVoided ? 0.6 : 1.0,
                                       child: Column(
                                         children: [
-                                          _buildAccountDetail(
-                                            name: 'Cash',
-                                            amount: widget.amount,
-                                            isDebit: true,
-                                          ),
-                                          const SizedBox(height: 12),
-                                          _buildAccountDetail(
-                                            name: "Owner's Capital",
-                                            amount: widget.amount,
-                                            isDebit: false,
+                                          // NO MORE FUTURE BUILDER! We just map the details list directly.
+                                          Column(
+                                            children: widget.details.map((
+                                              line,
+                                            ) {
+                                              bool isDebit =
+                                                  line.transactionLine.debit >
+                                                  0;
+                                              double amountValue = isDebit
+                                                  ? line.transactionLine.debit
+                                                  : line.transactionLine.credit;
+                                              final formattedAmount =
+                                                  NumberFormat(
+                                                    '#,##0.00',
+                                                  ).format(amountValue);
+
+                                              return Padding(
+                                                padding: const EdgeInsets.only(
+                                                  bottom: 12.0,
+                                                ),
+                                                child: _buildAccountDetail(
+                                                  name: line.account.name,
+                                                  amount: formattedAmount,
+                                                  isDebit: isDebit,
+                                                ),
+                                              );
+                                            }).toList(),
                                           ),
 
-                                          // Optional: You can also show a subtle Void button here
-                                          // so users have two ways to void (Swipe AND Tap)
                                           if (!_isVoided) ...[
                                             const SizedBox(height: 16),
                                             Align(
@@ -427,6 +432,11 @@ class _JournalEntryCardState extends State<JournalEntryCard> {
                                                         context,
                                                       );
                                                   if (shouldVoid) {
+                                                    // UPDATE DATABASE ON BUTTON TAP
+                                                    await appDb.journalEntryDao
+                                                        .markJournalAsVoided(
+                                                          int.parse(widget.id),
+                                                        );
                                                     setState(
                                                       () => _isVoided = true,
                                                     );
@@ -455,7 +465,7 @@ class _JournalEntryCardState extends State<JournalEntryCard> {
                             : const SizedBox.shrink(),
                       ),
                     ],
-                  ),
+                  ), 
                 ),
               ),
             ),
