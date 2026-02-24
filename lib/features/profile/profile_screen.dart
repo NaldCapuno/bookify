@@ -1,87 +1,224 @@
+import 'package:bookkeeping/features/profile/user_service.dart';
 import 'package:flutter/material.dart';
 import 'package:bookkeeping/core/widgets/appbar.dart';
+import 'package:bookkeeping/core/database/app_database.dart';
+import 'package:bookkeeping/core/database/daos/users_dao.dart';
 
-class ProfileScreen extends StatelessWidget {
+class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
+
+  @override
+  State<ProfileScreen> createState() => _ProfileScreenState();
+}
+
+class _ProfileScreenState extends State<ProfileScreen> {
+  late final AppDatabase _db;
+  late final UserService _userService;
+
+  // Added controllers for username and email
+  final TextEditingController _usernameController = TextEditingController();
+  final TextEditingController _emailController = TextEditingController();
+  final TextEditingController _businessNameController = TextEditingController();
+  final TextEditingController _businessAddressController =
+      TextEditingController();
+  final TextEditingController _contactNumberController =
+      TextEditingController();
+
+  bool _isLoading = true;
+  int? _userId;
+
+  // These are kept to drive the un-editable profile header at the top
+  String _headerUsername = '';
+  String _headerEmail = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _db = AppDatabase();
+    _userService = UserService(UsersDao(_db));
+    _loadUserData();
+  }
+
+  Future<void> _loadUserData() async {
+    final user = await _userService.getUserProfile();
+
+    if (user != null) {
+      setState(() {
+        _userId = user.id;
+
+        // Update header variables
+        _headerUsername = user.username;
+        _headerEmail = user.email;
+
+        // Populate text fields
+        _usernameController.text = user.username;
+        _emailController.text = user.email;
+        _businessNameController.text = user.business ?? '';
+        _businessAddressController.text = user.businessAddress ?? '';
+        _contactNumberController.text = user.contactNumber ?? '';
+
+        _isLoading = false;
+      });
+    } else {
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
+
+  Future<void> _saveChanges() async {
+    if (_userId == null) return;
+
+    final success = await _userService.saveProfileUpdates(
+      id: _userId!,
+      username: _usernameController.text,
+      email: _emailController.text,
+      businessName: _businessNameController.text,
+      businessAddress: _businessAddressController.text,
+      contactNumber: _contactNumberController.text,
+    );
+
+    if (mounted) {
+      if (success) {
+        // Update the header to reflect the new saved values instantly
+        setState(() {
+          _headerUsername = _usernameController.text;
+          _headerEmail = _emailController.text;
+        });
+      }
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            success
+                ? 'Profile updated successfully!'
+                : 'Failed to update profile.',
+          ),
+        ),
+      );
+    }
+  }
+
+  String _getInitials(String name) {
+    if (name.trim().isEmpty) return '';
+    final nameParts = name.trim().split(RegExp(r'\s+'));
+    if (nameParts.length >= 2) {
+      return '${nameParts.first[0]}${nameParts.last[0]}'.toUpperCase();
+    } else if (nameParts.isNotEmpty && nameParts.first.isNotEmpty) {
+      return nameParts.first[0].toUpperCase();
+    }
+    return '';
+  }
+
+  @override
+  void dispose() {
+    _usernameController.dispose();
+    _emailController.dispose();
+    _businessNameController.dispose();
+    _businessAddressController.dispose();
+    _contactNumberController.dispose();
+    _db.close();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: const CustomAppBar(title: 'Profile', showBackButton: true),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(20),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.03),
-                    blurRadius: 10,
-                    offset: const Offset(0, 4),
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : SingleChildScrollView(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(20),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.03),
+                          blurRadius: 10,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _buildProfileHeader(),
+                        const SizedBox(height: 24),
+                        const Divider(),
+                        const SizedBox(height: 16),
+
+                        _buildFieldLabel('Username'),
+                        _buildTextField(
+                          'Enter your username',
+                          controller: _usernameController,
+                        ),
+
+                        _buildFieldLabel('Email Address'),
+                        _buildTextField(
+                          'Enter your email address',
+                          controller: _emailController,
+                        ),
+
+                        _buildFieldLabel('Business'),
+                        _buildTextField(
+                          'Enter your business name',
+                          controller: _businessNameController,
+                        ),
+
+                        _buildFieldLabel('Business Address'),
+                        _buildTextField(
+                          'Enter your business address',
+                          controller: _businessAddressController,
+                        ),
+
+                        _buildFieldLabel('Contact Number'),
+                        _buildTextField(
+                          '+63 912 345 6789',
+                          controller: _contactNumberController,
+                        ),
+
+                        const SizedBox(height: 32),
+                        _buildSaveButton(),
+                      ],
+                    ),
                   ),
                 ],
               ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _buildProfileHeader(),
-                  const SizedBox(height: 24),
-                  const Divider(),
-                  const SizedBox(height: 16),
-
-                  _buildFieldLabel('Business Name'),
-                  _buildTextField('Enter your business name'),
-
-                  _buildFieldLabel('Business Type'),
-                  _buildTextField('Select business type', isDropdown: true),
-
-                  _buildFieldLabel('Business Address'),
-                  _buildTextField('Enter your business address'),
-
-                  _buildFieldLabel('Contact Number'),
-                  _buildTextField('+63 912 345 6789'),
-
-                  const SizedBox(height: 32),
-                  _buildSaveButton(),
-                ],
-              ),
             ),
-          ],
-        ),
-      ),
     );
   }
 
   Widget _buildProfileHeader() {
-    return const Row(
+    return Row(
       children: [
         CircleAvatar(
           radius: 35,
-          backgroundColor: Color(0xFF232D3F),
+          backgroundColor: const Color(0xFF232D3F),
           child: Text(
-            'KL',
-            style: TextStyle(
+            _getInitials(_headerUsername), 
+            style: const TextStyle(
               color: Colors.white,
               fontSize: 24,
               fontWeight: FontWeight.bold,
             ),
           ),
         ),
-        SizedBox(width: 16),
+        const SizedBox(width: 16),
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Kenrick Lim',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              _headerUsername, // Using the state variable
+              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
             Text(
-              'kenerol.lim365@gmail.com',
-              style: TextStyle(color: Colors.grey, fontSize: 14),
+              _headerEmail, // Using the state variable
+              style: const TextStyle(color: Colors.grey, fontSize: 14),
             ),
           ],
         ),
@@ -96,8 +233,13 @@ class ProfileScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildTextField(String hint, {bool isDropdown = false}) {
+  Widget _buildTextField(
+    String hint, {
+    bool isDropdown = false,
+    TextEditingController? controller,
+  }) {
     return TextField(
+      controller: controller,
       readOnly: isDropdown,
       decoration: InputDecoration(
         hintText: hint,
@@ -117,7 +259,7 @@ class ProfileScreen extends StatelessWidget {
       width: double.infinity,
       height: 50,
       child: ElevatedButton.icon(
-        onPressed: () {},
+        onPressed: _saveChanges,
         icon: const Icon(Icons.save_outlined),
         label: const Text('Save Changes'),
         style: ElevatedButton.styleFrom(
