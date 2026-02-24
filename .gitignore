@@ -43,3 +43,7 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+lib/core/database/app_database.dart
+lib/core/database/app_database.g.dart
+pubspec.lock

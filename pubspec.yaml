@@ -22,6 +22,7 @@ dependencies:
   pdf: ^3.10.8
   printing: ^5.11.1
   grouped_list: ^6.0.0
+  sticky_headers: ^0.3.0+2
 
 dev_dependencies:
   flutter_test:
