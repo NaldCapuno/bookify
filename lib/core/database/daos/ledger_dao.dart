@@ -1,9 +1,9 @@
 import 'package:drift/drift.dart';
-import '../app_database.dart';
-import '../tables/accounts_table.dart';
-import '../tables/account_categories_table.dart';
-import '../tables/journal_table.dart';
-import '../tables/transactions_table.dart';
+import 'package:bookkeeping/core/database/app_database.dart';
+import 'package:bookkeeping/core/database/tables/accounts_table.dart';
+import 'package:bookkeeping/core/database/tables/account_categories_table.dart';
+import 'package:bookkeeping/core/database/tables/journal_table.dart';
+import 'package:bookkeeping/core/database/tables/transactions_table.dart';
 
 part 'ledger_dao.g.dart';
 
@@ -23,12 +23,14 @@ class LedgerEntry {
 
 @DriftAccessor(tables: [Accounts, AccountCategories, Journals, Transactions])
 class LedgerDao extends DatabaseAccessor<AppDatabase> with _$LedgerDaoMixin {
-  LedgerDao(AppDatabase db) : super(db);
+  LedgerDao(super.db);
 
   Stream<List<LedgerEntry>> watchLedgerEntries() {
-    final debitSum = transactions.debit.sum();
-    final creditSum = transactions.credit.sum();
-    final txCount = transactions.id.count();
+    // Only aggregate transactions from non-voided journals (soft-delete).
+    final nonVoidFilter = journals.id.isNotNull();
+    final debitSum = transactions.debit.sum(filter: nonVoidFilter);
+    final creditSum = transactions.credit.sum(filter: nonVoidFilter);
+    final txCount = transactions.id.count(filter: nonVoidFilter);
 
     final query = select(accounts).join([
       innerJoin(
@@ -38,6 +40,11 @@ class LedgerDao extends DatabaseAccessor<AppDatabase> with _$LedgerDaoMixin {
       leftOuterJoin(
         transactions,
         transactions.accountId.equalsExp(accounts.id),
+      ),
+      leftOuterJoin(
+        journals,
+        journals.id.equalsExp(transactions.journalId) &
+            journals.isVoid.equals(false),
       ),
     ]);
 
@@ -74,12 +81,15 @@ class LedgerDao extends DatabaseAccessor<AppDatabase> with _$LedgerDaoMixin {
   }
 
   /// Stream of transactions for one account, joined with journal (date, description).
-  /// Used by the ledger card expanded view for "read per account in journal+transaction".
+  /// Excludes voided journal entries (soft-delete) so they are hidden in the ledger.
   Stream<List<TypedResult>> watchTransactionsForAccount(int accountId) {
     final query = select(transactions).join([
       innerJoin(journals, journals.id.equalsExp(transactions.journalId)),
     ]);
-    query.where(transactions.accountId.equals(accountId));
+    query.where(
+      transactions.accountId.equals(accountId) &
+          journals.isVoid.equals(false),
+    );
     query.orderBy([OrderingTerm.asc(journals.date)]);
     return query.watch();
   }

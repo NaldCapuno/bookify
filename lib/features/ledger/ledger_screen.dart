@@ -1,43 +1,7 @@
-import 'package:drift/drift.dart' hide Column;
 import 'package:flutter/material.dart';
 import '../../core/database/app_database.dart';
 import '../../core/database/daos/ledger_dao.dart';
 import 'widgets/ledger_entry_card.dart';
-
-/// Ensures Cash account has mock transactions so the dropdown can be tested. Runs once if Cash has none.
-Future<void> _ensureMockDataForCash() async {
-  final cashAccount = await (appDb.select(appDb.accounts)
-        ..where((t) => t.name.equals('Cash')))
-      .getSingleOrNull() ??
-      await (appDb.select(appDb.accounts)
-            ..where((t) => t.name.equals('Cash on Hand')))
-          .getSingleOrNull();
-  if (cashAccount == null) return;
-
-  final existing = await (appDb.select(appDb.transactions)
-        ..where((t) => t.accountId.equals(cashAccount.id)))
-      .get();
-  if (existing.isNotEmpty) return;
-
-  final mockData = [
-    (DateTime(2026, 2, 1), 'Initial capital investment', 80000.0, 0.0),
-    (DateTime(2026, 2, 3), 'Purchase equipment', 0.0, 40000.0),
-    (DateTime(2026, 2, 7), 'Sales - cash', 15000.0, 0.0),
-  ];
-  for (final e in mockData) {
-    final journalId = await appDb.into(appDb.journals).insert(
-          JournalsCompanion.insert(date: e.$1, description: e.$2),
-        );
-    await appDb.into(appDb.transactions).insert(
-      TransactionsCompanion.insert(
-        journalId: journalId,
-        accountId: cashAccount.id,
-        debit: Value(e.$3),
-        credit: Value(e.$4),
-      ),
-    );
-  }
-}
 
 class LedgerScreen extends StatefulWidget {
   const LedgerScreen({super.key});
@@ -47,12 +11,6 @@ class LedgerScreen extends StatefulWidget {
 }
 
 class _LedgerScreenState extends State<LedgerScreen> {
-  @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) => _ensureMockDataForCash());
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -123,6 +81,10 @@ class _LedgerScreenState extends State<LedgerScreen> {
     );
   }
 
+  /// Only include accounts that have at least one transaction or non-zero balance.
+  bool _hasActivity(LedgerEntry e) =>
+      e.transactionCount > 0 || e.balance != 0.0;
+
   Widget _buildSection(
     BuildContext context,
     List<LedgerEntry> allEntries,
@@ -131,22 +93,24 @@ class _LedgerScreenState extends State<LedgerScreen> {
     Color color,
     Set<int> displayedIds,
   ) {
-    final sectionItems = allEntries
+    final allInCategory = allEntries
         .where(
           (e) =>
               (e.category.parent == rootId || e.category.id == rootId) &&
               !displayedIds.contains(e.account.id),
         )
         .toList();
+    final sectionItems =
+        allInCategory.where((e) => _hasActivity(e)).toList();
 
-    for (final item in sectionItems) {
+    for (final item in allInCategory) {
       displayedIds.add(item.account.id);
     }
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _buildHeader(title, sectionItems.length, color),
+        _buildHeader(title, allInCategory.length, color),
         if (sectionItems.isEmpty)
           const Padding(
             padding: EdgeInsets.only(left: 16, bottom: 20),
@@ -180,15 +144,29 @@ class _LedgerScreenState extends State<LedgerScreen> {
     List<LedgerEntry> allEntries,
     Set<int> displayedIds,
   ) {
-    final miscItems = allEntries
+    final allMisc = allEntries
         .where((e) => !displayedIds.contains(e.account.id))
         .toList();
-    if (miscItems.isEmpty) return const SizedBox.shrink();
+    final miscItems = allMisc.where((e) => _hasActivity(e)).toList();
+    if (allMisc.isEmpty) return const SizedBox.shrink();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _buildHeader("Uncategorized", miscItems.length, Colors.blueGrey),
+        _buildHeader("Uncategorized", allMisc.length, Colors.blueGrey),
+        if (miscItems.isEmpty)
+          const Padding(
+            padding: EdgeInsets.only(left: 16, bottom: 20),
+            child: Text(
+              "No accounts in this category",
+              style: TextStyle(
+                color: Colors.grey,
+                fontSize: 12,
+                fontStyle: FontStyle.italic,
+              ),
+            ),
+          )
+        else
         ...miscItems.map(
           (item) => LedgerEntryCard(
             accountDbId: item.account.id,
