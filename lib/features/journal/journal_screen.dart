@@ -1,12 +1,27 @@
 import 'package:bookkeeping/core/database/app_database.dart';
 import 'package:bookkeeping/core/database/daos/journal_entry_daos.dart';
+import 'package:bookkeeping/core/widgets/app_fab.dart';
 import 'package:bookkeeping/features/journal/logic/add_transaction.dart';
 import 'package:intl/intl.dart';
 import 'package:flutter/material.dart';
 
-class JournalScreen extends StatelessWidget {
+class JournalScreen extends StatefulWidget {
   const JournalScreen({super.key});
 
+  @override
+  State<JournalScreen> createState() => _JournalScreenState();
+}
+
+class _JournalScreenState extends State<JournalScreen> {
+  // 2. State variable to track the selected filter
+  String _selectedFilter = 'All';
+  final List<String> _filters = [
+    'All',
+    'Weekly',
+    'Monthly',
+    'Quarterly',
+    'Yearly',
+  ];
   void _openAddTransaction(BuildContext context) {
     showModalBottomSheet(
       context: context,
@@ -16,92 +31,160 @@ class JournalScreen extends StatelessWidget {
     );
   }
 
+  List<JournalSummary> _filterSummaries(List<JournalSummary> summaries) {
+    if (_selectedFilter == 'All') return summaries;
+
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+
+    return summaries.where((summary) {
+      final date = summary.journal.date;
+      final summaryDate = DateTime(date.year, date.month, date.day);
+
+      if (_selectedFilter == 'Yearly') {
+        return summaryDate.year == today.year;
+      } else if (_selectedFilter == 'Quarterly') {
+        final currentQuarter = (today.month - 1) ~/ 3 + 1;
+        final summaryQuarter = (summaryDate.month - 1) ~/ 3 + 1;
+        return summaryDate.year == today.year &&
+            summaryQuarter == currentQuarter;
+      } else if (_selectedFilter == 'Monthly') {
+        return summaryDate.year == today.year &&
+            summaryDate.month == today.month;
+      } else if (_selectedFilter == 'Weekly') {
+        final diff = today.difference(summaryDate).inDays;
+        return diff >= 0 && diff <= 7;
+      }
+      return true;
+    }).toList();
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Column(
-      children: [
-        Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: _buildNewEntryButton(context),
-        ),
+    return Scaffold(
+      backgroundColor: Colors.transparent,
+      body: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildFilterChips(),
 
-        Expanded(
-          child: StreamBuilder<List<JournalSummary>>(
-            stream: appDb.journalEntryDao.watchJournalSummaries(),
-            builder: (context, snapshot) {
-              if (snapshot.connectionState == ConnectionState.waiting) {
-                return const Center(child: CircularProgressIndicator());
-              }
+          Expanded(
+            child: StreamBuilder<List<JournalSummary>>(
+              stream: appDb.journalEntryDao.watchJournalSummaries(),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator());
+                }
 
-              if (snapshot.hasError) {
-                return Center(child: Text('Error: ${snapshot.error}'));
-              }
+                if (snapshot.hasError) {
+                  return Center(child: Text('Error: ${snapshot.error}'));
+                }
 
-              final summaryList = snapshot.data ?? [];
+                final rawList = snapshot.data ?? [];
+                final filteredList = _filterSummaries(rawList);
 
-              if (summaryList.isEmpty) {
-                return const Center(
-                  child: Text(
-                    'No journal entries yet. Tap above to create one!',
-                    style: TextStyle(color: Colors.grey),
-                  ),
-                );
-              }
-
-              return ListView.builder(
-                padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                itemCount: summaryList.length,
-                itemBuilder: (context, index) {
-                  final summary = summaryList[index];
-
-                  final dateString = DateFormat(
-                    'MMM dd, yyyy',
-                  ).format(summary.journal.date);
-                  final formattedAmount = NumberFormat(
-                    '#,##0.00',
-                  ).format(summary.totalAmount);
-
-                  return Padding(
-                    padding: const EdgeInsets.only(bottom: 16.0),
-                    child: JournalEntryCard(
-                      // IMPORTANT: The key prevents State Leakage
-                      key: ValueKey(summary.journal.id),
-                      id: summary.journal.id.toString(),
-                      date: dateString,
-                      title: summary.journal.description,
-                      accounts: summary.accountCount,
-                      amount: formattedAmount,
-                      // Pass database state and nested details to the card!
-                      isInitiallyVoided: summary.journal.isVoid,
-                      details: summary.details,
+                if (filteredList.isEmpty) {
+                  return Center(
+                    child: Text(
+                      _selectedFilter == 'All'
+                          ? 'No journal entries yet.'
+                          : 'No entries for this $_selectedFilter period.',
+                      style: const TextStyle(color: Colors.grey),
                     ),
                   );
-                },
-              );
-            },
+                }
+
+                return ListView.builder(
+                  padding: const EdgeInsets.only(
+                    left: 16.0,
+                    right: 16.0,
+                    top: 15.0,
+                    bottom: 80.0,
+                  ),
+                  itemCount: filteredList.length,
+                  itemBuilder: (context, index) {
+                    final summary = filteredList[index];
+
+                    final dateString = DateFormat(
+                      'MMM dd, yyyy',
+                    ).format(summary.journal.date);
+                    final formattedAmount = NumberFormat(
+                      '#,##0.00',
+                    ).format(summary.totalAmount);
+
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 10.0),
+                      child: JournalEntryCard(
+                        key: ValueKey(summary.journal.id),
+                        id: summary.journal.id.toString(),
+                        date: dateString,
+                        title: summary.journal.description,
+                        accounts: summary.accountCount,
+                        amount: formattedAmount,
+                        isInitiallyVoided: summary.journal.isVoid,
+                        details: summary.details,
+                      ),
+                    );
+                  },
+                );
+              },
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
+      floatingActionButton: AppFloatingActionButton(
+        label: 'New Entry',
+        icon: Icons.add,
+        onPressed: () => _openAddTransaction(context),
+      ),
     );
   }
 
-  Widget _buildNewEntryButton(BuildContext context) {
-    return SizedBox(
-      width: double.infinity,
-      height: 55,
-      child: ElevatedButton.icon(
-        onPressed: () => _openAddTransaction(context),
-        icon: const Icon(Icons.add, color: Colors.white, size: 20),
-        label: const Text(
-          'New Journal Entry',
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-        ),
-        style: ElevatedButton.styleFrom(
-          backgroundColor: Colors.black,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-        ),
+  Widget _buildFilterChips() {
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      // 1. Better overall padding for the entire row of chips
+      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+      child: Row(
+        children: _filters.map((filter) {
+          final isSelected = filter == _selectedFilter;
+
+          return Padding(
+            // 2. Slightly wider gap between each individual chip
+            padding: const EdgeInsets.only(right: 10.0),
+            child: ChoiceChip(
+              label: Text(filter),
+              selected: isSelected,
+              onSelected: (selected) {
+                if (selected) {
+                  setState(() => _selectedFilter = filter);
+                }
+              },
+              selectedColor: const Color(0xFF1A1C1E),
+              backgroundColor: Colors.white,
+              labelStyle: TextStyle(
+                color: isSelected ? Colors.white : Colors.grey.shade700,
+                fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                fontSize: 13,
+              ),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
+                side: BorderSide(
+                  color: isSelected
+                      ? const Color(0xFF1A1C1E)
+                      : Colors.grey.shade300,
+                ),
+              ),
+              showCheckmark: false,
+              elevation: 0,
+              // 3. Internal padding makes the chips taller and more "pill-shaped"
+              padding: const EdgeInsets.symmetric(
+                horizontal: 12.0,
+                vertical: 8.0,
+              ),
+            ),
+          );
+        }).toList(),
       ),
     );
   }
@@ -127,7 +210,6 @@ class JournalEntryCard extends StatefulWidget {
     required this.details, // Required now
     this.isInitiallyExpanded = false,
     this.isInitiallyVoided = false,
-    this.isInitiallyVoided = false,
   });
 
   @override
@@ -136,7 +218,6 @@ class JournalEntryCard extends StatefulWidget {
 
 class _JournalEntryCardState extends State<JournalEntryCard> {
   late bool _isExpanded;
-  late bool _isVoided;
   late bool _isVoided;
 
   @override
@@ -467,7 +548,7 @@ class _JournalEntryCardState extends State<JournalEntryCard> {
                             : const SizedBox.shrink(),
                       ),
                     ],
-                  ), 
+                  ),
                 ),
               ),
             ),
