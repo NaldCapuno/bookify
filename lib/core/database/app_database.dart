@@ -1,7 +1,9 @@
+import 'package:bookkeeping/core/database/daos/users_dao.dart';
 import 'package:bookkeeping/core/database/daos/journal_entry_daos.dart';
 import 'package:bookkeeping/core/database/db_migration.dart';
 import 'package:bookkeeping/core/database/tables/transactions_table.dart';
 import 'package:bookkeeping/core/database/tables/journal_table.dart';
+import 'package:bookkeeping/core/database/tables/user_table.dart';
 import 'package:drift/drift.dart';
 import 'package:drift_flutter/drift_flutter.dart';
 
@@ -13,8 +15,8 @@ part 'app_database.g.dart';
 
 @DriftDatabase(
   // TODO: Register the tables and DAOs here
-  tables: [AccountCategories, Accounts, Journals, Transactions],
-  daos: [JournalEntryDao],
+  tables: [AccountCategories, Accounts, Journals, Transactions, Users],
+  daos: [UsersDao, JournalEntryDao],
 )
 class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(driftDatabase(name: 'app_db'));
