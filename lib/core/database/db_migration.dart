@@ -214,6 +214,14 @@ MigrationStrategy buildMigrationStrategy(AppDatabase db) {
           AccountsCompanion.insert(code: 704, name: 'Penalties and Surcharges', categoryId: 53),
           AccountsCompanion.insert(code: 801, name: 'Income Tax Expense', categoryId: 53, isLocked: const Value(true)),
         ]);
+
+      });
+
+      // Default User Detail
+        await db.batch((batch) {
+        batch.insertAll(db.users, [
+          UsersCompanion.insert(username: 'admin', email: 'admin' )
+        ]);
       });
     },
     onUpgrade: (Migrator m, int from, int to) async {
