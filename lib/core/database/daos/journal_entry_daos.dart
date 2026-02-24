@@ -3,19 +3,21 @@ import '../app_database.dart';
 import '../tables/journal_table.dart';
 import '../tables/transactions_table.dart';
 import '../tables/accounts_table.dart';
+import '../tables/account_categories_table.dart';
 
 part 'journal_entry_daos.g.dart';
 
-// 1. Add this class at the top of your DAO file (outside the main class)
 class JournalSummary {
   final Journal journal;
   final int accountCount;
   final double totalAmount;
+  final List<TransactionWithAccount> details;
 
   JournalSummary({
     required this.journal,
     required this.accountCount,
     required this.totalAmount,
+    required this.details,
   });
 }
 
@@ -26,37 +28,57 @@ class AccountWithCategory {
   AccountWithCategory({required this.account, required this.category});
 }
 
+class TransactionWithAccount {
+  final Transaction transactionLine;
+  final Account account;
+
+  TransactionWithAccount({
+    required this.transactionLine,
+    required this.account,
+  });
+}
+
 @DriftAccessor(tables: [Journals, Transactions, Accounts])
 class JournalEntryDao extends DatabaseAccessor<AppDatabase>
     with _$JournalEntryDaoMixin {
   JournalEntryDao(super.db);
 
   Stream<List<JournalSummary>> watchJournalSummaries() {
-    // Define our SQL aggregate functions
-    final accountCount = transactions.accountId.count();
-    final totalAmount = transactions.debit.sum();
-
-    // Create the joined query
     final query = select(journals).join([
       innerJoin(transactions, transactions.journalId.equalsExp(journals.id)),
+      innerJoin(accounts, accounts.id.equalsExp(transactions.accountId)),
     ]);
 
-    // Group by the Journal ID so we don't get duplicate rows
-    query.groupBy([journals.id]);
+    query.orderBy([OrderingTerm.desc(journals.date)]);
 
-    // Order from newest to oldest
-    query.orderBy([OrderingTerm.desc(journals.createdAt)]);
-
-    // Tell Drift to calculate our Count and Sum
-    query.addColumns([accountCount, totalAmount]);
-
-    // Watch the stream and map the SQL rows to our new JournalSummary class
     return query.watch().map((rows) {
-      return rows.map((row) {
+      final groupedData = <Journal, List<TransactionWithAccount>>{};
+
+      for (final row in rows) {
+        final journal = row.readTable(journals);
+        final detail = TransactionWithAccount(
+          transactionLine: row.readTable(transactions),
+          account: row.readTable(accounts),
+        );
+
+        groupedData.putIfAbsent(journal, () => []).add(detail);
+      }
+
+      return groupedData.entries.map((entry) {
+        final journal = entry.key;
+        final detailsList = entry.value;
+
+        final accountCount = detailsList.length;
+        final totalAmount = detailsList.fold<double>(
+          0.0,
+          (sum, item) => sum + item.transactionLine.debit,
+        );
+
         return JournalSummary(
-          journal: row.readTable(journals),
-          accountCount: row.read(accountCount) ?? 0,
-          totalAmount: row.read(totalAmount) ?? 0.0,
+          journal: journal,
+          accountCount: accountCount,
+          totalAmount: totalAmount,
+          details: detailsList,
         );
       }).toList();
     });
@@ -68,7 +90,7 @@ class JournalEntryDao extends DatabaseAccessor<AppDatabase>
         accountCategories,
         accountCategories.id.equalsExp(accounts.categoryId),
       ),
-    ])..where(accounts.isActive.equals(true)); // Only fetch active accounts
+    ])..where(accounts.isActive.equals(true));
 
     final rows = await query.get();
 
@@ -90,10 +112,7 @@ class JournalEntryDao extends DatabaseAccessor<AppDatabase>
     String? referenceNo,
     required List<TransactionsCompanion> lines,
   }) async {
-    // Using a transaction block ensures that if saving a line fails,
-    // the whole journal entry is rolled back. No orphaned data!
     await transaction(() async {
-      // A. Insert the main Journal record
       final journalId = await into(journals).insert(
         JournalsCompanion.insert(
           date: date,
@@ -102,12 +121,10 @@ class JournalEntryDao extends DatabaseAccessor<AppDatabase>
         ),
       );
 
-      // B. Insert all the transaction lines attached to that new Journal ID
       for (var line in lines) {
-        await into(transactions).insert(
-          // We use copyWith to inject the newly generated journalId
-          line.copyWith(journalId: Value(journalId)),
-        );
+        await into(
+          transactions,
+        ).insert(line.copyWith(journalId: Value(journalId)));
       }
     });
   }
@@ -115,7 +132,15 @@ class JournalEntryDao extends DatabaseAccessor<AppDatabase>
   Stream<List<Journal>> watchAllJournals() {
     return (select(
       journals,
-    )..orderBy([(t) => OrderingTerm.desc(t.createdAt)])).watch();
+    )..orderBy([(t) => OrderingTerm.desc(t.date)])).watch();
+  }
+
+  Future<void> markJournalAsVoided(int journalId) async {
+    await (update(journals)..where((j) => j.id.equals(journalId))).write(
+      const JournalsCompanion(
+        isVoid: Value(true), 
+      ),
+    );
   }
 
   /// Soft-delete: mark a journal entry as voided. Ledger and reports exclude voided entries.
