@@ -51,4 +51,20 @@ class AccountsDao extends DatabaseAccessor<AppDatabase>
       }).toList();
     });
   }
+  // inside AccountsDao class in accounts_dao.dart
+
+  Future<int> addAccount(AccountsCompanion entry) {
+    return into(accounts).insert(entry);
+  }
+
+  // Optional: If you want to fetch categories for the dropdown dynamically
+  Future<List<AccountCategory>> getAllCategories() {
+    return select(accountCategories).get();
+  }
+
+  Future<void> archiveAccount(int id, bool archive) {
+    return (update(accounts)..where((t) => t.id.equals(id))).write(
+      AccountsCompanion(isArchived: Value(archive)),
+    );
+  }
 }

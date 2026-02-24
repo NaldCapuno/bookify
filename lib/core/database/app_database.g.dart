@@ -406,6 +406,21 @@ class $AccountsTable extends Accounts with TableInfo<$AccountsTable, Account> {
     ),
     defaultValue: const Constant(false),
   );
+  static const VerificationMeta _isArchivedMeta = const VerificationMeta(
+    'isArchived',
+  );
+  @override
+  late final GeneratedColumn<bool> isArchived = GeneratedColumn<bool>(
+    'is_archived',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("is_archived" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -414,6 +429,7 @@ class $AccountsTable extends Accounts with TableInfo<$AccountsTable, Account> {
     categoryId,
     isActive,
     isLocked,
+    isArchived,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -466,6 +482,12 @@ class $AccountsTable extends Accounts with TableInfo<$AccountsTable, Account> {
         isLocked.isAcceptableOrUnknown(data['is_locked']!, _isLockedMeta),
       );
     }
+    if (data.containsKey('is_archived')) {
+      context.handle(
+        _isArchivedMeta,
+        isArchived.isAcceptableOrUnknown(data['is_archived']!, _isArchivedMeta),
+      );
+    }
     return context;
   }
 
@@ -499,6 +521,10 @@ class $AccountsTable extends Accounts with TableInfo<$AccountsTable, Account> {
         DriftSqlType.bool,
         data['${effectivePrefix}is_locked'],
       )!,
+      isArchived: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}is_archived'],
+      )!,
     );
   }
 
@@ -515,6 +541,7 @@ class Account extends DataClass implements Insertable<Account> {
   final int categoryId;
   final bool isActive;
   final bool isLocked;
+  final bool isArchived;
   const Account({
     required this.id,
     required this.code,
@@ -522,6 +549,7 @@ class Account extends DataClass implements Insertable<Account> {
     required this.categoryId,
     required this.isActive,
     required this.isLocked,
+    required this.isArchived,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -532,6 +560,7 @@ class Account extends DataClass implements Insertable<Account> {
     map['category_id'] = Variable<int>(categoryId);
     map['is_active'] = Variable<bool>(isActive);
     map['is_locked'] = Variable<bool>(isLocked);
+    map['is_archived'] = Variable<bool>(isArchived);
     return map;
   }
 
@@ -543,6 +572,7 @@ class Account extends DataClass implements Insertable<Account> {
       categoryId: Value(categoryId),
       isActive: Value(isActive),
       isLocked: Value(isLocked),
+      isArchived: Value(isArchived),
     );
   }
 
@@ -558,6 +588,7 @@ class Account extends DataClass implements Insertable<Account> {
       categoryId: serializer.fromJson<int>(json['categoryId']),
       isActive: serializer.fromJson<bool>(json['isActive']),
       isLocked: serializer.fromJson<bool>(json['isLocked']),
+      isArchived: serializer.fromJson<bool>(json['isArchived']),
     );
   }
   @override
@@ -570,6 +601,7 @@ class Account extends DataClass implements Insertable<Account> {
       'categoryId': serializer.toJson<int>(categoryId),
       'isActive': serializer.toJson<bool>(isActive),
       'isLocked': serializer.toJson<bool>(isLocked),
+      'isArchived': serializer.toJson<bool>(isArchived),
     };
   }
 
@@ -580,6 +612,7 @@ class Account extends DataClass implements Insertable<Account> {
     int? categoryId,
     bool? isActive,
     bool? isLocked,
+    bool? isArchived,
   }) => Account(
     id: id ?? this.id,
     code: code ?? this.code,
@@ -587,6 +620,7 @@ class Account extends DataClass implements Insertable<Account> {
     categoryId: categoryId ?? this.categoryId,
     isActive: isActive ?? this.isActive,
     isLocked: isLocked ?? this.isLocked,
+    isArchived: isArchived ?? this.isArchived,
   );
   Account copyWithCompanion(AccountsCompanion data) {
     return Account(
@@ -598,6 +632,9 @@ class Account extends DataClass implements Insertable<Account> {
           : this.categoryId,
       isActive: data.isActive.present ? data.isActive.value : this.isActive,
       isLocked: data.isLocked.present ? data.isLocked.value : this.isLocked,
+      isArchived: data.isArchived.present
+          ? data.isArchived.value
+          : this.isArchived,
     );
   }
 
@@ -609,14 +646,15 @@ class Account extends DataClass implements Insertable<Account> {
           ..write('name: $name, ')
           ..write('categoryId: $categoryId, ')
           ..write('isActive: $isActive, ')
-          ..write('isLocked: $isLocked')
+          ..write('isLocked: $isLocked, ')
+          ..write('isArchived: $isArchived')
           ..write(')'))
         .toString();
   }
 
   @override
   int get hashCode =>
-      Object.hash(id, code, name, categoryId, isActive, isLocked);
+      Object.hash(id, code, name, categoryId, isActive, isLocked, isArchived);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -626,7 +664,8 @@ class Account extends DataClass implements Insertable<Account> {
           other.name == this.name &&
           other.categoryId == this.categoryId &&
           other.isActive == this.isActive &&
-          other.isLocked == this.isLocked);
+          other.isLocked == this.isLocked &&
+          other.isArchived == this.isArchived);
 }
 
 class AccountsCompanion extends UpdateCompanion<Account> {
@@ -636,6 +675,7 @@ class AccountsCompanion extends UpdateCompanion<Account> {
   final Value<int> categoryId;
   final Value<bool> isActive;
   final Value<bool> isLocked;
+  final Value<bool> isArchived;
   const AccountsCompanion({
     this.id = const Value.absent(),
     this.code = const Value.absent(),
@@ -643,6 +683,7 @@ class AccountsCompanion extends UpdateCompanion<Account> {
     this.categoryId = const Value.absent(),
     this.isActive = const Value.absent(),
     this.isLocked = const Value.absent(),
+    this.isArchived = const Value.absent(),
   });
   AccountsCompanion.insert({
     this.id = const Value.absent(),
@@ -651,6 +692,7 @@ class AccountsCompanion extends UpdateCompanion<Account> {
     required int categoryId,
     this.isActive = const Value.absent(),
     this.isLocked = const Value.absent(),
+    this.isArchived = const Value.absent(),
   }) : code = Value(code),
        name = Value(name),
        categoryId = Value(categoryId);
@@ -661,6 +703,7 @@ class AccountsCompanion extends UpdateCompanion<Account> {
     Expression<int>? categoryId,
     Expression<bool>? isActive,
     Expression<bool>? isLocked,
+    Expression<bool>? isArchived,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
@@ -669,6 +712,7 @@ class AccountsCompanion extends UpdateCompanion<Account> {
       if (categoryId != null) 'category_id': categoryId,
       if (isActive != null) 'is_active': isActive,
       if (isLocked != null) 'is_locked': isLocked,
+      if (isArchived != null) 'is_archived': isArchived,
     });
   }
 
@@ -679,6 +723,7 @@ class AccountsCompanion extends UpdateCompanion<Account> {
     Value<int>? categoryId,
     Value<bool>? isActive,
     Value<bool>? isLocked,
+    Value<bool>? isArchived,
   }) {
     return AccountsCompanion(
       id: id ?? this.id,
@@ -687,6 +732,7 @@ class AccountsCompanion extends UpdateCompanion<Account> {
       categoryId: categoryId ?? this.categoryId,
       isActive: isActive ?? this.isActive,
       isLocked: isLocked ?? this.isLocked,
+      isArchived: isArchived ?? this.isArchived,
     );
   }
 
@@ -711,6 +757,9 @@ class AccountsCompanion extends UpdateCompanion<Account> {
     if (isLocked.present) {
       map['is_locked'] = Variable<bool>(isLocked.value);
     }
+    if (isArchived.present) {
+      map['is_archived'] = Variable<bool>(isArchived.value);
+    }
     return map;
   }
 
@@ -722,7 +771,8 @@ class AccountsCompanion extends UpdateCompanion<Account> {
           ..write('name: $name, ')
           ..write('categoryId: $categoryId, ')
           ..write('isActive: $isActive, ')
-          ..write('isLocked: $isLocked')
+          ..write('isLocked: $isLocked, ')
+          ..write('isArchived: $isArchived')
           ..write(')'))
         .toString();
   }
@@ -2037,6 +2087,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   );
   late final ReportsDao reportsDao = ReportsDao(this as AppDatabase);
   late final AccountsDao accountsDao = AccountsDao(this as AppDatabase);
+  late final LedgerDao ledgerDao = LedgerDao(this as AppDatabase);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -2468,6 +2519,7 @@ typedef $$AccountsTableCreateCompanionBuilder =
       required int categoryId,
       Value<bool> isActive,
       Value<bool> isLocked,
+      Value<bool> isArchived,
     });
 typedef $$AccountsTableUpdateCompanionBuilder =
     AccountsCompanion Function({
@@ -2477,6 +2529,7 @@ typedef $$AccountsTableUpdateCompanionBuilder =
       Value<int> categoryId,
       Value<bool> isActive,
       Value<bool> isLocked,
+      Value<bool> isArchived,
     });
 
 final class $$AccountsTableReferences
@@ -2552,6 +2605,11 @@ class $$AccountsTableFilterComposer
 
   ColumnFilters<bool> get isLocked => $composableBuilder(
     column: $table.isLocked,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get isArchived => $composableBuilder(
+    column: $table.isArchived,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -2638,6 +2696,11 @@ class $$AccountsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<bool> get isArchived => $composableBuilder(
+    column: $table.isArchived,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   $$AccountCategoriesTableOrderingComposer get categoryId {
     final $$AccountCategoriesTableOrderingComposer composer = $composerBuilder(
       composer: this,
@@ -2685,6 +2748,11 @@ class $$AccountsTableAnnotationComposer
 
   GeneratedColumn<bool> get isLocked =>
       $composableBuilder(column: $table.isLocked, builder: (column) => column);
+
+  GeneratedColumn<bool> get isArchived => $composableBuilder(
+    column: $table.isArchived,
+    builder: (column) => column,
+  );
 
   $$AccountCategoriesTableAnnotationComposer get categoryId {
     final $$AccountCategoriesTableAnnotationComposer composer =
@@ -2770,6 +2838,7 @@ class $$AccountsTableTableManager
                 Value<int> categoryId = const Value.absent(),
                 Value<bool> isActive = const Value.absent(),
                 Value<bool> isLocked = const Value.absent(),
+                Value<bool> isArchived = const Value.absent(),
               }) => AccountsCompanion(
                 id: id,
                 code: code,
@@ -2777,6 +2846,7 @@ class $$AccountsTableTableManager
                 categoryId: categoryId,
                 isActive: isActive,
                 isLocked: isLocked,
+                isArchived: isArchived,
               ),
           createCompanionCallback:
               ({
@@ -2786,6 +2856,7 @@ class $$AccountsTableTableManager
                 required int categoryId,
                 Value<bool> isActive = const Value.absent(),
                 Value<bool> isLocked = const Value.absent(),
+                Value<bool> isArchived = const Value.absent(),
               }) => AccountsCompanion.insert(
                 id: id,
                 code: code,
@@ -2793,6 +2864,7 @@ class $$AccountsTableTableManager
                 categoryId: categoryId,
                 isActive: isActive,
                 isLocked: isLocked,
+                isArchived: isArchived,
               ),
           withReferenceMapper: (p0) => p0
               .map(

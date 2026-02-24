@@ -13,155 +13,317 @@ class _AddAccountFormState extends State<AddAccountForm> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
   final _codeController = TextEditingController();
-  int? _selectedCategoryId;
 
-  // Cache the stream to prevent database flicker during the "blink"
-  late final Stream<List<AccountCategory>> _categoryStream;
+  // Display controllers for the selection fields
+  final _typeController = TextEditingController();
+  final _categoryController = TextEditingController();
+
+  int? _selectedTypeId;
+  int? _selectedCategoryId;
+  bool _isSaving = false;
+
+  List<AccountCategory> _allCategories = [];
+  List<AccountCategory> _filteredCategories = [];
 
   @override
   void initState() {
     super.initState();
-    _categoryStream = appDb.select(appDb.accountCategories).watch(); //
+    _loadCategories();
   }
+
+  Future<void> _loadCategories() async {
+    final data = await appDb.accountsDao.getAllCategories();
+    setState(() {
+      _allCategories = data;
+    });
+  }
+
+  // Filters root types (Asset, Liability, etc. where parent is null)
+  List<AccountCategory> get _types =>
+      _allCategories.where((c) => c.parent == null).toList();
 
   @override
   void dispose() {
     _nameController.dispose();
     _codeController.dispose();
+    _typeController.dispose();
+    _categoryController.dispose();
     super.dispose();
   }
 
-  Future<void> _saveAccount() async {
-    if (_formKey.currentState!.validate() && _selectedCategoryId != null) {
-      await appDb
-          .into(appDb.accounts)
-          .insert(
-            AccountsCompanion.insert(
-              code: int.parse(_codeController.text),
-              name: _nameController.text,
-              categoryId: _selectedCategoryId!,
-              isLocked: const drift.Value(false),
+  // --- Picker Logic ---
+
+  void _showTypePicker() {
+    _showCustomPicker(
+      title: 'Select Account Type',
+      items: _types,
+      onSelect: (type) {
+        setState(() {
+          _selectedTypeId = type.id;
+          _typeController.text = type.name;
+
+          // Reset Category when Type changes
+          _selectedCategoryId = null;
+          _categoryController.clear();
+          _filteredCategories = _allCategories
+              .where((c) => c.parent == type.id)
+              .toList();
+        });
+        Future.delayed(Duration.zero, () {
+          if (mounted) _showCategoryPicker();
+        });
+      },
+    );
+  }
+
+  void _showCategoryPicker() {
+    if (_selectedTypeId == null) return;
+    _showCustomPicker(
+      title: 'Select Category',
+      items: _filteredCategories,
+      onSelect: (cat) {
+        setState(() {
+          _selectedCategoryId = cat.id;
+          _categoryController.text = cat.name;
+        });
+      },
+    );
+  }
+
+  void _showCustomPicker({
+    required String title,
+    required List<AccountCategory> items,
+    required Function(AccountCategory) onSelect,
+  }) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.white,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) => Container(
+        padding: const EdgeInsets.symmetric(vertical: 20),
+        constraints: BoxConstraints(
+          maxHeight: MediaQuery.of(context).size.height * 0.6,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 40,
+              height: 4,
+              margin: const EdgeInsets.only(bottom: 15),
+              decoration: BoxDecoration(
+                color: Colors.grey[300],
+                borderRadius: BorderRadius.circular(2),
+              ),
             ),
-          );
-      if (mounted) Navigator.pop(context);
+            Text(
+              title,
+              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+            const Divider(),
+            Flexible(
+              child: ListView.builder(
+                shrinkWrap: true,
+                itemCount: items.length,
+                itemBuilder: (context, index) {
+                  final item = items[index];
+                  return ListTile(
+                    title: Text(item.name),
+                    trailing: const Icon(Icons.chevron_right, size: 18),
+                    onTap: () {
+                      Navigator.pop(context);
+                      onSelect(item);
+                    },
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // --- Submission Logic ---
+
+  Future<void> _submitData() async {
+    if (_formKey.currentState!.validate() && _selectedCategoryId != null) {
+      setState(() => _isSaving = true);
+
+      final entity = AccountsCompanion.insert(
+        name: _nameController.text.trim(),
+        code: int.parse(_codeController.text.trim()),
+        categoryId: _selectedCategoryId!,
+        isLocked: const drift.Value(false),
+      );
+
+      try {
+        await appDb.accountsDao.addAccount(entity);
+        if (mounted) Navigator.pop(context);
+      } catch (e) {
+        setState(() => _isSaving = false);
+        if (mounted) {
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text('Error saving account: $e')));
+        }
+      }
     }
   }
 
+  // --- UI Components ---
+
   @override
   Widget build(BuildContext context) {
-    // Detects the keyboard height
-    final double keyboardHeight = MediaQuery.of(context).viewInsets.bottom;
+    final bottomInset = MediaQuery.of(context).viewInsets.bottom;
 
-    return Stack(
-      children: [
-        Positioned(
-          // This creates the "Blink" effect. Positioned updates instantly
-          // without the resizing animation of a standard container.
-          bottom: keyboardHeight,
-          left: 0,
-          right: 0,
-          child: Container(
-            decoration: const BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-            ),
-            padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
+    return Material(
+      color: Colors.white,
+      clipBehavior: Clip.antiAlias,
+      borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+      child: Container(
+        padding: EdgeInsets.fromLTRB(24, 24, 24, 24 + bottomInset),
+        child: SingleChildScrollView(
+          child: Form(
+            key: _formKey,
             child: Column(
-              mainAxisSize: MainAxisSize.min, // Form only takes needed space
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                // Minimalist handle
-                Container(
-                  width: 35,
-                  height: 4,
-                  margin: const EdgeInsets.only(bottom: 15),
-                  decoration: BoxDecoration(
-                    color: Colors.grey[300],
-                    borderRadius: BorderRadius.circular(2),
+                _buildHeader(),
+                const SizedBox(height: 24),
+
+                // Account Name
+                TextFormField(
+                  controller: _nameController,
+                  decoration: const InputDecoration(
+                    labelText: 'Account Name',
+                    border: OutlineInputBorder(),
+                    prefixIcon: Icon(Icons.edit_outlined),
                   ),
+                  validator: (val) =>
+                      val == null || val.isEmpty ? 'Required' : null,
                 ),
-                DefaultTextStyle(
-                  style: Theme.of(context).textTheme.bodyMedium!,
-                  child: Form(
-                    key: _formKey,
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Text(
-                          'Add New Account',
+                const SizedBox(height: 16),
+
+                // Account Code
+                TextFormField(
+                  controller: _codeController,
+                  keyboardType: TextInputType.number,
+                  decoration: const InputDecoration(
+                    labelText: 'Account Code',
+                    border: OutlineInputBorder(),
+                    prefixIcon: Icon(Icons.numbers),
+                  ),
+                  validator: (val) {
+                    if (val == null || val.isEmpty) return 'Required';
+                    if (int.tryParse(val) == null) return 'Must be a number';
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 16),
+
+                // Type Selection
+                TextFormField(
+                  controller: _typeController,
+                  readOnly: true,
+                  onTap: _showTypePicker,
+                  decoration: const InputDecoration(
+                    labelText: 'Account Type',
+                    border: OutlineInputBorder(),
+                    suffixIcon: Icon(Icons.arrow_drop_down),
+                    prefixIcon: Icon(Icons.account_balance_outlined),
+                  ),
+                  validator: (val) =>
+                      val == null || val.isEmpty ? 'Select a type' : null,
+                ),
+                const SizedBox(height: 16),
+
+                // Category Selection
+                TextFormField(
+                  controller: _categoryController,
+                  readOnly: true,
+                  enabled: _selectedTypeId != null,
+                  onTap: _selectedTypeId == null ? null : _showCategoryPicker,
+                  decoration: InputDecoration(
+                    labelText: 'Category',
+                    border: const OutlineInputBorder(),
+                    disabledBorder: OutlineInputBorder(
+                      borderSide: BorderSide(color: Colors.grey.shade300),
+                    ),
+                    suffixIcon: _selectedTypeId == null
+                        ? null
+                        : const Icon(Icons.arrow_drop_down),
+                    prefixIcon: Icon(
+                      Icons.category_outlined,
+                      color: _selectedTypeId == null ? Colors.grey[300] : null,
+                    ),
+                    filled: _selectedTypeId == null,
+                    fillColor: _selectedTypeId == null ? Colors.grey[50] : null,
+                    hintText: _selectedTypeId == null
+                        ? 'Select Type first'
+                        : 'Choose a category',
+                    labelStyle: TextStyle(
+                      color: _selectedTypeId == null ? Colors.grey[400] : null,
+                    ),
+                  ),
+                  validator: (val) =>
+                      val == null || val.isEmpty ? 'Select a category' : null,
+                ),
+                const SizedBox(height: 32),
+
+                // Save Button
+                ElevatedButton(
+                  onPressed: _isSaving ? null : _submitData,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF1A1C1E),
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                  child: _isSaving
+                      ? const SizedBox(
+                          height: 20,
+                          width: 20,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
+                        )
+                      : const Text(
+                          'Save Account',
                           style: TextStyle(
-                            fontSize: 18,
+                            fontSize: 16,
                             fontWeight: FontWeight.bold,
                           ),
                         ),
-                        const SizedBox(height: 20),
-                        StreamBuilder<List<AccountCategory>>(
-                          stream: _categoryStream, //
-                          builder: (context, snapshot) {
-                            final categories = snapshot.data ?? [];
-                            return DropdownButtonFormField<int>(
-                              decoration: const InputDecoration(
-                                labelText: 'Category',
-                                border: OutlineInputBorder(),
-                                contentPadding: EdgeInsets.symmetric(
-                                  horizontal: 12,
-                                  vertical: 8,
-                                ),
-                              ),
-                              value: _selectedCategoryId,
-                              items: categories
-                                  .map(
-                                    (cat) => DropdownMenuItem(
-                                      value: cat.id,
-                                      child: Text(cat.name),
-                                    ),
-                                  )
-                                  .toList(),
-                              onChanged: (val) =>
-                                  setState(() => _selectedCategoryId = val),
-                            );
-                          },
-                        ),
-                        const SizedBox(height: 16),
-                        TextFormField(
-                          controller: _codeController,
-                          decoration: const InputDecoration(
-                            labelText: 'Code',
-                            border: OutlineInputBorder(),
-                          ),
-                          keyboardType: TextInputType.number,
-                        ),
-                        const SizedBox(height: 16),
-                        TextFormField(
-                          controller: _nameController,
-                          decoration: const InputDecoration(
-                            labelText: 'Name',
-                            border: OutlineInputBorder(),
-                          ),
-                          textCapitalization: TextCapitalization.words,
-                        ),
-                        const SizedBox(height: 24),
-                        SizedBox(
-                          width: double.infinity,
-                          height: 50,
-                          child: ElevatedButton(
-                            onPressed: _saveAccount,
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFF1A1C1E),
-                              foregroundColor: Colors.white,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                            ),
-                            child: const Text('Save Account'),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
                 ),
               ],
             ),
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildHeader() {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        const Text(
+          'New Account',
+          style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+        ),
+        IconButton(
+          onPressed: () => Navigator.pop(context),
+          icon: const Icon(Icons.close),
+          padding: EdgeInsets.zero,
+          constraints: const BoxConstraints(),
         ),
       ],
     );

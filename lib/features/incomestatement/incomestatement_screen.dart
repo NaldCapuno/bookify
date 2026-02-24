@@ -36,13 +36,7 @@ class _IncomeStatementScreenState extends State<IncomeStatementScreen> {
     _endDate = range.end;
   }
 
-  // --- NEW: SEED & FETCH LOGIC ---
   Future<void> _initAndFetch() async {
-    // 1. Seed the data first so we have something to see
-    // await _seedTestData();
-
-    // 2. Fetch the report
-
     _fetchReportData();
   }
 
