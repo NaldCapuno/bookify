@@ -78,6 +78,7 @@ class JournalScreen extends StatelessWidget {
                       // 3. Inject the live calculated data directly into your card!
                       accounts: summary.accountCount,
                       amount: formattedAmount,
+                      isInitiallyVoided: summary.journal.isVoid,
                     ),
                   );
                 },
@@ -118,6 +119,7 @@ class JournalEntryCard extends StatefulWidget {
   final int accounts;
   final String amount;
   final bool isInitiallyExpanded;
+  final bool isInitiallyVoided;
 
   const JournalEntryCard({
     super.key,
@@ -127,6 +129,7 @@ class JournalEntryCard extends StatefulWidget {
     required this.accounts,
     required this.amount,
     this.isInitiallyExpanded = false,
+    this.isInitiallyVoided = false,
   });
 
   @override
@@ -135,12 +138,28 @@ class JournalEntryCard extends StatefulWidget {
 
 class _JournalEntryCardState extends State<JournalEntryCard> {
   late bool _isExpanded;
-  bool _isVoided = false;
+  late bool _isVoided;
 
   @override
   void initState() {
     super.initState();
     _isExpanded = widget.isInitiallyExpanded;
+    _isVoided = widget.isInitiallyVoided;
+  }
+
+  @override
+  void didUpdateWidget(JournalEntryCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.isInitiallyVoided != widget.isInitiallyVoided) {
+      _isVoided = widget.isInitiallyVoided;
+    }
+  }
+
+  Future<void> _persistVoid() async {
+    final journalId = int.tryParse(widget.id);
+    if (journalId == null) return;
+    await appDb.journalEntryDao.voidJournalEntry(journalId);
+    if (mounted) setState(() => _isVoided = true);
   }
 
   // Changed to return a Future<bool> so Dismissible knows what the user chose
@@ -261,13 +280,11 @@ class _JournalEntryCardState extends State<JournalEntryCard> {
 
               // The logic when the swipe completes
               confirmDismiss: (direction) async {
-                // Show bottom sheet
                 bool shouldVoid = await _showVoidConfirmation(context);
                 if (shouldVoid) {
-                  setState(() => _isVoided = true);
+                  await _persistVoid();
                 }
                 // ALWAYS return false so the card snaps back into the list.
-                // We don't want to actually delete the widget, just change it to voided!
                 return false;
               },
 
@@ -427,9 +444,7 @@ class _JournalEntryCardState extends State<JournalEntryCard> {
                                                         context,
                                                       );
                                                   if (shouldVoid) {
-                                                    setState(
-                                                      () => _isVoided = true,
-                                                    );
+                                                    await _persistVoid();
                                                   }
                                                 },
                                                 icon: const Icon(
