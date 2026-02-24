@@ -2032,6 +2032,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $TransactionsTable transactions = $TransactionsTable(this);
   late final $UsersTable users = $UsersTable(this);
   late final UsersDao usersDao = UsersDao(this as AppDatabase);
+  late final ReportsDao reportsDao = ReportsDao(this as AppDatabase);
   late final JournalEntryDao journalEntryDao = JournalEntryDao(
     this as AppDatabase,
   );

@@ -17,7 +17,7 @@ part 'app_database.g.dart';
 @DriftDatabase(
   // TODO: Register the tables and DAOs here
   tables: [AccountCategories, Accounts, Journals, Transactions, Users],
-  daos: [UsersDao, JournalEntryDao],
+  daos: [UsersDao, JournalEntryDao, ReportsDao],
 )
 class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(driftDatabase(name: 'app_db'));
