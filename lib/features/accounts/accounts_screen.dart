@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:sticky_headers/sticky_headers.dart';
 import 'package:bookkeeping/core/database/app_database.dart';
 import 'package:bookkeeping/core/database/daos/accounts_dao.dart';
-// import 'add_account_form.dart';
+import 'add_account_form.dart';
 
 class AccountsScreen extends StatelessWidget {
   const AccountsScreen({super.key});
@@ -12,7 +12,7 @@ class AccountsScreen extends StatelessWidget {
     return Scaffold(
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () {
-          // _showAddAccountDialog(context);
+          _showAddAccountDialog(context);
         },
         backgroundColor: const Color(0xFF1A1C1E),
         foregroundColor: Colors.white,
@@ -115,13 +115,13 @@ class AccountsScreen extends StatelessWidget {
     );
   }
 
-  // void _showAddAccountDialog(BuildContext context) {
-  //   showModalBottomSheet(
-  //     context: context,
-  //     isScrollControlled: true, // Required to allow the form to move freely
-  //     backgroundColor: Colors.transparent, // Required to see the "snap" clearly
-  //     elevation: 0,
-  //     builder: (context) => const AddAccountForm(),
-  //   );
-  // }
+  void _showAddAccountDialog(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true, // Required to allow the form to move freely
+      backgroundColor: Colors.transparent, // Required to see the "snap" clearly
+      elevation: 0,
+      builder: (context) => const AddAccountForm(),
+    );
+  }
 }
