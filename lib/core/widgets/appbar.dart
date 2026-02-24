@@ -3,15 +3,19 @@ import 'package:flutter/material.dart';
 class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
   final String title;
   final VoidCallback? onSettingsTap;
+  final VoidCallback? onProfileTap; // Added this
   final bool showBackButton;
   final VoidCallback? onBackTap;
+  final String userInitials; // Added this
 
   const CustomAppBar({
     super.key,
     required this.title,
     this.onSettingsTap,
+    this.onProfileTap,
     this.showBackButton = false,
     this.onBackTap,
+    this.userInitials = '', // Default to empty
   });
 
   @override
@@ -30,12 +34,12 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
         if (!showBackButton)
           PopupMenuButton<int>(
             offset: const Offset(0, 50),
-            icon: const CircleAvatar(
+            icon: CircleAvatar(
               radius: 18,
-              backgroundColor: Color(0xFF232D3F),
+              backgroundColor: const Color(0xFF232D3F),
               child: Text(
-                'KL',
-                style: TextStyle(
+                userInitials.isNotEmpty ? userInitials : '?', // Made dynamic
+                style: const TextStyle(
                   color: Colors.white,
                   fontSize: 12,
                   fontWeight: FontWeight.bold,
@@ -44,9 +48,18 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
             ),
             onSelected: (value) {
               if (value == 0) {
-                Navigator.pushNamed(context, '/profile');
+                // Use callback if provided, else fallback to direct navigation
+                if (onProfileTap != null) {
+                  onProfileTap!();
+                } else {
+                  Navigator.pushNamed(context, '/profile');
+                }
               } else if (value == 1) {
-                Navigator.pushNamed(context, '/settings');
+                if (onSettingsTap != null) {
+                  onSettingsTap!();
+                } else {
+                  Navigator.pushNamed(context, '/settings');
+                }
               }
             },
             itemBuilder: (context) => [

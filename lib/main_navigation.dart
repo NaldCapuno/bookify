@@ -7,6 +7,11 @@ import 'package:bookkeeping/features/ledger/ledger_screen.dart';
 import 'package:bookkeeping/features/reports/reports_screen.dart';
 import 'package:bookkeeping/features/accounts/accounts_screen.dart';
 
+// Add these imports
+import 'package:bookkeeping/features/profile/user_service.dart';
+import 'package:bookkeeping/core/database/app_database.dart';
+import 'package:bookkeeping/core/database/daos/users_dao.dart';
+
 class MainNavigation extends StatefulWidget {
   const MainNavigation({super.key});
 
@@ -17,6 +22,10 @@ class MainNavigation extends StatefulWidget {
 class _MainNavigationState extends State<MainNavigation> {
   int _selectedIndex = 0;
 
+  // Add UserService and Initials state
+  late final UserService _userService;
+  String _userInitials = '';
+
   final List<String> _titles = [
     'Dashboard',
     'Journal',
@@ -25,10 +34,46 @@ class _MainNavigationState extends State<MainNavigation> {
     'Accounts',
   ];
 
+  @override
+  void initState() {
+    super.initState();
+    // Initialize user service and load initials
+    _userService = UserService(UsersDao(appDb));
+    _loadUserInitials();
+  }
+
+  // Fetch the user from DB
+  Future<void> _loadUserInitials() async {
+    final user = await _userService.getUserProfile();
+    if (user != null && mounted) {
+      setState(() {
+        _userInitials = _getInitials(user.username);
+      });
+    }
+  }
+
+  // Logic to parse the initials
+  String _getInitials(String name) {
+    if (name.trim().isEmpty) return '';
+    final nameParts = name.trim().split(RegExp(r'\s+'));
+    if (nameParts.length >= 2) {
+      return '${nameParts.first[0]}${nameParts.last[0]}'.toUpperCase();
+    } else if (nameParts.isNotEmpty && nameParts.first.isNotEmpty) {
+      return nameParts.first[0].toUpperCase();
+    }
+    return '';
+  }
+
   void _onItemTapped(int index) {
     setState(() {
       _selectedIndex = index;
     });
+  }
+
+  // Wrapper for navigation so we can reload initials when coming back
+  void _navigateToProfile() async {
+    await Navigator.pushNamed(context, '/profile');
+    _loadUserInitials(); // Refreshes initials if updated in ProfileScreen
   }
 
   @override
@@ -44,6 +89,8 @@ class _MainNavigationState extends State<MainNavigation> {
       child: Scaffold(
         appBar: CustomAppBar(
           title: _titles[_selectedIndex],
+          userInitials: _userInitials, // Pass the dynamic initials
+          onProfileTap: _navigateToProfile, // Pass custom navigation wrapper
           onSettingsTap: () => Navigator.pushNamed(context, '/settings'),
         ),
 
