@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:bookkeeping/core/widgets/appbar.dart';
 import 'package:bookkeeping/core/database/app_database.dart';
 import 'package:bookkeeping/core/database/daos/users_dao.dart';
+import 'package:bookkeeping/core/database/tables/user_table.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -14,7 +15,6 @@ class ProfileScreen extends StatefulWidget {
 class _ProfileScreenState extends State<ProfileScreen> {
   late final UserService _userService;
 
-  // Added controllers for username and email
   final TextEditingController _usernameController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _businessNameController = TextEditingController();
@@ -23,10 +23,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
   final TextEditingController _contactNumberController =
       TextEditingController();
 
+  // Added state variable for the dropdown
+  BusinessType? _selectedBusinessType;
+
   bool _isLoading = true;
   int? _userId;
 
-  // These are kept to drive the un-editable profile header at the top
   String _headerUsername = '';
   String _headerEmail = '';
 
@@ -44,16 +46,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
       setState(() {
         _userId = user.id;
 
-        // Update header variables
         _headerUsername = user.username;
         _headerEmail = user.email;
 
-        // Populate text fields
         _usernameController.text = user.username;
         _emailController.text = user.email;
         _businessNameController.text = user.business ?? '';
         _businessAddressController.text = user.businessAddress ?? '';
         _contactNumberController.text = user.contactNumber ?? '';
+
+        // Load the existing business type
+        _selectedBusinessType = user.businessType;
 
         _isLoading = false;
       });
@@ -72,13 +75,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
       username: _usernameController.text,
       email: _emailController.text,
       businessName: _businessNameController.text,
+      businessType: _selectedBusinessType, // Pass the selected enum
       businessAddress: _businessAddressController.text,
       contactNumber: _contactNumberController.text,
     );
 
     if (mounted) {
       if (success) {
-        // Update the header to reflect the new saved values instantly
         setState(() {
           _headerUsername = _usernameController.text;
           _headerEmail = _emailController.text;
@@ -161,11 +164,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           controller: _emailController,
                         ),
 
-                        _buildFieldLabel('Business'),
+                        _buildFieldLabel('Business Name'),
                         _buildTextField(
                           'Enter your business name',
                           controller: _businessNameController,
                         ),
+
+                        // Added Business Type Dropdown
+                        _buildFieldLabel('Business Type'),
+                        _buildDropdownField(),
 
                         _buildFieldLabel('Business Address'),
                         _buildTextField(
@@ -190,6 +197,34 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
+  // Extracted Dropdown builder
+  Widget _buildDropdownField() {
+    return DropdownButtonFormField<BusinessType>(
+      value: _selectedBusinessType,
+      decoration: InputDecoration(
+        hintText: 'Select Business Type',
+        filled: true,
+        fillColor: const Color(0xFFF2F4F7),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide.none,
+        ),
+      ),
+      icon: const Icon(Icons.keyboard_arrow_down),
+      items: BusinessType.values.map((BusinessType type) {
+        return DropdownMenuItem<BusinessType>(
+          value: type,
+          child: Text(type.displayName), // Uses the extension created earlier
+        );
+      }).toList(),
+      onChanged: (BusinessType? newValue) {
+        setState(() {
+          _selectedBusinessType = newValue;
+        });
+      },
+    );
+  }
+
   Widget _buildProfileHeader() {
     return Row(
       children: [
@@ -197,7 +232,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           radius: 35,
           backgroundColor: const Color(0xFF232D3F),
           child: Text(
-            _getInitials(_headerUsername), 
+            _getInitials(_headerUsername),
             style: const TextStyle(
               color: Colors.white,
               fontSize: 24,
@@ -210,11 +245,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              _headerUsername, // Using the state variable
+              _headerUsername,
               style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
             Text(
-              _headerEmail, // Using the state variable
+              _headerEmail,
               style: const TextStyle(color: Colors.grey, fontSize: 14),
             ),
           ],

@@ -1,3 +1,4 @@
+import 'package:bookkeeping/core/database/tables/user_table.dart';
 import 'package:drift/drift.dart';
 import 'app_database.dart';
 import 'tables/account_categories_table.dart';
@@ -853,7 +854,16 @@ MigrationStrategy buildMigrationStrategy(AppDatabase db) {
       // Default User Detail
       await db.batch((batch) {
         batch.insertAll(db.users, [
-          UsersCompanion.insert(username: 'admin', email: 'admin'),
+          UsersCompanion.insert(
+            username: 'Juan Dela Cruz',
+            email: 'juan@example.com',
+            businessType: BusinessType.soleProprietorship,
+            business: const Value('JDC General Merchandising'),
+            businessAddress: const Value(
+              '123 Rizal Avenue, Puerto Princesa City, Palawan',
+            ),
+            contactNumber: const Value('+63 912 345 6789'),
+          ),
         ]);
       });
     },
