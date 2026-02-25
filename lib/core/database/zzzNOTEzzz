@@ -3,3 +3,9 @@ If MODIFICATION on DATABASE FOLDER
 - dart run build_runner build -d
 - uninstall the app (via phone or emulator)
 
+
+Release Guide:
+android/app/src/main/AndroidManifest.xml > android:label
+dart run flutter_launcher_icons 
+flutter run --release
+build/app/outputs/flutter-apk/
