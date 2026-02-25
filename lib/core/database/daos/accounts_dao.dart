@@ -69,4 +69,14 @@ class AccountsDao extends DatabaseAccessor<AppDatabase>
       AccountsCompanion(isArchived: Value(archive)),
     );
   }
+
+  Future<void> deleteAccount(int id) {
+    return (delete(accounts)..where((t) => t.id.equals(id))).go();
+  }
+
+  Future<bool> isCodeTaken(int codeValue) async {
+    final query = select(accounts)..where((t) => t.code.equals(codeValue));
+    final result = await query.getSingleOrNull();
+    return result != null;
+  }
 }

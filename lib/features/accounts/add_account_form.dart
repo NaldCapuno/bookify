@@ -11,6 +11,8 @@ class AddAccountForm extends StatefulWidget {
 }
 
 class _AddAccountFormState extends State<AddAccountForm> {
+  bool? _isCodeAvailable;
+  bool _isValidatingCode = false;
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
   final _descriptionController = TextEditingController();
@@ -227,14 +229,38 @@ class _AddAccountFormState extends State<AddAccountForm> {
                 TextFormField(
                   controller: _codeController,
                   keyboardType: TextInputType.number,
-                  decoration: const InputDecoration(
+                  onChanged: _checkCodeAvailability, // Triggers the live check
+                  decoration: InputDecoration(
                     labelText: 'Account Code',
-                    border: OutlineInputBorder(),
-                    prefixIcon: Icon(Icons.numbers),
+                    border: const OutlineInputBorder(),
+                    prefixIcon: const Icon(Icons.numbers),
+                    // --- LIVE FEEDBACK ICON ---
+                    suffixIcon: _isValidatingCode
+                        ? const Padding(
+                            padding: EdgeInsets.all(12.0),
+                            child: SizedBox(
+                              width: 16,
+                              height: 16,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            ),
+                          )
+                        : (_isCodeAvailable == null
+                              ? null
+                              : Icon(
+                                  _isCodeAvailable!
+                                      ? Icons.check_circle
+                                      : Icons.cancel,
+                                  color: _isCodeAvailable!
+                                      ? Colors.green
+                                      : Colors.red,
+                                )),
                   ),
                   validator: (val) {
                     if (val == null || val.isEmpty) return 'Required';
-                    // You can add your 101-999 range logic here!
+                    if (_isCodeAvailable == false)
+                      return 'Code is already in use';
+
+                    // (You can also add your 101-199 range logic here!)
                     return null;
                   },
                 ),
@@ -344,5 +370,25 @@ class _AddAccountFormState extends State<AddAccountForm> {
         ),
       ],
     );
+  }
+
+  Future<void> _checkCodeAvailability(String value) async {
+    if (value.isEmpty) {
+      setState(() => _isCodeAvailable = null);
+      return;
+    }
+
+    final code = int.tryParse(value);
+    if (code == null) return;
+
+    setState(() => _isValidatingCode = true);
+
+    // Check your database (using the method we discussed earlier)
+    final isTaken = await appDb.accountsDao.isCodeTaken(code);
+
+    setState(() {
+      _isCodeAvailable = !isTaken; // Available if NOT taken
+      _isValidatingCode = false;
+    });
   }
 }

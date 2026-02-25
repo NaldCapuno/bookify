@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:bookkeeping/core/database/app_database.dart';
 import 'package:bookkeeping/core/database/tables/account_categories_table.dart';
+import 'package:bookkeeping/core/widgets/app_confirmation_sheet.dart';
+import 'package:bookkeeping/core/widgets/appt_toast.dart';
 
 class AccountDetailsSheet extends StatelessWidget {
   final Account account;
@@ -114,18 +116,72 @@ class AccountDetailsSheet extends StatelessWidget {
               ),
               const SizedBox(height: 32),
 
-              SizedBox(
-                width: double.infinity,
-                child: OutlinedButton(
-                  onPressed: () => Navigator.pop(context),
-                  style: OutlinedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () => Navigator.pop(context),
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        side: BorderSide(color: Colors.grey.shade300),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      child: const Text(
+                        'Close',
+                        style: TextStyle(color: Colors.black87),
+                      ),
                     ),
                   ),
-                  child: const Text('Close'),
-                ),
+                  const SizedBox(width: 12),
+
+                  Expanded(
+                    child: account.isLocked
+                        ? ElevatedButton.icon(
+                            onPressed: () => _handleArchiveToggle(context),
+                            icon: Icon(
+                              isArchived
+                                  ? Icons.unarchive_outlined
+                                  : Icons.archive_outlined,
+                              size: 18,
+                              color: Colors.white,
+                            ),
+                            label: Text(
+                              isArchived ? 'Unarchive' : 'Archive',
+                              style: const TextStyle(color: Colors.white),
+                            ),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: isArchived
+                                  ? Colors.blue.shade700
+                                  : Colors.orange.shade700,
+                              padding: const EdgeInsets.symmetric(vertical: 14),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                          )
+                        : ElevatedButton.icon(
+                            onPressed: () => _handleDelete(context),
+                            icon: const Icon(
+                              Icons.delete_forever_outlined,
+                              size: 18,
+                              color: Colors.white,
+                            ),
+                            label: const Text(
+                              'Delete',
+                              style: TextStyle(color: Colors.white),
+                            ),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.red.shade700,
+                              padding: const EdgeInsets.symmetric(vertical: 14),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                          ),
+                  ),
+                ],
               ),
             ],
           ),
@@ -205,5 +261,55 @@ class AccountDetailsSheet extends StatelessWidget {
         ),
       ],
     );
+  }
+
+  Future<void> _handleArchiveToggle(BuildContext context) async {
+    final newStatus = !account.isArchived;
+
+    await appDb.accountsDao.archiveAccount(account.id, newStatus);
+
+    if (context.mounted) {
+      Navigator.pop(context);
+      AppToast.show(
+        context,
+        message: newStatus
+            ? 'Account archived successfully!'
+            : 'Account unarchived successfully!',
+      );
+    }
+  }
+
+  Future<void> _handleDelete(BuildContext context) async {
+    final confirmed = await showModalBottomSheet<bool>(
+      context: context,
+      builder: (context) => AppConfirmationSheet(
+        title: 'Delete Account?',
+        message:
+            'This will permanently remove ${account.name}. This action cannot be undone.',
+        confirmLabel: 'Delete',
+        confirmColor: Colors.red.shade700,
+        icon: Icons.delete_forever_outlined,
+      ),
+    );
+
+    if (confirmed == true) {
+      try {
+        await appDb.accountsDao.deleteAccount(account.id);
+        if (context.mounted) {
+          Navigator.pop(context);
+          AppToast.show(context, message: 'Account deleted successfully!');
+        }
+      } catch (e) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text(
+                'Cannot delete: Account is in use by transactions.',
+              ),
+            ),
+          );
+        }
+      }
+    }
   }
 }
