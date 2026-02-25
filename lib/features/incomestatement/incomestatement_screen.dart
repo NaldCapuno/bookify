@@ -5,9 +5,6 @@ import 'package:bookkeeping/core/widgets/report_control_bar.dart';
 import 'package:bookkeeping/core/widgets/appbar.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-
-// Ensure these paths match your actual project structure
-// Standardized path
 import 'income_statement.dart';
 
 class IncomeStatementScreen extends StatefulWidget {
@@ -27,7 +24,7 @@ class _IncomeStatementScreenState extends State<IncomeStatementScreen> {
   void initState() {
     super.initState();
     _updateDateRange(_currentPeriod);
-    _initAndFetch();
+    _fetchReportData(); // Cleaned up init
   }
 
   void _updateDateRange(ReportPeriod period) {
@@ -36,16 +33,12 @@ class _IncomeStatementScreenState extends State<IncomeStatementScreen> {
     _endDate = range.end;
   }
 
-  Future<void> _initAndFetch() async {
-    _fetchReportData();
-  }
-
   void _fetchReportData() {
     setState(() {
+      // FIX: Removed businessName parameter as it is now handled internally by ReportsDao
       _statementFuture = appDb.reportsDao.getIncomeStatement(
         startDate: _startDate,
         endDate: _endDate,
-        businessName: "Kyle", // Personalized for your project
       );
     });
   }
@@ -70,7 +63,6 @@ class _IncomeStatementScreenState extends State<IncomeStatementScreen> {
               padding: const EdgeInsets.all(20.0),
               child: Column(
                 children: [
-                  // --- CONTROL BAR (Always Visible) ---
                   ReportControlBar(
                     selectedPeriod: _currentPeriod,
                     currentData: reportData,
@@ -86,6 +78,7 @@ class _IncomeStatementScreenState extends State<IncomeStatementScreen> {
 
                   // --- REPORT HEADER ---
                   Text(
+                    // Pulls business name from the Users table via the model
                     reportData?.businessName ?? "Business Name",
                     style: const TextStyle(
                       fontSize: 22,
@@ -97,8 +90,8 @@ class _IncomeStatementScreenState extends State<IncomeStatementScreen> {
                   const Text(
                     "INCOME STATEMENT",
                     style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w500,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
                       color: Color(0xFF6C757D),
                       letterSpacing: 1.2,
                     ),
@@ -131,6 +124,11 @@ class _IncomeStatementScreenState extends State<IncomeStatementScreen> {
                         constraints: const BoxConstraints(maxWidth: 600),
                         child: IncomeStatementCard(data: reportData),
                       ),
+                    )
+                  else
+                    const Padding(
+                      padding: EdgeInsets.only(top: 60.0),
+                      child: Text("No transactions recorded for this period."),
                     ),
                 ],
               ),

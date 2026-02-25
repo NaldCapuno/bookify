@@ -28,6 +28,7 @@ class _MainNavigationState extends State<MainNavigation> {
   // Timer? _metricsTimer;
   // bool _isOverlayActive = false;
 
+  // Removed interaction counters and timers
   late final UserService _userService;
   String _userInitials = '';
 

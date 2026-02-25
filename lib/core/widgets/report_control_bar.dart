@@ -3,17 +3,22 @@ import 'package:bookkeeping/core/utils/date_utils.dart';
 import 'package:bookkeeping/core/utils/pdf_export_service.dart';
 import 'package:bookkeeping/core/widgets/reports_color.dart';
 import 'package:bookkeeping/features/incomestatement/income_statement.dart';
+import 'package:bookkeeping/features/balancesheet/balance_sheet.dart';
 
 class ReportControlBar extends StatelessWidget {
   final ReportPeriod selectedPeriod;
   final ValueChanged<ReportPeriod> onPeriodChanged;
-  final IncomeStatement? currentData;
+  final dynamic currentData;
+  final DateTime? startDate;
+  final DateTime? endDate;
 
   const ReportControlBar({
     super.key,
     required this.selectedPeriod,
     required this.onPeriodChanged,
     this.currentData,
+    this.startDate,
+    this.endDate,
   });
 
   @override
@@ -45,7 +50,7 @@ class ReportControlBar extends StatelessWidget {
             ),
             child: DropdownButtonHideUnderline(
               child: DropdownButton<ReportPeriod>(
-                isExpanded: true, // Prevents overflow errors
+                isExpanded: true,
                 value: selectedPeriod,
                 icon: const Icon(
                   Icons.keyboard_arrow_down,
@@ -67,10 +72,7 @@ class ReportControlBar extends StatelessWidget {
                 ) {
                   return DropdownMenuItem<ReportPeriod>(
                     value: period,
-                    child: Text(
-                      period.label,
-                      overflow: TextOverflow.ellipsis, // Clean truncation
-                    ),
+                    child: Text(period.label, overflow: TextOverflow.ellipsis),
                   );
                 }).toList(),
               ),
@@ -80,11 +82,20 @@ class ReportControlBar extends StatelessWidget {
 
         const SizedBox(width: 12),
 
-        // --- DOWNLOAD BUTTON SECTION ---
+        // --- REVERTED DOWNLOAD BUTTON DESIGN ---
         OutlinedButton.icon(
           onPressed: () {
             if (currentData != null) {
-              PdfExportService.exportIncomeStatement(currentData!);
+              if (currentData is IncomeStatement) {
+                PdfExportService.exportIncomeStatement(currentData!);
+              } else if (currentData is BalanceSheet) {
+                // Pass the dates to the export service
+                PdfExportService.exportBalanceSheet(
+                  currentData!,
+                  startDate ?? DateTime.now(),
+                  endDate ?? DateTime.now(),
+                );
+              }
             } else {
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(
