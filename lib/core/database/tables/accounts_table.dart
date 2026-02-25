@@ -5,6 +5,7 @@ class Accounts extends Table {
   IntColumn get id => integer().autoIncrement()();
   IntColumn get code => integer().unique()();
   TextColumn get name => text().withLength(min: 1, max: 255)();
+  TextColumn get description => text().withLength(max: 1024).nullable()();
   IntColumn get categoryId => integer().references(AccountCategories, #id)();
   BoolColumn get isActive => boolean().withDefault(const Constant(true))();
   BoolColumn get isLocked => boolean().withDefault(const Constant(false))();
