@@ -18,12 +18,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
   final TextEditingController _usernameController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _businessNameController = TextEditingController();
+  final TextEditingController _businessTypeController =
+      TextEditingController(); // Added for the bottom sheet
   final TextEditingController _businessAddressController =
       TextEditingController();
   final TextEditingController _contactNumberController =
       TextEditingController();
 
-  // Added state variable for the dropdown
   BusinessType? _selectedBusinessType;
 
   bool _isLoading = true;
@@ -55,8 +56,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
         _businessAddressController.text = user.businessAddress ?? '';
         _contactNumberController.text = user.contactNumber ?? '';
 
-        // Load the existing business type
         _selectedBusinessType = user.businessType;
+        if (user.businessType != null) {
+          _businessTypeController.text = user.businessType!.displayName;
+        }
 
         _isLoading = false;
       });
@@ -64,6 +67,31 @@ class _ProfileScreenState extends State<ProfileScreen> {
       setState(() {
         _isLoading = false;
       });
+    }
+  }
+
+  // --- NEW: Confirmation Bottom Sheet for Saving ---
+  Future<void> _handleSaveWithConfirmation() async {
+    FocusScope.of(context).unfocus(); // Close keyboard
+
+    final bool? shouldSave = await showModalBottomSheet<bool>(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (BuildContext context) {
+        return const AppConfirmationSheet(
+          title: 'Save Changes?',
+          message: 'Are you sure you want to update your profile information?',
+          confirmLabel: 'Save',
+          confirmColor: Color(0xFF1A1C1E),
+          icon: Icons.save_outlined,
+        );
+      },
+    );
+
+    if (shouldSave == true) {
+      await _saveChanges();
     }
   }
 
@@ -75,7 +103,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       username: _usernameController.text,
       email: _emailController.text,
       businessName: _businessNameController.text,
-      businessType: _selectedBusinessType, // Pass the selected enum
+      businessType: _selectedBusinessType,
       businessAddress: _businessAddressController.text,
       contactNumber: _contactNumberController.text,
     );
@@ -100,6 +128,81 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
+  // --- NEW: Bottom Sheet for Business Type Selection ---
+  Future<void> _showBusinessTypePicker() async {
+    FocusScope.of(context).unfocus(); // Close keyboard before opening sheet
+
+    final BusinessType? picked = await showModalBottomSheet<BusinessType>(
+      context: context,
+      isScrollControlled: true, // Allows the sheet to size properly with lists
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (BuildContext context) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.only(top: 24.0, bottom: 8.0),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Drag Handle
+                Container(
+                  width: 40,
+                  height: 4,
+                  margin: const EdgeInsets.only(bottom: 20),
+                  decoration: BoxDecoration(
+                    color: Colors.grey[300],
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
+                const Text(
+                  'Select Business Type',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 16),
+                Flexible(
+                  child: SingleChildScrollView(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: BusinessType.values.map((type) {
+                        final isSelected = _selectedBusinessType == type;
+                        return ListTile(
+                          title: Text(
+                            type.displayName,
+                            style: TextStyle(
+                              fontWeight: isSelected
+                                  ? FontWeight.bold
+                                  : FontWeight.normal,
+                            ),
+                          ),
+                          trailing: isSelected
+                              ? const Icon(
+                                  Icons.check_circle,
+                                  color: Color(0xFF1A1C1E),
+                                )
+                              : null,
+                          onTap: () => Navigator.pop(context, type),
+                        );
+                      }).toList(),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+
+    // If the user picked a value, update the state and text field
+    if (picked != null) {
+      setState(() {
+        _selectedBusinessType = picked;
+        _businessTypeController.text = picked.displayName;
+      });
+    }
+  }
+
   String _getInitials(String name) {
     if (name.trim().isEmpty) return '';
     final nameParts = name.trim().split(RegExp(r'\s+'));
@@ -116,6 +219,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     _usernameController.dispose();
     _emailController.dispose();
     _businessNameController.dispose();
+    _businessTypeController.dispose();
     _businessAddressController.dispose();
     _contactNumberController.dispose();
     super.dispose();
@@ -164,26 +268,31 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           controller: _emailController,
                         ),
 
+                        _buildFieldLabel('Contact Number'),
+                        _buildTextField(
+                          '+63 912 345 6789',
+                          controller: _contactNumberController,
+                        ),
+
                         _buildFieldLabel('Business Name'),
                         _buildTextField(
                           'Enter your business name',
                           controller: _businessNameController,
                         ),
 
-                        // Added Business Type Dropdown
                         _buildFieldLabel('Business Type'),
-                        _buildDropdownField(),
+                        // Updated to use the text field with an onTap handler
+                        _buildTextField(
+                          'Select Business Type',
+                          controller: _businessTypeController,
+                          isDropdown: true,
+                          onTap: _showBusinessTypePicker,
+                        ),
 
                         _buildFieldLabel('Business Address'),
                         _buildTextField(
                           'Enter your business address',
                           controller: _businessAddressController,
-                        ),
-
-                        _buildFieldLabel('Contact Number'),
-                        _buildTextField(
-                          '+63 912 345 6789',
-                          controller: _contactNumberController,
                         ),
 
                         const SizedBox(height: 32),
@@ -194,34 +303,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ],
               ),
             ),
-    );
-  }
-
-  // Extracted Dropdown builder
-  Widget _buildDropdownField() {
-    return DropdownButtonFormField<BusinessType>(
-      value: _selectedBusinessType,
-      decoration: InputDecoration(
-        hintText: 'Select Business Type',
-        filled: true,
-        fillColor: const Color(0xFFF2F4F7),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide.none,
-        ),
-      ),
-      icon: const Icon(Icons.keyboard_arrow_down),
-      items: BusinessType.values.map((BusinessType type) {
-        return DropdownMenuItem<BusinessType>(
-          value: type,
-          child: Text(type.displayName), // Uses the extension created earlier
-        );
-      }).toList(),
-      onChanged: (BusinessType? newValue) {
-        setState(() {
-          _selectedBusinessType = newValue;
-        });
-      },
     );
   }
 
@@ -265,14 +346,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
+  // --- UPDATED: Added onTap parameter ---
   Widget _buildTextField(
     String hint, {
     bool isDropdown = false,
     TextEditingController? controller,
+    VoidCallback? onTap,
   }) {
     return TextField(
       controller: controller,
-      readOnly: isDropdown,
+      readOnly:
+          isDropdown, // Makes it uneditable if it's meant to trigger a bottom sheet
+      onTap: onTap,
       decoration: InputDecoration(
         hintText: hint,
         filled: true,
@@ -291,7 +376,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
       width: double.infinity,
       height: 50,
       child: ElevatedButton.icon(
-        onPressed: _saveChanges,
+        onPressed:
+            _handleSaveWithConfirmation, // Wires to the confirmation sheet
         icon: const Icon(Icons.save_outlined),
         label: const Text('Save Changes'),
         style: ElevatedButton.styleFrom(
@@ -301,6 +387,92 @@ class _ProfileScreenState extends State<ProfileScreen> {
             borderRadius: BorderRadius.circular(25),
           ),
         ),
+      ),
+    );
+  }
+}
+
+// ==========================================
+// APP CONFIRMATION SHEET WIDGET
+// ==========================================
+class AppConfirmationSheet extends StatelessWidget {
+  final String title;
+  final String message;
+  final String confirmLabel;
+  final Color confirmColor;
+  final IconData icon;
+
+  const AppConfirmationSheet({
+    super.key,
+    required this.title,
+    required this.message,
+    required this.confirmLabel,
+    required this.confirmColor,
+    required this.icon,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.all(24.0),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Drag Handle
+          Container(
+            width: 40,
+            height: 4,
+            margin: const EdgeInsets.only(bottom: 20),
+            decoration: BoxDecoration(
+              color: Colors.grey[300],
+              borderRadius: BorderRadius.circular(10),
+            ),
+          ),
+          Icon(icon, color: confirmColor, size: 50),
+          const SizedBox(height: 16),
+          Text(
+            title,
+            style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 8),
+          Text(
+            message,
+            textAlign: TextAlign.center,
+            style: const TextStyle(color: Colors.grey, fontSize: 14),
+          ),
+          const SizedBox(height: 24),
+          Row(
+            children: [
+              Expanded(
+                child: TextButton(
+                  onPressed: () => Navigator.pop(context, false),
+                  child: const Text(
+                    'Cancel',
+                    style: TextStyle(color: Colors.grey),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: ElevatedButton(
+                  onPressed: () => Navigator.pop(context, true),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: confirmColor,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                  ),
+                  child: Text(
+                    confirmLabel,
+                    style: const TextStyle(color: Colors.white),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }
