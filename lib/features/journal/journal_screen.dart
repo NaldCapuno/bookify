@@ -143,14 +143,19 @@ class _JournalScreenState extends State<JournalScreen> {
   Widget _buildFilterChips() {
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
-      // 1. Better overall padding for the entire row of chips
-      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+      // IMPROVED PADDING: Added top padding to push it away from the screen edge,
+      // and bottom padding to give space before the cards begin.
+      padding: const EdgeInsets.only(
+        left: 16.0,
+        right: 16.0,
+        top: 20.0,
+        bottom: 20.0,
+      ),
       child: Row(
         children: _filters.map((filter) {
           final isSelected = filter == _selectedFilter;
 
           return Padding(
-            // 2. Slightly wider gap between each individual chip
             padding: const EdgeInsets.only(right: 10.0),
             child: ChoiceChip(
               label: Text(filter),
@@ -177,7 +182,6 @@ class _JournalScreenState extends State<JournalScreen> {
               ),
               showCheckmark: false,
               elevation: 0,
-              // 3. Internal padding makes the chips taller and more "pill-shaped"
               padding: const EdgeInsets.symmetric(
                 horizontal: 12.0,
                 vertical: 8.0,
@@ -194,11 +198,11 @@ class JournalEntryCard extends StatefulWidget {
   final String id;
   final String date;
   final String title;
-  final int accounts;
-  final String amount;
-  final bool isInitiallyExpanded;
+  final int
+  accounts; // We keep this to match your existing parameters, even though we hide it in the UI
+  final String amount; // Same here
   final bool isInitiallyVoided;
-  final List<TransactionWithAccount> details; // Receives nested DB details
+  final List<TransactionWithAccount> details;
 
   const JournalEntryCard({
     super.key,
@@ -207,8 +211,7 @@ class JournalEntryCard extends StatefulWidget {
     required this.title,
     required this.accounts,
     required this.amount,
-    required this.details, // Required now
-    this.isInitiallyExpanded = false,
+    required this.details,
     this.isInitiallyVoided = false,
   });
 
@@ -217,14 +220,12 @@ class JournalEntryCard extends StatefulWidget {
 }
 
 class _JournalEntryCardState extends State<JournalEntryCard> {
-  late bool _isExpanded;
   late bool _isVoided;
 
   @override
   void initState() {
     super.initState();
-    _isExpanded = widget.isInitiallyExpanded;
-    _isVoided = widget.isInitiallyVoided; // Initialize with real DB state
+    _isVoided = widget.isInitiallyVoided;
   }
 
   Future<bool> _showVoidConfirmation(BuildContext context) async {
@@ -304,6 +305,15 @@ class _JournalEntryCardState extends State<JournalEntryCard> {
 
   @override
   Widget build(BuildContext context) {
+    // SORTING LOGIC: Separate debits and credits, then combine them (Debits top, Credits bottom)
+    final debits = widget.details
+        .where((d) => d.transactionLine.debit > 0)
+        .toList();
+    final credits = widget.details
+        .where((d) => d.transactionLine.credit > 0)
+        .toList();
+    final sortedDetails = [...debits, ...credits];
+
     return Stack(
       children: [
         Container(
@@ -338,7 +348,6 @@ class _JournalEntryCardState extends State<JournalEntryCard> {
               confirmDismiss: (direction) async {
                 bool shouldVoid = await _showVoidConfirmation(context);
                 if (shouldVoid) {
-                  // UPDATE DATABASE ON SWIPE
                   await appDb.journalEntryDao.markJournalAsVoided(
                     int.parse(widget.id),
                   );
@@ -348,7 +357,6 @@ class _JournalEntryCardState extends State<JournalEntryCard> {
               },
               child: Material(
                 color: _isVoided ? Colors.grey.shade50 : Colors.white,
-                clipBehavior: Clip.antiAlias,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(16),
                   side: BorderSide(
@@ -357,197 +365,207 @@ class _JournalEntryCardState extends State<JournalEntryCard> {
                         : Colors.grey.shade200,
                   ),
                 ),
-                child: InkWell(
-                  onTap: () => setState(() => _isExpanded = !_isExpanded),
-                  splashColor: Colors.black.withValues(alpha: 0.05),
-                  highlightColor: Colors.black.withValues(alpha: 0.05),
-                  child: Column(
-                    children: [
-                      Padding(
-                        padding: const EdgeInsets.all(16.0),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Opacity(
+                    opacity: _isVoided ? 0.6 : 1.0,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // --- HEADER: Date and Description ---
+                        Row(
                           children: [
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Row(
-                                  children: [
-                                    Icon(
-                                      Icons.calendar_today_outlined,
-                                      size: 14,
-                                      color: Colors.grey.shade600,
-                                    ),
-                                    const SizedBox(width: 8),
-                                    Text(
-                                      widget.date,
-                                      style: TextStyle(
-                                        color: Colors.grey.shade600,
-                                        fontSize: 13,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                                AnimatedRotation(
-                                  turns: _isExpanded ? 0.5 : 0.0,
-                                  duration: const Duration(milliseconds: 300),
-                                  curve: Curves.easeInOut,
-                                  child: Icon(
-                                    Icons.keyboard_arrow_down,
-                                    color: Colors.grey.shade400,
-                                  ),
-                                ),
-                              ],
+                            Icon(
+                              Icons.calendar_today_outlined,
+                              size: 14,
+                              color: Colors.grey.shade600,
                             ),
-                            const SizedBox(height: 10),
+                            const SizedBox(width: 8),
                             Text(
-                              widget.title,
+                              widget.date,
                               style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                                color: _isVoided
-                                    ? Colors.grey
-                                    : const Color(0xFF1A1C1E),
-                                decoration: _isVoided
-                                    ? TextDecoration.lineThrough
-                                    : null,
+                                color: Colors.grey.shade600,
+                                fontSize: 13,
                               ),
-                            ),
-                            const SizedBox(height: 8),
-                            Row(
-                              children: [
-                                Text(
-                                  'Accounts: ',
-                                  style: TextStyle(
-                                    color: Colors.grey.shade500,
-                                    fontSize: 12,
-                                  ),
-                                ),
-                                Text(
-                                  '${widget.accounts}',
-                                  style: const TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 12,
-                                  ),
-                                ),
-                                const SizedBox(width: 12),
-                                Text(
-                                  '|',
-                                  style: TextStyle(color: Colors.grey.shade300),
-                                ),
-                                const SizedBox(width: 12),
-                                Text(
-                                  'Amount: ',
-                                  style: TextStyle(
-                                    color: Colors.grey.shade500,
-                                    fontSize: 12,
-                                  ),
-                                ),
-                                Text(
-                                  '₱${widget.amount}',
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 12,
-                                    color: _isVoided
-                                        ? Colors.grey
-                                        : Colors.black,
-                                    decoration: _isVoided
-                                        ? TextDecoration.lineThrough
-                                        : null,
-                                  ),
-                                ),
-                              ],
                             ),
                           ],
                         ),
-                      ),
-                      AnimatedSize(
-                        duration: const Duration(milliseconds: 300),
-                        curve: Curves.easeInOut,
-                        alignment: Alignment.topCenter,
-                        child: _isExpanded
-                            ? Column(
-                                children: [
-                                  const Divider(height: 1),
-                                  Padding(
-                                    padding: const EdgeInsets.all(16.0),
-                                    child: Opacity(
-                                      opacity: _isVoided ? 0.6 : 1.0,
-                                      child: Column(
-                                        children: [
-                                          // NO MORE FUTURE BUILDER! We just map the details list directly.
-                                          Column(
-                                            children: widget.details.map((
-                                              line,
-                                            ) {
-                                              bool isDebit =
-                                                  line.transactionLine.debit >
-                                                  0;
-                                              double amountValue = isDebit
-                                                  ? line.transactionLine.debit
-                                                  : line.transactionLine.credit;
-                                              final formattedAmount =
-                                                  NumberFormat(
-                                                    '#,##0.00',
-                                                  ).format(amountValue);
+                        const SizedBox(height: 6),
+                        Text(
+                          widget.title,
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: const Color(0xFF1A1C1E),
+                            decoration: _isVoided
+                                ? TextDecoration.lineThrough
+                                : null,
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        const Divider(height: 1),
+                        const SizedBox(height: 12),
 
-                                              return Padding(
-                                                padding: const EdgeInsets.only(
-                                                  bottom: 12.0,
-                                                ),
-                                                child: _buildAccountDetail(
-                                                  name: line.account.name,
-                                                  amount: formattedAmount,
-                                                  isDebit: isDebit,
-                                                ),
-                                              );
-                                            }).toList(),
-                                          ),
+                        // --- TABLE HEADERS ---
+                        Row(
+                          children: [
+                            Expanded(
+                              flex: 4,
+                              child: Text(
+                                "ACCOUNT",
+                                style: TextStyle(
+                                  fontSize: 10,
+                                  color: Colors.grey.shade500,
+                                  fontWeight: FontWeight.bold,
+                                  letterSpacing: 0.5,
+                                ),
+                              ),
+                            ),
+                            // Symmetrical Header Padding
+                            Expanded(
+                              flex: 3,
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 4.0,
+                                ),
+                                child: Text(
+                                  "DEBIT",
+                                  textAlign: TextAlign.right,
+                                  style: TextStyle(
+                                    fontSize: 10,
+                                    color: Colors.grey.shade500,
+                                    fontWeight: FontWeight.bold,
+                                    letterSpacing: 0.5,
+                                  ),
+                                ),
+                              ),
+                            ),
+                            // Symmetrical Header Padding
+                            Expanded(
+                              flex: 3,
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 4.0,
+                                ),
+                                child: Text(
+                                  "CREDIT",
+                                  textAlign: TextAlign.right,
+                                  style: TextStyle(
+                                    fontSize: 10,
+                                    color: Colors.grey.shade500,
+                                    fontWeight: FontWeight.bold,
+                                    letterSpacing: 0.5,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 4),
 
-                                          if (!_isVoided) ...[
-                                            const SizedBox(height: 16),
-                                            Align(
-                                              alignment: Alignment.centerRight,
-                                              child: TextButton.icon(
-                                                onPressed: () async {
-                                                  bool shouldVoid =
-                                                      await _showVoidConfirmation(
-                                                        context,
-                                                      );
-                                                  if (shouldVoid) {
-                                                    // UPDATE DATABASE ON BUTTON TAP
-                                                    await appDb.journalEntryDao
-                                                        .markJournalAsVoided(
-                                                          int.parse(widget.id),
-                                                        );
-                                                    setState(
-                                                      () => _isVoided = true,
-                                                    );
-                                                  }
-                                                },
-                                                icon: const Icon(
-                                                  Icons.block,
-                                                  size: 16,
-                                                  color: Colors.red,
-                                                ),
-                                                label: const Text(
-                                                  'Void Entry',
-                                                  style: TextStyle(
-                                                    color: Colors.red,
-                                                  ),
-                                                ),
-                                              ),
-                                            ),
-                                          ],
-                                        ],
+                        // --- BODY: The Accounts List ---
+                        ...sortedDetails.map((detail) {
+                          bool isDebit = detail.transactionLine.debit > 0;
+                          double amount = isDebit
+                              ? detail.transactionLine.debit
+                              : detail.transactionLine.credit;
+                          final formattedAmount = NumberFormat(
+                            '#,##0.00',
+                          ).format(amount);
+
+                          return Container(
+                            margin: const EdgeInsets.symmetric(vertical: 4.0),
+                            padding: const EdgeInsets.only(
+                              left: 8.0,
+                              top: 6.0,
+                              bottom: 6.0,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Colors.grey.shade50,
+                              borderRadius: BorderRadius.circular(6),
+                              border: const Border(
+                                left: BorderSide(
+                                  color: Colors.black87,
+                                  width: 3.5,
+                                ),
+                              ),
+                            ),
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.center,
+                              children: [
+                                // Account Name (Flex 4)
+                                Expanded(
+                                  flex: 4,
+                                  child: Padding(
+                                    padding: const EdgeInsets.only(right: 8.0),
+                                    child: Text(
+                                      detail.account.name,
+                                      style: TextStyle(
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.w500,
+                                        color: Colors.black87,
+                                        decoration: _isVoided
+                                            ? TextDecoration.lineThrough
+                                            : null,
+                                        height: 1.3,
                                       ),
                                     ),
                                   ),
-                                ],
-                              )
-                            : const SizedBox.shrink(),
-                      ),
-                    ],
+                                ),
+                                // Debit Column (Flex 3) - Symmetrical Padding + FittedBox
+                                Expanded(
+                                  flex: 3,
+                                  child: Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 4.0,
+                                    ),
+                                    child: FittedBox(
+                                      fit: BoxFit.scaleDown,
+                                      alignment: Alignment.centerRight,
+                                      child: Text(
+                                        isDebit ? formattedAmount : '',
+                                        textAlign: TextAlign.right,
+                                        maxLines:
+                                            1, // Ensures it absolutely never wraps
+                                        style: const TextStyle(
+                                          fontSize: 13,
+                                          fontWeight: FontWeight.w500,
+                                          color: Colors.black87,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                // Credit Column (Flex 3) - Symmetrical Padding + FittedBox
+                                Expanded(
+                                  flex: 3,
+                                  child: Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 4.0,
+                                    ),
+                                    child: FittedBox(
+                                      fit: BoxFit.scaleDown,
+                                      alignment: Alignment.centerRight,
+                                      child: Text(
+                                        !isDebit ? formattedAmount : '',
+                                        textAlign: TextAlign.right,
+                                        maxLines:
+                                            1, // Ensures it absolutely never wraps
+                                        style: const TextStyle(
+                                          fontSize: 13,
+                                          fontWeight: FontWeight.w500,
+                                          color: Colors.black87,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          );
+                        }),
+                      ],
+                    ),
                   ),
                 ),
               ),
@@ -585,90 +603,6 @@ class _JournalEntryCardState extends State<JournalEntryCard> {
             ),
           ),
         ),
-      ),
-    );
-  }
-
-  Widget _buildAccountDetail({
-    required String name,
-    required String amount,
-    required bool isDebit,
-  }) {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF8FAFC),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey.shade100),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            name,
-            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
-          ),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              Expanded(
-                child: _buildAmountBox(
-                  'Debit',
-                  isDebit ? '₱$amount' : '—',
-                  isDebit ? const Color(0xFFE8F5E9) : Colors.transparent,
-                  isDebit ? const Color(0xFF2E7D32) : Colors.grey.shade400,
-                ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: _buildAmountBox(
-                  'Credit',
-                  !isDebit ? '₱$amount' : '—',
-                  !isDebit ? const Color(0xFFE3F2FD) : Colors.transparent,
-                  !isDebit ? const Color(0xFF1565C0) : Colors.grey.shade400,
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildAmountBox(
-    String label,
-    String value,
-    Color bgColor,
-    Color textColor,
-  ) {
-    return Container(
-      padding: const EdgeInsets.all(8),
-      decoration: BoxDecoration(
-        color: bgColor,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.grey.shade200),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 10,
-              color: textColor,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-          const SizedBox(height: 2),
-          Text(
-            value,
-            style: TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.bold,
-              color: textColor,
-            ),
-          ),
-        ],
       ),
     );
   }
