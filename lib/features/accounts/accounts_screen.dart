@@ -3,6 +3,7 @@ import 'package:sticky_headers/sticky_headers.dart';
 import 'package:bookkeeping/core/database/app_database.dart';
 import 'package:bookkeeping/core/database/daos/accounts_dao.dart';
 import 'package:bookkeeping/core/widgets/app_fab.dart';
+import 'package:bookkeeping/core/widgets/app_confirmation_sheet.dart';
 import 'add_account_form.dart';
 
 class AccountsScreen extends StatelessWidget {
@@ -215,63 +216,14 @@ class AccountsScreen extends StatelessWidget {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      builder: (context) {
-        return Padding(
-          padding: const EdgeInsets.all(24.0),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Icon(
-                Icons.archive_outlined,
-                color: Colors.orange,
-                size: 50,
-              ),
-              const SizedBox(height: 16),
-              Text(
-                'Archive ${account.name}?',
-                style: const TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                ),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 8),
-              const Text(
-                'Archived accounts won\'t appear in your active list but will remain in historical reports.',
-                textAlign: TextAlign.center,
-                style: TextStyle(color: Colors.grey),
-              ),
-              const SizedBox(height: 24),
-              Row(
-                children: [
-                  Expanded(
-                    child: TextButton(
-                      onPressed: () => Navigator.pop(context, false),
-                      child: const Text(
-                        'Cancel',
-                        style: TextStyle(color: Colors.grey),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: ElevatedButton(
-                      onPressed: () => Navigator.pop(context, true),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.orange.shade700,
-                      ),
-                      child: const Text(
-                        'Archive',
-                        style: TextStyle(color: Colors.white),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        );
-      },
+      builder: (context) => AppConfirmationSheet(
+        title: 'Archive ${account.name}?',
+        message:
+            'Archived accounts won\'t appear in your active list but will remain in historical reports.',
+        confirmLabel: 'Archive',
+        confirmColor: Colors.orange.shade700,
+        icon: Icons.archive_outlined,
+      ),
     );
 
     if (result == true) {

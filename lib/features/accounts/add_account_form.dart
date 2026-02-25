@@ -13,6 +13,7 @@ class AddAccountForm extends StatefulWidget {
 class _AddAccountFormState extends State<AddAccountForm> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
+  final _descriptionController = TextEditingController();
   final _codeController = TextEditingController();
   final _typeController = TextEditingController();
   final _categoryController = TextEditingController();
@@ -238,6 +239,17 @@ class _AddAccountFormState extends State<AddAccountForm> {
                   },
                 ),
                 const SizedBox(height: 16),
+
+                TextFormField(
+                  controller: _descriptionController,
+                  maxLines: 3, // Allow multiple lines for a real description
+                  decoration: const InputDecoration(
+                    labelText: 'Description (Optional)',
+                    border: OutlineInputBorder(),
+                    prefixIcon: Icon(Icons.description_outlined),
+                    alignLabelWithHint: true,
+                  ),
+                ),
 
                 // 4. Normal Balance (Connected to Category Table)
                 // We keep this readOnly because it's determined by the Type
