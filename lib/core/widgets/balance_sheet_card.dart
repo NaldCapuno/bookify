@@ -7,34 +7,37 @@ class BalanceSheetCard extends StatelessWidget {
   final BalanceSheet data;
   const BalanceSheetCard({super.key, required this.data});
 
+  // Helper to format numbers like the image (no symbol, parentheses for negatives)
+  String _formatAccounting(double amount) {
+    final formatter = NumberFormat('#,##0.##', 'en_US');
+    if (amount < 0) {
+      return "(${formatter.format(amount.abs())})";
+    }
+    return formatter.format(amount);
+  }
+
   @override
   Widget build(BuildContext context) {
-    final currency = NumberFormat.currency(locale: 'en_PH', symbol: '₱');
-
     return LayoutBuilder(
       builder: (context, constraints) {
-        // If width is less than 600px, we use Portrait (Vertical) mode
         bool isPortrait = constraints.maxWidth < 600;
 
         if (isPortrait) {
           return Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              _buildAssetsColumn(currency),
+              _buildAssetsColumn(),
               const SizedBox(height: 40),
-              const Divider(thickness: 2),
-              const SizedBox(height: 20),
-              _buildLiabilitiesEquityColumn(currency),
+              _buildLiabilitiesEquityColumn(),
             ],
           );
         } else {
-          // Landscape/Tablet Mode (Side-by-Side)
           return Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Expanded(child: _buildAssetsColumn(currency)),
+              Expanded(child: _buildAssetsColumn()),
               const SizedBox(width: 32),
-              Expanded(child: _buildLiabilitiesEquityColumn(currency)),
+              Expanded(child: _buildLiabilitiesEquityColumn()),
             ],
           );
         }
@@ -42,127 +45,169 @@ class BalanceSheetCard extends StatelessWidget {
     );
   }
 
-  Widget _buildAssetsColumn(NumberFormat currency) {
+  Widget _buildAssetsColumn() {
+    final bool hasAssets = data.totalAssets > 0;
+
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         const Text(
-          "ASSETS",
+          "Assets",
+          textAlign: TextAlign.center,
           style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
         ),
         const SizedBox(height: 16),
-        _buildSection("Current Assets", data.currentAssets, currency),
-        FinancialLineItem(
-          label: "Total Current Assets",
-          amount: currency.format(data.totalCurrentAssets),
-          isTotal: true,
-        ),
-        const SizedBox(height: 16),
-        _buildSection("Non-Current Assets", data.nonCurrentAssets, currency),
-        FinancialLineItem(
-          label: "Total Non-Current Assets",
-          amount: currency.format(data.totalNonCurrentAssets),
-          isTotal: true,
-        ),
-        const SizedBox(height: 20),
-        FinancialLineItem(
-          label: "TOTAL ASSETS",
-          amount: currency.format(data.totalAssets),
-          isGrandTotal: true,
-        ),
+        if (!hasAssets)
+          _buildPlaceholder("No asset transactions recorded.")
+        else ...[
+          _buildSection("Current Assets", data.currentAssets),
+          if (data.currentAssets.isNotEmpty)
+            FinancialLineItem(
+              label: "Total Current Assets",
+              amount: _formatAccounting(data.totalCurrentAssets),
+              isTotal: true,
+            ),
+          if (data.nonCurrentAssets.isNotEmpty) ...[
+            const SizedBox(height: 16),
+            _buildSection("Long-term Assets", data.nonCurrentAssets),
+            FinancialLineItem(
+              label: "Total Long-term Assets",
+              amount: _formatAccounting(data.totalNonCurrentAssets),
+              isTotal: true,
+            ),
+          ],
+          const SizedBox(height: 20),
+          FinancialLineItem(
+            label: "Total Assets:",
+            amount: _formatAccounting(data.totalAssets),
+            isGrandTotal: true,
+          ),
+        ],
       ],
     );
   }
 
-  Widget _buildLiabilitiesEquityColumn(NumberFormat currency) {
+  Widget _buildLiabilitiesEquityColumn() {
+    final bool hasData = data.totalLiabilitiesAndEquity > 0;
+
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        const Text(
-          "LIABILITIES & OWNER'S EQUITY",
-          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-        ),
-        const SizedBox(height: 16),
         const Text(
           "Liabilities",
-          style: TextStyle(fontWeight: FontWeight.w600),
-        ),
-        _buildSection("Current Liabilities", data.currentLiabilities, currency),
-        FinancialLineItem(
-          label: "Total Current Liabilities",
-          amount: currency.format(data.totalCurrentLiabilities),
-          isTotal: true,
+          textAlign: TextAlign.center,
+          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
         ),
         const SizedBox(height: 16),
-        _buildSection(
-          "Non-Current Liabilities",
-          data.nonCurrentLiabilities,
-          currency,
-        ),
-        FinancialLineItem(
-          label: "Total Non-Current Liabilities",
-          amount: currency.format(data.totalNonCurrentLiabilities),
-          isTotal: true,
-        ),
-        FinancialLineItem(
-          label: "Total Liabilities",
-          amount: currency.format(data.totalLiabilities),
-          isTotal: true,
-        ),
-        const SizedBox(height: 24),
-        const Text(
-          "Owner's Equity",
-          style: TextStyle(fontWeight: FontWeight.w600),
-        ),
-        ...data.equityItems.map(
-          (e) => _buildIndentedRow(e.name, currency.format(e.amount)),
-        ),
-        _buildIndentedRow("Net Income", currency.format(data.netIncome)),
-        FinancialLineItem(
-          label: "Total Owner's Equity",
-          amount: currency.format(data.totalOwnerEquity),
-          isTotal: true,
-        ),
-        const SizedBox(height: 20),
-        FinancialLineItem(
-          label: "TOTAL LIABILITIES & EQUITY",
-          amount: currency.format(data.totalLiabilitiesAndEquity),
-          isGrandTotal: true,
-        ),
+        if (!hasData)
+          _buildPlaceholder("No liability or equity entries found.")
+        else ...[
+          if (data.currentLiabilities.isNotEmpty) ...[
+            _buildSection("Current Liabilities", data.currentLiabilities),
+            FinancialLineItem(
+              label: "Total Current Liabilities",
+              amount: _formatAccounting(data.totalCurrentLiabilities),
+              isTotal: true,
+            ),
+          ],
+          if (data.nonCurrentLiabilities.isNotEmpty) ...[
+            const SizedBox(height: 16),
+            _buildSection("Long-term Liabilities", data.nonCurrentLiabilities),
+            FinancialLineItem(
+              label: "Total Long-term Liabilities",
+              amount: _formatAccounting(data.totalNonCurrentLiabilities),
+              isTotal: true,
+            ),
+          ],
+          if (data.totalLiabilities > 0)
+            FinancialLineItem(
+              label: "Total Liabilities",
+              amount: _formatAccounting(data.totalLiabilities),
+              isGrandTotal: true,
+            ),
+          const SizedBox(height: 24),
+          if (data.totalOwnerEquity != 0 || data.netIncome != 0) ...[
+            const Text(
+              "Owner's Equity",
+              textAlign: TextAlign.center,
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+            ),
+            const SizedBox(height: 16),
+            // Build equity items using the same indent formatting
+            ...data.equityItems.asMap().entries.map((entry) {
+              return Padding(
+                padding: const EdgeInsets.only(left: 24.0),
+                child: FinancialLineItem(
+                  label: entry.value.name,
+                  amount: _formatAccounting(entry.value.amount),
+                ),
+              );
+            }),
+            Padding(
+              padding: const EdgeInsets.only(left: 24.0),
+              child: FinancialLineItem(
+                label:
+                    "Retained Earnings (Net Income)", // Explicitly tracking net income
+                amount: _formatAccounting(data.netIncome),
+                isLastInGroup: true,
+              ),
+            ),
+            FinancialLineItem(
+              label: "Total Owner's Equity",
+              amount: _formatAccounting(data.totalOwnerEquity),
+              isGrandTotal: true,
+            ),
+          ],
+          const SizedBox(height: 20),
+          FinancialLineItem(
+            label: "Total Liabilities and Owner's Equity",
+            amount: _formatAccounting(data.totalLiabilitiesAndEquity),
+            isGrandTotal: true,
+          ),
+        ],
       ],
     );
   }
 
-  Widget _buildSection(
-    String title,
-    List<dynamic> items,
-    NumberFormat currency,
-  ) {
+  Widget _buildPlaceholder(String message) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 20.0),
+      child: Text(
+        message,
+        style: const TextStyle(
+          color: Colors.grey,
+          fontSize: 13,
+          fontStyle: FontStyle.italic,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSection(String title, List<dynamic> items) {
+    if (items.isEmpty) return const SizedBox.shrink();
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          title,
-          style: const TextStyle(
-            fontSize: 13,
-            color: Colors.blueGrey,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        if (items.isEmpty)
-          _buildIndentedRow("No items", "₱0.00")
-        else
-          ...items.map(
-            (i) => _buildIndentedRow(i.name, currency.format(i.amount)),
-          ),
-      ],
-    );
-  }
+        Text(title, style: const TextStyle(fontSize: 14)),
+        ...items.asMap().entries.map((entry) {
+          int idx = entry.key;
+          var item = entry.value;
+          bool isLast =
+              idx ==
+              items.length - 1; // Determines if this line gets an underline
 
-  Widget _buildIndentedRow(String label, String amount) {
-    return Padding(
-      padding: const EdgeInsets.only(left: 16.0, top: 4),
-      child: FinancialLineItem(label: label, amount: amount),
+          return Padding(
+            padding: const EdgeInsets.only(
+              left: 24.0,
+            ), // Creates the indentation
+            child: FinancialLineItem(
+              label: item.name,
+              amount: _formatAccounting(item.amount),
+              isLastInGroup: isLast,
+            ),
+          );
+        }),
+      ],
     );
   }
 }

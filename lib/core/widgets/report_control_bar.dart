@@ -3,18 +3,22 @@ import 'package:bookkeeping/core/utils/date_utils.dart';
 import 'package:bookkeeping/core/utils/pdf_export_service.dart';
 import 'package:bookkeeping/core/widgets/reports_color.dart';
 import 'package:bookkeeping/features/incomestatement/income_statement.dart';
-import 'package:bookkeeping/features/balancesheet/balance_sheet.dart'; // Add this import
+import 'package:bookkeeping/features/balancesheet/balance_sheet.dart';
 
 class ReportControlBar extends StatelessWidget {
   final ReportPeriod selectedPeriod;
   final ValueChanged<ReportPeriod> onPeriodChanged;
-  final dynamic currentData; // Changed from IncomeStatement? to dynamic
+  final dynamic currentData;
+  final DateTime? startDate;
+  final DateTime? endDate;
 
   const ReportControlBar({
     super.key,
     required this.selectedPeriod,
     required this.onPeriodChanged,
     this.currentData,
+    this.startDate,
+    this.endDate,
   });
 
   @override
@@ -36,17 +40,36 @@ class ReportControlBar extends StatelessWidget {
               color: AppColors.backgroundGrey,
               borderRadius: BorderRadius.circular(8),
               border: Border.all(color: AppColors.dividerColor),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.05),
+                  blurRadius: 2,
+                  offset: const Offset(0, 1),
+                ),
+              ],
             ),
             child: DropdownButtonHideUnderline(
               child: DropdownButton<ReportPeriod>(
                 isExpanded: true,
                 value: selectedPeriod,
-                icon: const Icon(Icons.keyboard_arrow_down, size: 20, color: AppColors.secondaryText),
-                style: const TextStyle(fontWeight: FontWeight.w600, color: AppColors.primaryText, fontSize: 14),
+                icon: const Icon(
+                  Icons.keyboard_arrow_down,
+                  size: 20,
+                  color: AppColors.secondaryText,
+                ),
+                style: const TextStyle(
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.primaryText,
+                  fontSize: 14,
+                ),
                 onChanged: (ReportPeriod? newValue) {
-                  if (newValue != null) onPeriodChanged(newValue);
+                  if (newValue != null) {
+                    onPeriodChanged(newValue);
+                  }
                 },
-                items: ReportPeriod.values.map<DropdownMenuItem<ReportPeriod>>((ReportPeriod period) {
+                items: ReportPeriod.values.map<DropdownMenuItem<ReportPeriod>>((
+                  ReportPeriod period,
+                ) {
                   return DropdownMenuItem<ReportPeriod>(
                     value: period,
                     child: Text(period.label, overflow: TextOverflow.ellipsis),
@@ -59,19 +82,25 @@ class ReportControlBar extends StatelessWidget {
 
         const SizedBox(width: 12),
 
-        // --- DOWNLOAD BUTTON SECTION ---
+        // --- REVERTED DOWNLOAD BUTTON DESIGN ---
         OutlinedButton.icon(
           onPressed: () {
             if (currentData != null) {
-              // Route to the correct PDF logic based on data type
               if (currentData is IncomeStatement) {
-                PdfExportService.exportIncomeStatement(currentData);
+                PdfExportService.exportIncomeStatement(currentData!);
               } else if (currentData is BalanceSheet) {
-                PdfExportService.exportBalanceSheet(currentData);
+                // Pass the dates to the export service
+                PdfExportService.exportBalanceSheet(
+                  currentData!,
+                  startDate ?? DateTime.now(),
+                  endDate ?? DateTime.now(),
+                );
               }
             } else {
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text("No data available to download yet.")),
+                const SnackBar(
+                  content: Text("No data available to download yet."),
+                ),
               );
             }
           },
@@ -79,7 +108,9 @@ class ReportControlBar extends StatelessWidget {
             backgroundColor: Colors.white,
             foregroundColor: AppColors.primaryText,
             side: const BorderSide(color: AppColors.dividerColor),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(8),
+            ),
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
           ),
           icon: const Icon(Icons.download_outlined, size: 18),

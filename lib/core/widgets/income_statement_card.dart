@@ -8,135 +8,114 @@ class IncomeStatementCard extends StatelessWidget {
 
   const IncomeStatementCard({super.key, required this.data});
 
+  // Formatting helper matching the image
+  String _formatAccounting(double amount, {bool showSymbol = false}) {
+    final formatter = NumberFormat('#,##0', 'en_US');
+    String formatted = formatter.format(amount.abs());
+
+    // Add parentheses for negative numbers first
+    if (amount < 0) {
+      formatted = '($formatted)';
+    }
+
+    // Add symbol outside the parentheses
+    if (showSymbol) {
+      formatted = '₱  $formatted';
+    }
+
+    return formatted;
+  }
+
   @override
   Widget build(BuildContext context) {
-    final currency = NumberFormat.currency(locale: 'en_PH', symbol: '₱');
+    // Flatten all expenses to mimic the single-step layout
+    final allExpenses = [
+      ...data.costOfSales,
+      ...data.operatingExpenses,
+      ...data.otherExpenses,
+      ...data.taxExpenses,
+    ];
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         // ==============================
-        // INCOME SECTION
+        // REVENUES SECTION
         // ==============================
         const Text(
-          "INCOME",
+          "Revenues",
           style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
         ),
         const SizedBox(height: 8),
 
-        // Category: Sales Revenue
-        _buildCategoryHeader("Sales Revenue"),
-        ...data.revenues.map(
-          (item) =>
-              _buildIndentedAccount(item.name, currency.format(item.amount)),
+        ...data.revenues.asMap().entries.map((entry) {
+          int idx = entry.key;
+          var item = entry.value;
+          bool isFirst = idx == 0;
+          bool isLast = idx == data.revenues.length - 1;
+
+          return Padding(
+            padding: const EdgeInsets.only(left: 24.0),
+            child: FinancialLineItem(
+              label: item.name,
+              amount: "", // Leave outer column blank
+              innerAmount: _formatAccounting(item.amount, showSymbol: isFirst),
+              isLastInGroup: isLast,
+            ),
+          );
+        }).toList(), // <-- FIX: Added .toList() here to prevent Iterable errors
+        // Total Revenues
+        FinancialLineItem(
+          label: "Total Revenues:",
+          amount: _formatAccounting(data.totalRevenue, showSymbol: true),
         ),
 
-        const SizedBox(height: 20),
+        const SizedBox(height: 24),
 
         // ==============================
         // EXPENSES SECTION
         // ==============================
         const Text(
-          "EXPENSES",
+          "Expenses",
           style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
         ),
         const SizedBox(height: 8),
 
-        // Category: Cost of Sales (500s)
-        if (data.costOfSales.isNotEmpty) ...[
-          _buildCategoryHeader("Cost of Sales"),
-          ...data.costOfSales.map(
-            (item) =>
-                _buildIndentedAccount(item.name, currency.format(item.amount)),
-          ),
-          const SizedBox(height: 12),
-        ],
+        ...allExpenses.asMap().entries.map((entry) {
+          int idx = entry.key;
+          var item = entry.value;
+          bool isLast = idx == allExpenses.length - 1;
 
-        // Category: Operating Expense (600s)
-        if (data.operatingExpenses.isNotEmpty) ...[
-          _buildCategoryHeader("Operating Expense"),
-          ...data.operatingExpenses.map(
-            (item) =>
-                _buildIndentedAccount(item.name, currency.format(item.amount)),
-          ),
-          const SizedBox(height: 12),
-        ],
+          return Padding(
+            padding: const EdgeInsets.only(left: 24.0),
+            child: FinancialLineItem(
+              label: item.name,
+              amount: "", // Leave outer column blank
+              innerAmount: _formatAccounting(item.amount),
+              isLastInGroup: isLast,
+            ),
+          );
+        }).toList(), // <-- FIX: Added .toList() here to prevent Iterable errors
+        // Total Expenses
+        FinancialLineItem(
+          label: "Total Expenses:",
+          amount: _formatAccounting(data.totalExpenses),
+          isLastInGroup: true, // Puts a line under the total expense
+        ),
 
-        // Category: Other Expenses (700s)
-        if (data.otherExpenses.isNotEmpty) ...[
-          _buildCategoryHeader("Other Expense"),
-          ...data.otherExpenses.map(
-            (item) =>
-                _buildIndentedAccount(item.name, currency.format(item.amount)),
-          ),
-          const SizedBox(height: 12),
-        ],
-
-        const Divider(thickness: 1.5, height: 32),
+        const SizedBox(height: 16),
 
         // ==============================
-        // SUMMARY BLOCKS (The "Excel" Logic)
+        // NET INCOME
         // ==============================
-
-        // Block 1: Gross Profit Calculation
         FinancialLineItem(
-          label: "Total Revenue",
-          amount: currency.format(data.totalRevenue),
-          isTotal: true,
-        ),
-        FinancialLineItem(
-          label: "Less Cost of Sales",
-          amount: currency.format(data.totalCostOfSales),
-        ),
-        FinancialLineItem(
-          label: "Gross Profit",
-          amount: currency.format(data.grossProfit),
+          label: data
+              .netIncomeLabel, // Restored dynamic NET INCOME / NET LOSS label
+          amount: _formatAccounting(data.netIncome, showSymbol: true),
           isGrandTotal: true,
-        ),
-
-        const SizedBox(height: 32),
-
-        // Block 2: Net Income Calculation
-        FinancialLineItem(
-          label: "Total Revenue",
-          amount: currency.format(data.totalRevenue),
-        ),
-        FinancialLineItem(
-          label: "Less Total Expenses",
-          amount: currency.format(data.totalExpenses),
-        ),
-
-        const Divider(thickness: 2, color: Colors.black, height: 24),
-
-        FinancialLineItem(
-          label: data.netIncomeLabel,
-          amount: currency.format(data.netIncome),
-          isGrandTotal: true,
+          hasDoubleUnderline: true,
         ),
       ],
-    );
-  }
-
-  // category headers (Sales Revenue, Cost of Sales, etc.)
-  Widget _buildCategoryHeader(String title) {
-    return Padding(
-      padding: const EdgeInsets.only(top: 4.0, bottom: 2.0),
-      child: Text(
-        title,
-        style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
-      ),
-    );
-  }
-
-  // indented account rows (The individual accounts under categories)
-  Widget _buildIndentedAccount(String name, String amount) {
-    return Padding(
-      padding: const EdgeInsets.only(left: 20.0, top: 2, bottom: 2),
-      child: FinancialLineItem(
-        label: name,
-        amount: amount,
-        // Using standard size to contrast with bold headers
-      ),
     );
   }
 }

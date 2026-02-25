@@ -16,19 +16,30 @@ class BalanceSheetScreen extends StatefulWidget {
 
 class _BalanceSheetScreenState extends State<BalanceSheetScreen> {
   ReportPeriod _currentPeriod = ReportPeriod.daily;
-  DateTime _asOfDate = DateTime.now();
+
+  // Track range for the UI header
+  late DateTime _startDate;
+  late DateTime _endDate;
+
   Future<BalanceSheet>? _reportFuture;
 
   @override
   void initState() {
     super.initState();
+    _updateDateRange(_currentPeriod);
     _fetchReport();
+  }
+
+  void _updateDateRange(ReportPeriod period) {
+    final range = AccountingDateHelper.getRangeForPeriod(period);
+    _startDate = range.start;
+    _endDate = range.end;
   }
 
   void _fetchReport() {
     setState(() {
-      // businessName parameter is removed as it's now handled by the DAO
-      _reportFuture = appDb.reportsDao.getBalanceSheet(date: _asOfDate);
+      // The Balance Sheet displays the cumulative position "As of" the end date
+      _reportFuture = appDb.reportsDao.getBalanceSheet(date: _endDate);
     });
   }
 
@@ -51,38 +62,50 @@ class _BalanceSheetScreenState extends State<BalanceSheetScreen> {
                 children: [
                   ReportControlBar(
                     selectedPeriod: _currentPeriod,
-                    currentData: report, // Pass data to enable PDF download
+                    currentData: report,
+                    startDate: _startDate,
+                    endDate: _endDate,
                     onPeriodChanged: (p) {
                       setState(() {
                         _currentPeriod = p;
-                        _asOfDate = AccountingDateHelper.getRangeForPeriod(
-                          p,
-                        ).end;
+                        _updateDateRange(p);
                         _fetchReport();
                       });
                     },
                   ),
                   const SizedBox(height: 30),
 
-                  // --- HEADER ---
+                  // --- HEADER SECTION ---
                   Text(
                     report?.businessName ?? "Business Name",
                     style: const TextStyle(
-                      fontSize: 20,
+                      fontSize: 22,
                       fontWeight: FontWeight.bold,
+                      color: Color(0xFF001F3F),
                     ),
                   ),
+                  const SizedBox(height: 6),
                   const Text(
                     "BALANCE SHEET",
-                    style: TextStyle(letterSpacing: 1.5, fontSize: 12),
-                  ),
-                  Text(
-                    "As of: ${dateFormat.format(_asOfDate)}",
-                    style: const TextStyle(fontSize: 12, color: Colors.grey),
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFF6C757D),
+                      letterSpacing: 1.2,
+                    ),
                   ),
 
+                  // NEW: Date Range Header Implementation
+                  const SizedBox(height: 8),
+                  Text(
+                    "For the Period: ${dateFormat.format(_startDate)} - ${dateFormat.format(_endDate)}",
+                    style: const TextStyle(
+                      fontSize: 13,
+                      color: Color(0xFF6C757D),
+                    ),
+                  ),
                   const SizedBox(height: 20),
-                  const Divider(),
+                  const Divider(color: Color(0xFFE0E0E0)),
                   const SizedBox(height: 20),
 
                   // --- DYNAMIC CONTENT ---
@@ -94,21 +117,11 @@ class _BalanceSheetScreenState extends State<BalanceSheetScreen> {
                       ),
                     )
                   else if (snapshot.hasError)
-                    Center(
-                      child: Padding(
-                        padding: const EdgeInsets.only(top: 50.0),
-                        child: Text("Error loading report: ${snapshot.error}"),
-                      ),
-                    )
+                    Center(child: Text("Error: ${snapshot.error}"))
                   else if (report != null)
                     BalanceSheetCard(data: report)
                   else
-                    const Center(
-                      child: Padding(
-                        padding: EdgeInsets.only(top: 50.0),
-                        child: Text("No financial data found for this period."),
-                      ),
-                    ),
+                    const Center(child: Text("No financial data found.")),
                 ],
               ),
             );
