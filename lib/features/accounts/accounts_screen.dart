@@ -4,6 +4,8 @@ import 'package:bookkeeping/core/database/app_database.dart';
 import 'package:bookkeeping/core/database/daos/accounts_dao.dart';
 import 'package:bookkeeping/core/widgets/app_fab.dart';
 import 'package:bookkeeping/core/widgets/app_confirmation_sheet.dart';
+import 'package:bookkeeping/features/accounts/account_details_sheet.dart';
+import 'package:bookkeeping/core/database/tables/account_categories_table.dart';
 import 'add_account_form.dart';
 
 class AccountsScreen extends StatelessWidget {
@@ -24,9 +26,11 @@ class AccountsScreen extends StatelessWidget {
           }
 
           final data = snapshot.data ?? [];
-          if (data.isEmpty)
+          if (data.isEmpty) {
             return const Center(child: Text('No accounts found.'));
+          }
 
+          // Grouping logic
           final Map<String, List<AccountRow>> groupedData = {};
           for (var row in data) {
             groupedData.putIfAbsent(row.category.name, () => []).add(row);
@@ -35,19 +39,17 @@ class AccountsScreen extends StatelessWidget {
           final categoryNames = groupedData.keys.toList();
 
           return ListView.builder(
-            padding: const EdgeInsets.only(
-              bottom: 80,
-            ), // Extra padding so FAB doesn't cover last item
+            padding: const EdgeInsets.only(bottom: 80),
             itemCount: categoryNames.length,
             itemBuilder: (context, index) {
               final categoryName = categoryNames[index];
-              final accounts = groupedData[categoryName]!;
+              final rows = groupedData[categoryName]!;
 
               return StickyHeader(
                 header: _buildStickyHeader(categoryName),
                 content: Column(
-                  children: accounts
-                      .map((item) => _buildAccountTile(item.account, context))
+                  children: rows
+                      .map((row) => _buildAccountTile(row, context))
                       .toList(),
                 ),
               );
@@ -79,15 +81,21 @@ class AccountsScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildAccountTile(Account account, BuildContext context) {
-    final bool isArchived =
-        account.isArchived; // Assumes you added this to your DB
+  Widget _buildAccountTile(AccountRow row, BuildContext context) {
+    final account = row.account;
+    final bool isArchived = account.isArchived;
+
+    // Logic for DR/CR Tag
+    final bool isDebit = row.category.normalBalance == NormalBalance.debit;
+    final String balanceTag = isDebit ? 'DR' : 'CR';
+    final Color tagColor = isDebit
+        ? Colors.blue.shade700
+        : Colors.orange.shade700;
 
     return Stack(
       children: [
         Dismissible(
           key: ValueKey('account_${account.id}'),
-          // Only allow swiping if it's NOT locked and NOT already archived
           direction: (account.isLocked || isArchived)
               ? DismissDirection.none
               : DismissDirection.endToStart,
@@ -115,18 +123,15 @@ class AccountsScreen extends StatelessWidget {
             ),
           ),
           confirmDismiss: (direction) async {
-            bool shouldArchive = await _showArchiveConfirmation(
-              context,
-              account,
-            );
-            return false; // Always return false so the card snaps back
+            await _showArchiveConfirmation(context, account);
+            return false;
           },
           child: Container(
-            // Fade the background if archived
             color: isArchived ? const Color(0xFFF8FAFC) : Colors.white,
             child: Column(
               children: [
                 ListTile(
+                  onTap: () => _showAccountDetails(context, row),
                   contentPadding: const EdgeInsets.symmetric(
                     horizontal: 20,
                     vertical: 4,
@@ -136,29 +141,51 @@ class AccountsScreen extends StatelessWidget {
                     style: TextStyle(
                       color: isArchived ? Colors.grey : Colors.blueGrey,
                       fontFamily: 'monospace',
-                      decoration: isArchived
-                          ? TextDecoration.lineThrough
-                          : null,
                     ),
                   ),
-                  title: Text(
-                    account.name,
-                    style: TextStyle(
-                      color: isArchived ? Colors.grey : Colors.black,
-                      decoration: isArchived
-                          ? TextDecoration.lineThrough
-                          : null,
-                    ),
+                  title: Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 4,
+                          vertical: 1,
+                        ),
+                        decoration: BoxDecoration(
+                          color: isArchived
+                              ? Colors.grey.shade200
+                              : tagColor.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(4),
+                          border: Border.all(
+                            color: isArchived
+                                ? Colors.grey.shade300
+                                : tagColor.withOpacity(0.3),
+                            width: 0.5,
+                          ),
+                        ),
+                        child: Text(
+                          balanceTag,
+                          style: TextStyle(
+                            color: isArchived ? Colors.grey : tagColor,
+                            fontSize: 9,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Flexible(
+                        child: Text(
+                          account.name,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            color: isArchived ? Colors.grey : Colors.black,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      // DR / CR Tag
+                    ],
                   ),
-                  trailing: isArchived
-                      ? null
-                      : (account.isLocked
-                            ? const Icon(
-                                Icons.lock_outline,
-                                size: 16,
-                                color: Colors.grey,
-                              )
-                            : const Icon(Icons.chevron_right, size: 20)),
+                  trailing: const Icon(Icons.chevron_right, size: 20),
                 ),
                 const Divider(
                   height: 1,
@@ -170,7 +197,6 @@ class AccountsScreen extends StatelessWidget {
             ),
           ),
         ),
-        // The Stamp
         if (isArchived) _buildArchiveStamp(),
       ],
     );
@@ -187,7 +213,7 @@ class AccountsScreen extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
             decoration: BoxDecoration(
               border: Border.all(
-                color: Colors.orange.withValues(alpha: 0.4),
+                color: Colors.orange.withOpacity(0.4),
                 width: 1.5,
               ),
               borderRadius: BorderRadius.circular(4),
@@ -195,7 +221,7 @@ class AccountsScreen extends StatelessWidget {
             child: Text(
               'ARCHIVED',
               style: TextStyle(
-                color: Colors.orange.withValues(alpha: 0.4),
+                color: Colors.orange.withOpacity(0.4),
                 fontWeight: FontWeight.bold,
                 fontSize: 12,
                 letterSpacing: 1.0,
@@ -207,7 +233,7 @@ class AccountsScreen extends StatelessWidget {
     );
   }
 
-  Future<bool> _showArchiveConfirmation(
+  Future<void> _showArchiveConfirmation(
     BuildContext context,
     Account account,
   ) async {
@@ -228,9 +254,7 @@ class AccountsScreen extends StatelessWidget {
 
     if (result == true) {
       await appDb.accountsDao.archiveAccount(account.id, true);
-      return true;
     }
-    return false;
   }
 
   void _showAddAccountDialog(BuildContext context) {
@@ -239,6 +263,18 @@ class AccountsScreen extends StatelessWidget {
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (context) => const AddAccountForm(),
+    );
+  }
+
+  void _showAccountDetails(BuildContext context, AccountRow row) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (context) => AccountDetailsSheet(
+        account: row.account,
+        normalBalance: row.category.normalBalance,
+      ),
     );
   }
 }
