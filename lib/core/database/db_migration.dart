@@ -155,7 +155,7 @@ MigrationStrategy buildMigrationStrategy(AppDatabase db) {
           ),
           AccountsCompanion.insert(
             code: 110,
-            name: 'Accounts Receivable - Trade',
+            name: 'Accounts Receivable',
             description: const Value(
               'Amounts owed to the business by customers for goods sold or services rendered on credit.',
             ),
@@ -289,9 +289,9 @@ MigrationStrategy buildMigrationStrategy(AppDatabase db) {
           ),
           AccountsCompanion.insert(
             code: 169,
-            name: 'Accounts Receivable - Kyle Engreso',
+            name: 'Accounts Receivable',
             description: const Value(
-              'Specific receivable account for transactions with Kyle Engreso.',
+              'Specific receivable account for trade transactions and outstanding customer balances.',
             ),
             categoryId: 11,
           ),

@@ -242,7 +242,7 @@ class _AddAccountFormState extends State<AddAccountForm> {
 
                 TextFormField(
                   controller: _descriptionController,
-                  maxLines: 3, // Allow multiple lines for a real description
+                  maxLines: 3,
                   decoration: const InputDecoration(
                     labelText: 'Description (Optional)',
                     border: OutlineInputBorder(),
@@ -250,9 +250,8 @@ class _AddAccountFormState extends State<AddAccountForm> {
                     alignLabelWithHint: true,
                   ),
                 ),
+                const SizedBox(height: 16),
 
-                // 4. Normal Balance (Connected to Category Table)
-                // We keep this readOnly because it's determined by the Type
                 TextFormField(
                   controller: _balanceController,
                   readOnly: true, // Remains true so the keyboard doesn't pop up

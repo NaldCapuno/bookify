@@ -59,7 +59,9 @@ class AccountsDao extends DatabaseAccessor<AppDatabase>
 
   // Optional: If you want to fetch categories for the dropdown dynamically
   Future<List<AccountCategory>> getAllCategories() {
-    return select(accountCategories).get();
+    return (select(
+      accountCategories,
+    )..orderBy([(t) => OrderingTerm.asc(t.id)])).get();
   }
 
   Future<void> archiveAccount(int id, bool archive) {
