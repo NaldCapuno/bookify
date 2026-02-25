@@ -3,7 +3,7 @@ import '../app_database.dart';
 import '../tables/journal_table.dart';
 import '../tables/transactions_table.dart';
 import '../tables/accounts_table.dart';
-import '../tables/account_categories_table.dart';
+// import '../tables/account_categories_table.dart';
 
 part 'journal_entry_daos.g.dart';
 
@@ -137,15 +137,14 @@ class JournalEntryDao extends DatabaseAccessor<AppDatabase>
 
   Future<void> markJournalAsVoided(int journalId) async {
     await (update(journals)..where((j) => j.id.equals(journalId))).write(
-      const JournalsCompanion(
-        isVoid: Value(true), 
-      ),
+      const JournalsCompanion(isVoid: Value(true)),
     );
   }
 
   /// Soft-delete: mark a journal entry as voided. Ledger and reports exclude voided entries.
   Future<void> voidJournalEntry(int journalId) async {
-    await (update(journals)..where((j) => j.id.equals(journalId)))
-        .write(JournalsCompanion(isVoid: Value(true)));
+    await (update(journals)..where((j) => j.id.equals(journalId))).write(
+      JournalsCompanion(isVoid: Value(true)),
+    );
   }
 }
