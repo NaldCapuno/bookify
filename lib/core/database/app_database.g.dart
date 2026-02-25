@@ -362,6 +362,18 @@ class $AccountsTable extends Accounts with TableInfo<$AccountsTable, Account> {
     type: DriftSqlType.string,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _descriptionMeta = const VerificationMeta(
+    'description',
+  );
+  @override
+  late final GeneratedColumn<String> description = GeneratedColumn<String>(
+    'description',
+    aliasedName,
+    true,
+    additionalChecks: GeneratedColumn.checkTextLength(maxTextLength: 1024),
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _categoryIdMeta = const VerificationMeta(
     'categoryId',
   );
@@ -426,6 +438,7 @@ class $AccountsTable extends Accounts with TableInfo<$AccountsTable, Account> {
     id,
     code,
     name,
+    description,
     categoryId,
     isActive,
     isLocked,
@@ -461,6 +474,15 @@ class $AccountsTable extends Accounts with TableInfo<$AccountsTable, Account> {
       );
     } else if (isInserting) {
       context.missing(_nameMeta);
+    }
+    if (data.containsKey('description')) {
+      context.handle(
+        _descriptionMeta,
+        description.isAcceptableOrUnknown(
+          data['description']!,
+          _descriptionMeta,
+        ),
+      );
     }
     if (data.containsKey('category_id')) {
       context.handle(
@@ -509,6 +531,10 @@ class $AccountsTable extends Accounts with TableInfo<$AccountsTable, Account> {
         DriftSqlType.string,
         data['${effectivePrefix}name'],
       )!,
+      description: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}description'],
+      ),
       categoryId: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
         data['${effectivePrefix}category_id'],
@@ -538,6 +564,7 @@ class Account extends DataClass implements Insertable<Account> {
   final int id;
   final int code;
   final String name;
+  final String? description;
   final int categoryId;
   final bool isActive;
   final bool isLocked;
@@ -546,6 +573,7 @@ class Account extends DataClass implements Insertable<Account> {
     required this.id,
     required this.code,
     required this.name,
+    this.description,
     required this.categoryId,
     required this.isActive,
     required this.isLocked,
@@ -557,6 +585,9 @@ class Account extends DataClass implements Insertable<Account> {
     map['id'] = Variable<int>(id);
     map['code'] = Variable<int>(code);
     map['name'] = Variable<String>(name);
+    if (!nullToAbsent || description != null) {
+      map['description'] = Variable<String>(description);
+    }
     map['category_id'] = Variable<int>(categoryId);
     map['is_active'] = Variable<bool>(isActive);
     map['is_locked'] = Variable<bool>(isLocked);
@@ -569,6 +600,9 @@ class Account extends DataClass implements Insertable<Account> {
       id: Value(id),
       code: Value(code),
       name: Value(name),
+      description: description == null && nullToAbsent
+          ? const Value.absent()
+          : Value(description),
       categoryId: Value(categoryId),
       isActive: Value(isActive),
       isLocked: Value(isLocked),
@@ -585,6 +619,7 @@ class Account extends DataClass implements Insertable<Account> {
       id: serializer.fromJson<int>(json['id']),
       code: serializer.fromJson<int>(json['code']),
       name: serializer.fromJson<String>(json['name']),
+      description: serializer.fromJson<String?>(json['description']),
       categoryId: serializer.fromJson<int>(json['categoryId']),
       isActive: serializer.fromJson<bool>(json['isActive']),
       isLocked: serializer.fromJson<bool>(json['isLocked']),
@@ -598,6 +633,7 @@ class Account extends DataClass implements Insertable<Account> {
       'id': serializer.toJson<int>(id),
       'code': serializer.toJson<int>(code),
       'name': serializer.toJson<String>(name),
+      'description': serializer.toJson<String?>(description),
       'categoryId': serializer.toJson<int>(categoryId),
       'isActive': serializer.toJson<bool>(isActive),
       'isLocked': serializer.toJson<bool>(isLocked),
@@ -609,6 +645,7 @@ class Account extends DataClass implements Insertable<Account> {
     int? id,
     int? code,
     String? name,
+    Value<String?> description = const Value.absent(),
     int? categoryId,
     bool? isActive,
     bool? isLocked,
@@ -617,6 +654,7 @@ class Account extends DataClass implements Insertable<Account> {
     id: id ?? this.id,
     code: code ?? this.code,
     name: name ?? this.name,
+    description: description.present ? description.value : this.description,
     categoryId: categoryId ?? this.categoryId,
     isActive: isActive ?? this.isActive,
     isLocked: isLocked ?? this.isLocked,
@@ -627,6 +665,9 @@ class Account extends DataClass implements Insertable<Account> {
       id: data.id.present ? data.id.value : this.id,
       code: data.code.present ? data.code.value : this.code,
       name: data.name.present ? data.name.value : this.name,
+      description: data.description.present
+          ? data.description.value
+          : this.description,
       categoryId: data.categoryId.present
           ? data.categoryId.value
           : this.categoryId,
@@ -644,6 +685,7 @@ class Account extends DataClass implements Insertable<Account> {
           ..write('id: $id, ')
           ..write('code: $code, ')
           ..write('name: $name, ')
+          ..write('description: $description, ')
           ..write('categoryId: $categoryId, ')
           ..write('isActive: $isActive, ')
           ..write('isLocked: $isLocked, ')
@@ -653,8 +695,16 @@ class Account extends DataClass implements Insertable<Account> {
   }
 
   @override
-  int get hashCode =>
-      Object.hash(id, code, name, categoryId, isActive, isLocked, isArchived);
+  int get hashCode => Object.hash(
+    id,
+    code,
+    name,
+    description,
+    categoryId,
+    isActive,
+    isLocked,
+    isArchived,
+  );
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -662,6 +712,7 @@ class Account extends DataClass implements Insertable<Account> {
           other.id == this.id &&
           other.code == this.code &&
           other.name == this.name &&
+          other.description == this.description &&
           other.categoryId == this.categoryId &&
           other.isActive == this.isActive &&
           other.isLocked == this.isLocked &&
@@ -672,6 +723,7 @@ class AccountsCompanion extends UpdateCompanion<Account> {
   final Value<int> id;
   final Value<int> code;
   final Value<String> name;
+  final Value<String?> description;
   final Value<int> categoryId;
   final Value<bool> isActive;
   final Value<bool> isLocked;
@@ -680,6 +732,7 @@ class AccountsCompanion extends UpdateCompanion<Account> {
     this.id = const Value.absent(),
     this.code = const Value.absent(),
     this.name = const Value.absent(),
+    this.description = const Value.absent(),
     this.categoryId = const Value.absent(),
     this.isActive = const Value.absent(),
     this.isLocked = const Value.absent(),
@@ -689,6 +742,7 @@ class AccountsCompanion extends UpdateCompanion<Account> {
     this.id = const Value.absent(),
     required int code,
     required String name,
+    this.description = const Value.absent(),
     required int categoryId,
     this.isActive = const Value.absent(),
     this.isLocked = const Value.absent(),
@@ -700,6 +754,7 @@ class AccountsCompanion extends UpdateCompanion<Account> {
     Expression<int>? id,
     Expression<int>? code,
     Expression<String>? name,
+    Expression<String>? description,
     Expression<int>? categoryId,
     Expression<bool>? isActive,
     Expression<bool>? isLocked,
@@ -709,6 +764,7 @@ class AccountsCompanion extends UpdateCompanion<Account> {
       if (id != null) 'id': id,
       if (code != null) 'code': code,
       if (name != null) 'name': name,
+      if (description != null) 'description': description,
       if (categoryId != null) 'category_id': categoryId,
       if (isActive != null) 'is_active': isActive,
       if (isLocked != null) 'is_locked': isLocked,
@@ -720,6 +776,7 @@ class AccountsCompanion extends UpdateCompanion<Account> {
     Value<int>? id,
     Value<int>? code,
     Value<String>? name,
+    Value<String?>? description,
     Value<int>? categoryId,
     Value<bool>? isActive,
     Value<bool>? isLocked,
@@ -729,6 +786,7 @@ class AccountsCompanion extends UpdateCompanion<Account> {
       id: id ?? this.id,
       code: code ?? this.code,
       name: name ?? this.name,
+      description: description ?? this.description,
       categoryId: categoryId ?? this.categoryId,
       isActive: isActive ?? this.isActive,
       isLocked: isLocked ?? this.isLocked,
@@ -747,6 +805,9 @@ class AccountsCompanion extends UpdateCompanion<Account> {
     }
     if (name.present) {
       map['name'] = Variable<String>(name.value);
+    }
+    if (description.present) {
+      map['description'] = Variable<String>(description.value);
     }
     if (categoryId.present) {
       map['category_id'] = Variable<int>(categoryId.value);
@@ -769,6 +830,7 @@ class AccountsCompanion extends UpdateCompanion<Account> {
           ..write('id: $id, ')
           ..write('code: $code, ')
           ..write('name: $name, ')
+          ..write('description: $description, ')
           ..write('categoryId: $categoryId, ')
           ..write('isActive: $isActive, ')
           ..write('isLocked: $isLocked, ')
@@ -2516,6 +2578,7 @@ typedef $$AccountsTableCreateCompanionBuilder =
       Value<int> id,
       required int code,
       required String name,
+      Value<String?> description,
       required int categoryId,
       Value<bool> isActive,
       Value<bool> isLocked,
@@ -2526,6 +2589,7 @@ typedef $$AccountsTableUpdateCompanionBuilder =
       Value<int> id,
       Value<int> code,
       Value<String> name,
+      Value<String?> description,
       Value<int> categoryId,
       Value<bool> isActive,
       Value<bool> isLocked,
@@ -2595,6 +2659,11 @@ class $$AccountsTableFilterComposer
 
   ColumnFilters<String> get name => $composableBuilder(
     column: $table.name,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get description => $composableBuilder(
+    column: $table.description,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -2686,6 +2755,11 @@ class $$AccountsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get description => $composableBuilder(
+    column: $table.description,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<bool> get isActive => $composableBuilder(
     column: $table.isActive,
     builder: (column) => ColumnOrderings(column),
@@ -2742,6 +2816,11 @@ class $$AccountsTableAnnotationComposer
 
   GeneratedColumn<String> get name =>
       $composableBuilder(column: $table.name, builder: (column) => column);
+
+  GeneratedColumn<String> get description => $composableBuilder(
+    column: $table.description,
+    builder: (column) => column,
+  );
 
   GeneratedColumn<bool> get isActive =>
       $composableBuilder(column: $table.isActive, builder: (column) => column);
@@ -2835,6 +2914,7 @@ class $$AccountsTableTableManager
                 Value<int> id = const Value.absent(),
                 Value<int> code = const Value.absent(),
                 Value<String> name = const Value.absent(),
+                Value<String?> description = const Value.absent(),
                 Value<int> categoryId = const Value.absent(),
                 Value<bool> isActive = const Value.absent(),
                 Value<bool> isLocked = const Value.absent(),
@@ -2843,6 +2923,7 @@ class $$AccountsTableTableManager
                 id: id,
                 code: code,
                 name: name,
+                description: description,
                 categoryId: categoryId,
                 isActive: isActive,
                 isLocked: isLocked,
@@ -2853,6 +2934,7 @@ class $$AccountsTableTableManager
                 Value<int> id = const Value.absent(),
                 required int code,
                 required String name,
+                Value<String?> description = const Value.absent(),
                 required int categoryId,
                 Value<bool> isActive = const Value.absent(),
                 Value<bool> isLocked = const Value.absent(),
@@ -2861,6 +2943,7 @@ class $$AccountsTableTableManager
                 id: id,
                 code: code,
                 name: name,
+                description: description,
                 categoryId: categoryId,
                 isActive: isActive,
                 isLocked: isLocked,
