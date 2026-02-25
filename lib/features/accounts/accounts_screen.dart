@@ -6,6 +6,7 @@ import 'package:bookkeeping/core/widgets/app_fab.dart';
 import 'package:bookkeeping/core/widgets/app_confirmation_sheet.dart';
 import 'package:bookkeeping/features/accounts/account_details_sheet.dart';
 import 'package:bookkeeping/core/database/tables/account_categories_table.dart';
+import 'package:bookkeeping/core/widgets/appt_toast.dart';
 import 'add_account_form.dart';
 
 class AccountsScreen extends StatelessWidget {
@@ -84,6 +85,7 @@ class AccountsScreen extends StatelessWidget {
   Widget _buildAccountTile(AccountRow row, BuildContext context) {
     final account = row.account;
     final bool isArchived = account.isArchived;
+    final bool isLocked = account.isLocked;
 
     // Logic for DR/CR Tag
     final bool isDebit = row.category.normalBalance == NormalBalance.debit;
@@ -96,25 +98,30 @@ class AccountsScreen extends StatelessWidget {
       children: [
         Dismissible(
           key: ValueKey('account_${account.id}'),
-          direction: (account.isLocked || isArchived)
+          direction: isArchived
               ? DismissDirection.none
               : DismissDirection.endToStart,
+
           background: Container(
-            color: Colors.orange.shade50,
+            color: isLocked ? Colors.orange.shade50 : Colors.red.shade50,
             alignment: Alignment.centerRight,
             padding: const EdgeInsets.symmetric(horizontal: 24.0),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Icon(
-                  Icons.archive_outlined,
-                  color: Colors.orange.shade400,
+                  isLocked
+                      ? Icons.archive_outlined
+                      : Icons.delete_forever_outlined,
+                  color: isLocked
+                      ? Colors.orange.shade400
+                      : Colors.red.shade400,
                   size: 28,
                 ),
-                const Text(
-                  'ARCHIVE',
+                Text(
+                  isLocked ? 'ARCHIVE' : 'DELETE',
                   style: TextStyle(
-                    color: Colors.orange,
+                    color: isLocked ? Colors.orange : Colors.red,
                     fontWeight: FontWeight.bold,
                     fontSize: 10,
                   ),
@@ -122,10 +129,16 @@ class AccountsScreen extends StatelessWidget {
               ],
             ),
           ),
+
           confirmDismiss: (direction) async {
-            await _showArchiveConfirmation(context, account);
+            if (isLocked) {
+              await _showArchiveConfirmation(context, account);
+            } else {
+              await _showDeleteConfirmation(context, account);
+            }
             return false;
           },
+
           child: Container(
             color: isArchived ? const Color(0xFFF8FAFC) : Colors.white,
             child: Column(
@@ -181,11 +194,17 @@ class AccountsScreen extends StatelessWidget {
                           ),
                         ),
                       ),
-                      const SizedBox(width: 8),
-                      // DR / CR Tag
                     ],
                   ),
-                  trailing: const Icon(Icons.chevron_right, size: 20),
+                  trailing: isArchived
+                      ? null
+                      : (isLocked
+                            ? const Icon(
+                                Icons.lock_outline,
+                                size: 16,
+                                color: Colors.grey,
+                              )
+                            : const Icon(Icons.chevron_right, size: 20)),
                 ),
                 const Divider(
                   height: 1,
@@ -205,7 +224,7 @@ class AccountsScreen extends StatelessWidget {
   Widget _buildArchiveStamp() {
     return Positioned(
       right: 50,
-      top: 15,
+      top: 20,
       child: IgnorePointer(
         child: Transform.rotate(
           angle: -0.15,
@@ -254,6 +273,32 @@ class AccountsScreen extends StatelessWidget {
 
     if (result == true) {
       await appDb.accountsDao.archiveAccount(account.id, true);
+      AppToast.show(context, message: 'Account archived successfully!');
+    }
+  }
+
+  Future<void> _showDeleteConfirmation(
+    BuildContext context,
+    Account account,
+  ) async {
+    final result = await showModalBottomSheet<bool>(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) => AppConfirmationSheet(
+        title: 'Delete ${account.name}?',
+        message:
+            'This will permanently remove the account. This cannot be undone.',
+        confirmLabel: 'Delete',
+        confirmColor: Colors.red.shade700,
+        icon: Icons.delete_forever_outlined,
+      ),
+    );
+
+    if (result == true) {
+      await appDb.accountsDao.deleteAccount(account.id);
+      AppToast.show(context, message: 'Account deleted successfully!');
     }
   }
 

@@ -125,7 +125,6 @@ MigrationStrategy buildMigrationStrategy(AppDatabase db) {
               'Currencies, coins, and checks currently in the physical possession of the business.',
             ),
             categoryId: 11,
-            isLocked: const Value(true),
           ),
           AccountsCompanion.insert(
             code: 102,
@@ -134,7 +133,6 @@ MigrationStrategy buildMigrationStrategy(AppDatabase db) {
               'Funds held in a business checking account for daily operational payments.',
             ),
             categoryId: 11,
-            isLocked: const Value(true),
           ),
           AccountsCompanion.insert(
             code: 103,
@@ -151,7 +149,6 @@ MigrationStrategy buildMigrationStrategy(AppDatabase db) {
               'A small amount of discretionary funds kept on-site for minor business expenses.',
             ),
             categoryId: 11,
-            isLocked: const Value(true),
           ),
           AccountsCompanion.insert(
             code: 110,
@@ -160,7 +157,6 @@ MigrationStrategy buildMigrationStrategy(AppDatabase db) {
               'Amounts owed to the business by customers for goods sold or services rendered on credit.',
             ),
             categoryId: 11,
-            isLocked: const Value(true),
           ),
           AccountsCompanion.insert(
             code: 111,
@@ -201,7 +197,6 @@ MigrationStrategy buildMigrationStrategy(AppDatabase db) {
               'Cost of direct materials that have not yet entered the production process.',
             ),
             categoryId: 11,
-            isLocked: const Value(true),
           ),
           AccountsCompanion.insert(
             code: 121,
@@ -210,7 +205,6 @@ MigrationStrategy buildMigrationStrategy(AppDatabase db) {
               'Goods currently in the production cycle that are partially completed.',
             ),
             categoryId: 11,
-            isLocked: const Value(true),
           ),
           AccountsCompanion.insert(
             code: 122,
@@ -219,7 +213,6 @@ MigrationStrategy buildMigrationStrategy(AppDatabase db) {
               'Completed products ready for sale to customers.',
             ),
             categoryId: 11,
-            isLocked: const Value(true),
           ),
           AccountsCompanion.insert(
             code: 123,
@@ -268,7 +261,6 @@ MigrationStrategy buildMigrationStrategy(AppDatabase db) {
               'Value-added tax paid on purchases that can be offset against Output VAT.',
             ),
             categoryId: 11,
-            isLocked: const Value(true),
           ),
           AccountsCompanion.insert(
             code: 134,
@@ -277,7 +269,6 @@ MigrationStrategy buildMigrationStrategy(AppDatabase db) {
               'Taxes withheld by customers from payments to the business, creditable against income tax.',
             ),
             categoryId: 11,
-            isLocked: const Value(true),
           ),
           AccountsCompanion.insert(
             code: 140,
@@ -328,7 +319,6 @@ MigrationStrategy buildMigrationStrategy(AppDatabase db) {
               'Heavy machinery and tools used directly in the manufacturing process.',
             ),
             categoryId: 12,
-            isLocked: const Value(true),
           ),
           AccountsCompanion.insert(
             code: 154,
@@ -337,7 +327,6 @@ MigrationStrategy buildMigrationStrategy(AppDatabase db) {
               'Total depreciation expensed against factory equipment.',
             ),
             categoryId: 12,
-            isLocked: const Value(true),
           ),
           AccountsCompanion.insert(
             code: 155,
@@ -346,7 +335,6 @@ MigrationStrategy buildMigrationStrategy(AppDatabase db) {
               'Mechanical devices used in business operations.',
             ),
             categoryId: 12,
-            isLocked: const Value(true),
           ),
           AccountsCompanion.insert(
             code: 156,
@@ -355,7 +343,6 @@ MigrationStrategy buildMigrationStrategy(AppDatabase db) {
               'Total depreciation expensed against machinery.',
             ),
             categoryId: 12,
-            isLocked: const Value(true),
           ),
           AccountsCompanion.insert(
             code: 157,
@@ -481,7 +468,6 @@ MigrationStrategy buildMigrationStrategy(AppDatabase db) {
               'Amounts owed to suppliers for goods or services purchased on credit.',
             ),
             categoryId: 21,
-            isLocked: const Value(true),
           ),
           AccountsCompanion.insert(
             code: 202,
@@ -498,7 +484,6 @@ MigrationStrategy buildMigrationStrategy(AppDatabase db) {
               'Employee earnings that have been incurred but not yet paid.',
             ),
             categoryId: 21,
-            isLocked: const Value(true),
           ),
           AccountsCompanion.insert(
             code: 204,
@@ -523,7 +508,6 @@ MigrationStrategy buildMigrationStrategy(AppDatabase db) {
               'Social Security System contributions withheld and owed to the government.',
             ),
             categoryId: 21,
-            isLocked: const Value(true),
           ),
           AccountsCompanion.insert(
             code: 211,
@@ -532,7 +516,6 @@ MigrationStrategy buildMigrationStrategy(AppDatabase db) {
               'Health insurance contributions withheld and owed to PhilHealth.',
             ),
             categoryId: 21,
-            isLocked: const Value(true),
           ),
           AccountsCompanion.insert(
             code: 212,
@@ -541,7 +524,6 @@ MigrationStrategy buildMigrationStrategy(AppDatabase db) {
               'Housing fund contributions withheld and owed to Pag-IBIG.',
             ),
             categoryId: 21,
-            isLocked: const Value(true),
           ),
           AccountsCompanion.insert(
             code: 213,
@@ -550,7 +532,6 @@ MigrationStrategy buildMigrationStrategy(AppDatabase db) {
               'Income taxes withheld from employee wages owed to the BIR.',
             ),
             categoryId: 21,
-            isLocked: const Value(true),
           ),
           AccountsCompanion.insert(
             code: 214,
@@ -559,7 +540,6 @@ MigrationStrategy buildMigrationStrategy(AppDatabase db) {
               'Taxes withheld from payments to suppliers or contractors owed to the BIR.',
             ),
             categoryId: 21,
-            isLocked: const Value(true),
           ),
           AccountsCompanion.insert(
             code: 215,
@@ -568,7 +548,6 @@ MigrationStrategy buildMigrationStrategy(AppDatabase db) {
               'Value-added tax collected from customers on sales of goods or services.',
             ),
             categoryId: 21,
-            isLocked: const Value(true),
           ),
           AccountsCompanion.insert(
             code: 216,
@@ -577,7 +556,6 @@ MigrationStrategy buildMigrationStrategy(AppDatabase db) {
               'Estimated income taxes owed by the business for the current period.',
             ),
             categoryId: 21,
-            isLocked: const Value(true),
           ),
           AccountsCompanion.insert(
             code: 220,
@@ -657,7 +635,6 @@ MigrationStrategy buildMigrationStrategy(AppDatabase db) {
               'The par value of common shares issued to shareholders.',
             ),
             categoryId: 31,
-            isLocked: const Value(true),
           ),
           AccountsCompanion.insert(
             code: 302,
@@ -698,7 +675,6 @@ MigrationStrategy buildMigrationStrategy(AppDatabase db) {
               'Cumulative net income of the business that has not been distributed as dividends.',
             ),
             categoryId: 31,
-            isLocked: const Value(true),
           ),
           AccountsCompanion.insert(
             code: 311,
@@ -752,7 +728,6 @@ MigrationStrategy buildMigrationStrategy(AppDatabase db) {
               'Gross income from the sale of goods in the ordinary course of business.',
             ),
             categoryId: 41,
-            isLocked: const Value(true),
           ),
           AccountsCompanion.insert(
             code: 402,
@@ -761,7 +736,6 @@ MigrationStrategy buildMigrationStrategy(AppDatabase db) {
               'A contra-revenue account for goods returned by customers or price reductions granted.',
             ),
             categoryId: 41,
-            isLocked: const Value(true),
           ),
           AccountsCompanion.insert(
             code: 403,
@@ -770,7 +744,6 @@ MigrationStrategy buildMigrationStrategy(AppDatabase db) {
               'Reductions in the selling price offered to customers for prompt payment.',
             ),
             categoryId: 41,
-            isLocked: const Value(true),
           ),
           AccountsCompanion.insert(
             code: 410,
@@ -842,7 +815,6 @@ MigrationStrategy buildMigrationStrategy(AppDatabase db) {
               'Cost of materials that have been consumed in the production process.',
             ),
             categoryId: 51,
-            isLocked: const Value(true),
           ),
           AccountsCompanion.insert(
             code: 502,
@@ -851,7 +823,6 @@ MigrationStrategy buildMigrationStrategy(AppDatabase db) {
               'Wages of employees directly involved in converting raw materials into finished goods.',
             ),
             categoryId: 51,
-            isLocked: const Value(true),
           ),
           AccountsCompanion.insert(
             code: 510,
@@ -860,7 +831,6 @@ MigrationStrategy buildMigrationStrategy(AppDatabase db) {
               'Materials used in production that cannot be easily traced to specific units.',
             ),
             categoryId: 51,
-            isLocked: const Value(true),
           ),
           AccountsCompanion.insert(
             code: 511,
@@ -869,7 +839,6 @@ MigrationStrategy buildMigrationStrategy(AppDatabase db) {
               'Wages of factory personnel not directly involved in production (e.g., supervisors).',
             ),
             categoryId: 51,
-            isLocked: const Value(true),
           ),
           AccountsCompanion.insert(
             code: 512,
@@ -878,7 +847,6 @@ MigrationStrategy buildMigrationStrategy(AppDatabase db) {
               'Utility costs specifically incurred for factory operations.',
             ),
             categoryId: 51,
-            isLocked: const Value(true),
           ),
           AccountsCompanion.insert(
             code: 513,
@@ -893,7 +861,6 @@ MigrationStrategy buildMigrationStrategy(AppDatabase db) {
               'Depreciation of factory building and equipment.',
             ),
             categoryId: 51,
-            isLocked: const Value(true),
           ),
           AccountsCompanion.insert(
             code: 515,
@@ -910,7 +877,6 @@ MigrationStrategy buildMigrationStrategy(AppDatabase db) {
               'Maintenance costs for keeping factory assets in working condition.',
             ),
             categoryId: 51,
-            isLocked: const Value(true),
           ),
           AccountsCompanion.insert(
             code: 517,
@@ -935,7 +901,6 @@ MigrationStrategy buildMigrationStrategy(AppDatabase db) {
               'Total cost of products sold to customers during the period.',
             ),
             categoryId: 51,
-            isLocked: const Value(true),
           ),
 
           // Operating Expense (52)
@@ -946,7 +911,6 @@ MigrationStrategy buildMigrationStrategy(AppDatabase db) {
               'Remuneration for office and administrative staff.',
             ),
             categoryId: 52,
-            isLocked: const Value(true),
           ),
           AccountsCompanion.insert(
             code: 602,
@@ -955,7 +919,6 @@ MigrationStrategy buildMigrationStrategy(AppDatabase db) {
               'The employer\'s share of Social Security System contributions.',
             ),
             categoryId: 52,
-            isLocked: const Value(true),
           ),
           AccountsCompanion.insert(
             code: 603,
@@ -964,7 +927,6 @@ MigrationStrategy buildMigrationStrategy(AppDatabase db) {
               'The employer\'s share of PhilHealth contributions.',
             ),
             categoryId: 52,
-            isLocked: const Value(true),
           ),
           AccountsCompanion.insert(
             code: 604,
@@ -973,7 +935,6 @@ MigrationStrategy buildMigrationStrategy(AppDatabase db) {
               'The employer\'s share of Pag-IBIG fund contributions.',
             ),
             categoryId: 52,
-            isLocked: const Value(true),
           ),
           AccountsCompanion.insert(
             code: 605,
@@ -982,7 +943,6 @@ MigrationStrategy buildMigrationStrategy(AppDatabase db) {
               'Mandatory year-end bonus for employees as per Philippine law.',
             ),
             categoryId: 52,
-            isLocked: const Value(true),
           ),
           AccountsCompanion.insert(
             code: 606,
@@ -999,7 +959,6 @@ MigrationStrategy buildMigrationStrategy(AppDatabase db) {
               'Cost of office supplies consumed during the period.',
             ),
             categoryId: 52,
-            isLocked: const Value(true),
           ),
           AccountsCompanion.insert(
             code: 611,
@@ -1008,7 +967,6 @@ MigrationStrategy buildMigrationStrategy(AppDatabase db) {
               'Electricity, water, and waste costs for office administrative areas.',
             ),
             categoryId: 52,
-            isLocked: const Value(true),
           ),
           AccountsCompanion.insert(
             code: 612,
@@ -1031,7 +989,6 @@ MigrationStrategy buildMigrationStrategy(AppDatabase db) {
               'Depreciation of office-related fixed assets.',
             ),
             categoryId: 52,
-            isLocked: const Value(true),
           ),
           AccountsCompanion.insert(
             code: 615,
@@ -1048,7 +1005,6 @@ MigrationStrategy buildMigrationStrategy(AppDatabase db) {
               'Costs for telephone, internet, and postage services.',
             ),
             categoryId: 52,
-            isLocked: const Value(true),
           ),
           AccountsCompanion.insert(
             code: 617,
@@ -1057,7 +1013,6 @@ MigrationStrategy buildMigrationStrategy(AppDatabase db) {
               'Travel costs and vehicle fuel for administrative staff.',
             ),
             categoryId: 52,
-            isLocked: const Value(true),
           ),
           AccountsCompanion.insert(
             code: 618,
@@ -1066,7 +1021,6 @@ MigrationStrategy buildMigrationStrategy(AppDatabase db) {
               'Fees paid to consultants, accountants, and other professionals.',
             ),
             categoryId: 52,
-            isLocked: const Value(true),
           ),
           AccountsCompanion.insert(
             code: 619,
@@ -1091,7 +1045,6 @@ MigrationStrategy buildMigrationStrategy(AppDatabase db) {
               'Fees charged by banks for account maintenance and transactions.',
             ),
             categoryId: 52,
-            isLocked: const Value(true),
           ),
           AccountsCompanion.insert(
             code: 622,
@@ -1100,7 +1053,6 @@ MigrationStrategy buildMigrationStrategy(AppDatabase db) {
               'Business permits, licenses, and other government fees.',
             ),
             categoryId: 52,
-            isLocked: const Value(true),
           ),
           AccountsCompanion.insert(
             code: 623,
@@ -1149,7 +1101,6 @@ MigrationStrategy buildMigrationStrategy(AppDatabase db) {
               'Incidental administrative expenses not elsewhere classified.',
             ),
             categoryId: 52,
-            isLocked: const Value(true),
           ),
           AccountsCompanion.insert(
             code: 651,
@@ -1158,7 +1109,6 @@ MigrationStrategy buildMigrationStrategy(AppDatabase db) {
               'Costs for promoting products or services through various media.',
             ),
             categoryId: 52,
-            isLocked: const Value(true),
           ),
           AccountsCompanion.insert(
             code: 652,
@@ -1167,7 +1117,6 @@ MigrationStrategy buildMigrationStrategy(AppDatabase db) {
               'Incentives paid to sales staff based on performance.',
             ),
             categoryId: 52,
-            isLocked: const Value(true),
           ),
           AccountsCompanion.insert(
             code: 653,
@@ -1176,7 +1125,6 @@ MigrationStrategy buildMigrationStrategy(AppDatabase db) {
               'Costs incurred in delivering goods to customers.',
             ),
             categoryId: 52,
-            isLocked: const Value(true),
           ),
           AccountsCompanion.insert(
             code: 654,
@@ -1209,7 +1157,6 @@ MigrationStrategy buildMigrationStrategy(AppDatabase db) {
               'Transportation cost of selling and delivering goods to customers.',
             ),
             categoryId: 52,
-            isLocked: const Value(true),
           ),
 
           // Other Expense (53)
@@ -1220,7 +1167,6 @@ MigrationStrategy buildMigrationStrategy(AppDatabase db) {
               'The cost of borrowing money on loans and other debts.',
             ),
             categoryId: 53,
-            isLocked: const Value(true),
           ),
           AccountsCompanion.insert(
             code: 702,
@@ -1253,7 +1199,6 @@ MigrationStrategy buildMigrationStrategy(AppDatabase db) {
               'The total income tax incurred for the current reporting period.',
             ),
             categoryId: 53,
-            isLocked: const Value(true),
           ),
         ]);
       });
