@@ -8,21 +8,19 @@ class IncomeStatementCard extends StatelessWidget {
 
   const IncomeStatementCard({super.key, required this.data});
 
-  // Formatting helper matching the image
+  // Formatting helper matching the exact style of your other reports
   String _formatAccounting(double amount, {bool showSymbol = false}) {
+    if (amount == 0 && !showSymbol) return '-';
     final formatter = NumberFormat('#,##0', 'en_US');
     String formatted = formatter.format(amount.abs());
 
-    // Add parentheses for negative numbers first
-    if (amount < 0) {
-      formatted = '($formatted)';
-    }
-
-    // Add symbol outside the parentheses
     if (showSymbol) {
       formatted = '₱  $formatted';
     }
 
+    if (amount < 0) {
+      return '($formatted)';
+    }
     return formatted;
   }
 
@@ -48,26 +46,23 @@ class IncomeStatementCard extends StatelessWidget {
         ),
         const SizedBox(height: 8),
 
-        ...data.revenues.asMap().entries.map((entry) {
-          int idx = entry.key;
-          var item = entry.value;
-          bool isFirst = idx == 0;
-          bool isLast = idx == data.revenues.length - 1;
-
+        ...data.revenues.map((item) {
           return Padding(
             padding: const EdgeInsets.only(left: 24.0),
             child: FinancialLineItem(
               label: item.name,
-              amount: "", // Leave outer column blank
-              innerAmount: _formatAccounting(item.amount, showSymbol: isFirst),
-              isLastInGroup: isLast,
+              amount: _formatAccounting(
+                item.amount,
+              ), // Passed directly to the main right column
             ),
           );
-        }).toList(), // <-- FIX: Added .toList() here to prevent Iterable errors
+        }).toList(),
+
         // Total Revenues
         FinancialLineItem(
           label: "Total Revenues:",
           amount: _formatAccounting(data.totalRevenue, showSymbol: true),
+          isTotal: true,
         ),
 
         const SizedBox(height: 24),
@@ -81,26 +76,23 @@ class IncomeStatementCard extends StatelessWidget {
         ),
         const SizedBox(height: 8),
 
-        ...allExpenses.asMap().entries.map((entry) {
-          int idx = entry.key;
-          var item = entry.value;
-          bool isLast = idx == allExpenses.length - 1;
-
+        ...allExpenses.map((item) {
           return Padding(
             padding: const EdgeInsets.only(left: 24.0),
             child: FinancialLineItem(
               label: item.name,
-              amount: "", // Leave outer column blank
-              innerAmount: _formatAccounting(item.amount),
-              isLastInGroup: isLast,
+              amount: _formatAccounting(
+                item.amount,
+              ), // Passed directly to the main right column
             ),
           );
-        }).toList(), // <-- FIX: Added .toList() here to prevent Iterable errors
+        }).toList(),
+
         // Total Expenses
         FinancialLineItem(
           label: "Total Expenses:",
           amount: _formatAccounting(data.totalExpenses),
-          isLastInGroup: true, // Puts a line under the total expense
+          isTotal: true, // Automatically draws the line above it!
         ),
 
         const SizedBox(height: 16),
@@ -109,11 +101,10 @@ class IncomeStatementCard extends StatelessWidget {
         // NET INCOME
         // ==============================
         FinancialLineItem(
-          label: data
-              .netIncomeLabel, // Restored dynamic NET INCOME / NET LOSS label
+          label: data.netIncomeLabel,
           amount: _formatAccounting(data.netIncome, showSymbol: true),
-          isGrandTotal: true,
-          hasDoubleUnderline: true,
+          isGrandTotal:
+              true, // Automatically handles the bold text and double underlines!
         ),
       ],
     );

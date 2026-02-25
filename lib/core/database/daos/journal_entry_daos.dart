@@ -3,7 +3,7 @@ import '../app_database.dart';
 import '../tables/journal_table.dart';
 import '../tables/transactions_table.dart';
 import '../tables/accounts_table.dart';
-import '../tables/account_categories_table.dart';
+// import '../tables/account_categories_table.dart';
 
 part 'journal_entry_daos.g.dart';
 

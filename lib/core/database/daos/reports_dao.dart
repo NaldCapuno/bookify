@@ -3,6 +3,7 @@ import 'package:bookkeeping/core/database/tables/journal_table.dart';
 import 'package:bookkeeping/core/database/tables/transactions_table.dart'; // Ensure this is imported
 import 'package:bookkeeping/core/database/tables/user_table.dart';
 import 'package:bookkeeping/features/balancesheet/balance_sheet.dart';
+import 'package:bookkeeping/features/cashflow/cash_flow_statement.dart';
 import 'package:bookkeeping/features/incomestatement/financial_item.dart';
 import 'package:bookkeeping/features/incomestatement/income_statement.dart';
 import 'package:drift/drift.dart';
@@ -176,6 +177,34 @@ class ReportsDao extends DatabaseAccessor<AppDatabase> with _$ReportsDaoMixin {
       nonCurrentLiabilities: nonCurLiab,
       equityItems: equity,
       netIncome: incomeStatement.netIncome,
+    );
+  }
+
+  Future<CashFlowStatement> getCashFlowStatement({
+    required DateTime startDate,
+    required DateTime endDate,
+  }) async {
+    // 1. Fetch the Income Statement for the period
+    final incomeStatement = await getIncomeStatement(
+      startDate: startDate,
+      endDate: endDate,
+    );
+
+    // 2. Fetch the Balance Sheet exactly 1 day before the period started
+    final beginningDate = startDate.subtract(const Duration(days: 1));
+    final beginningBalanceSheet = await getBalanceSheet(date: beginningDate);
+
+    // 3. Fetch the Balance Sheet at the end of the period
+    final endingBalanceSheet = await getBalanceSheet(date: endDate);
+
+    // 4. Pass them all to our smart model!
+    return CashFlowStatement(
+      businessName: incomeStatement.businessName,
+      startDate: startDate,
+      endDate: endDate,
+      incomeStatement: incomeStatement,
+      beginningBalanceSheet: beginningBalanceSheet,
+      endingBalanceSheet: endingBalanceSheet,
     );
   }
 }

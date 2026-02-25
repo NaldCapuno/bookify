@@ -7,9 +7,8 @@ class BalanceSheetCard extends StatelessWidget {
   final BalanceSheet data;
   const BalanceSheetCard({super.key, required this.data});
 
-  // Helper to format numbers like the image (no symbol, parentheses for negatives)
   String _formatAccounting(double amount) {
-    final formatter = NumberFormat('#,##0.##', 'en_US');
+    final formatter = NumberFormat('#,##0', 'en_US');
     if (amount < 0) {
       return "(${formatter.format(amount.abs())})";
     }
@@ -80,7 +79,8 @@ class BalanceSheetCard extends StatelessWidget {
           FinancialLineItem(
             label: "Total Assets:",
             amount: _formatAccounting(data.totalAssets),
-            isGrandTotal: true,
+            isTotal: true,
+            isBold: true,
           ),
         ],
       ],
@@ -123,41 +123,49 @@ class BalanceSheetCard extends StatelessWidget {
             FinancialLineItem(
               label: "Total Liabilities",
               amount: _formatAccounting(data.totalLiabilities),
-              isGrandTotal: true,
+              isTotal: true,
+              isBold: true,
             ),
           const SizedBox(height: 24),
+
           if (data.totalOwnerEquity != 0 || data.netIncome != 0) ...[
+            // 1. Centered Main Header
             const Text(
               "Owner's Equity",
               textAlign: TextAlign.center,
               style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
             ),
             const SizedBox(height: 16),
-            // Build equity items using the same indent formatting
-            ...data.equityItems.asMap().entries.map((entry) {
+
+            // 2. Left-Aligned Category Subheader (Added to match your image)
+            const Text("Owner's Equity", style: TextStyle(fontSize: 14)),
+
+            // 3. Indented Items
+            ...data.equityItems.map((item) {
               return Padding(
                 padding: const EdgeInsets.only(left: 24.0),
                 child: FinancialLineItem(
-                  label: entry.value.name,
-                  amount: _formatAccounting(entry.value.amount),
+                  label: item.name,
+                  amount: _formatAccounting(item.amount),
                 ),
               );
             }),
             Padding(
               padding: const EdgeInsets.only(left: 24.0),
               child: FinancialLineItem(
-                label:
-                    "Retained Earnings (Net Income)", // Explicitly tracking net income
+                label: "Retained Earnings (Net Income)",
                 amount: _formatAccounting(data.netIncome),
-                isLastInGroup: true,
               ),
             ),
+
+            // 4. Section Total
             FinancialLineItem(
               label: "Total Owner's Equity",
               amount: _formatAccounting(data.totalOwnerEquity),
-              isGrandTotal: true,
+              isTotal: true,
             ),
           ],
+
           const SizedBox(height: 20),
           FinancialLineItem(
             label: "Total Liabilities and Owner's Equity",
@@ -189,21 +197,12 @@ class BalanceSheetCard extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(title, style: const TextStyle(fontSize: 14)),
-        ...items.asMap().entries.map((entry) {
-          int idx = entry.key;
-          var item = entry.value;
-          bool isLast =
-              idx ==
-              items.length - 1; // Determines if this line gets an underline
-
+        ...items.map((item) {
           return Padding(
-            padding: const EdgeInsets.only(
-              left: 24.0,
-            ), // Creates the indentation
+            padding: const EdgeInsets.only(left: 24.0),
             child: FinancialLineItem(
               label: item.name,
               amount: _formatAccounting(item.amount),
-              isLastInGroup: isLast,
             ),
           );
         }),

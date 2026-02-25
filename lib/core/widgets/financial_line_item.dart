@@ -4,36 +4,38 @@ import 'package:flutter/material.dart';
 class FinancialLineItem extends StatelessWidget {
   final String label;
   final String amount;
-  final String?
-  innerAmount; // For showing the amount in parentheses if negative
-  final bool hasDoubleUnderline; // To trigger the double underline style
+  final String? innerAmount;
+
   final bool isTotal;
   final bool isGrandTotal;
-  final bool isLastInGroup; // Added to trigger the accounting subtotal line
+  final bool isLastInGroup;
+  final bool hasDoubleUnderline;
+  final bool hasInnerBottomBorder;
+  final bool isBold; // FIX: Brought this explicit control back!
 
   const FinancialLineItem({
     super.key,
     required this.label,
     required this.amount,
-    this.innerAmount, // Must be present
-    this.hasDoubleUnderline = false, // Must be present
+    this.innerAmount,
     this.isTotal = false,
     this.isGrandTotal = false,
     this.isLastInGroup = false,
+    this.hasDoubleUnderline = false,
+    this.hasInnerBottomBorder = false,
+    this.isBold = false, // Defaults to false
   });
 
   @override
   Widget build(BuildContext context) {
-    FontWeight fontWeight = FontWeight.normal;
-    double fontSize = 14;
+    // FIX: Removed the buggy '.contains("NET")' logic.
+    // Now it only bolds if it is a Grand Total, or if you explicitly pass isBold: true
+    bool weightIsBold = isGrandTotal || isBold;
+    FontWeight fontWeight = weightIsBold ? FontWeight.bold : FontWeight.normal;
+    double fontSize = 13;
     Color textColor = AppColors.primaryText;
 
-    if (isGrandTotal) {
-      fontWeight = FontWeight.bold;
-      fontSize = 15;
-    } else if (isTotal) {
-      fontWeight = FontWeight.normal;
-    }
+    bool drawDoubleLine = hasDoubleUnderline || isGrandTotal;
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4.0),
@@ -41,9 +43,10 @@ class FinancialLineItem extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
+          // LABEL
           Expanded(
             child: Padding(
-              padding: const EdgeInsets.only(right: 12.0),
+              padding: const EdgeInsets.only(right: 8.0),
               child: Text(
                 label,
                 style: TextStyle(
@@ -51,35 +54,73 @@ class FinancialLineItem extends StatelessWidget {
                   fontWeight: fontWeight,
                   color: textColor,
                 ),
-                maxLines: 2,
+                maxLines: 3,
                 overflow: TextOverflow.ellipsis,
               ),
             ),
           ),
-          // Wrap the amount in a Container to apply the specific accounting borders
+
+          // --- INNER COLUMN ---
+          if (innerAmount != null)
+            Container(
+              width: 80,
+              decoration: BoxDecoration(
+                border: Border(
+                  bottom: (hasInnerBottomBorder || isLastInGroup)
+                      ? BorderSide(color: textColor, width: 1.0)
+                      : BorderSide.none,
+                ),
+              ),
+              padding: const EdgeInsets.only(bottom: 2.0, top: 2.0),
+              child: Text(
+                innerAmount!,
+                style: TextStyle(
+                  fontSize: fontSize,
+                  fontWeight: fontWeight,
+                  color: textColor,
+                  fontFeatures: const [FontFeature.tabularFigures()],
+                ),
+                textAlign: TextAlign.right,
+              ),
+            ),
+
+          if (innerAmount != null) const SizedBox(width: 8),
+
+          // --- OUTER COLUMN ---
           Container(
+            width: 90,
             decoration: BoxDecoration(
               border: Border(
-                // Single line below the last item in a sub-category
-                bottom: isLastInGroup
+                top: (isTotal || isGrandTotal)
                     ? BorderSide(color: textColor, width: 1.0)
                     : BorderSide.none,
-                // Single line above the grand total
-                top: isGrandTotal
+                bottom: (isLastInGroup && innerAmount == null) || drawDoubleLine
                     ? BorderSide(color: textColor, width: 1.0)
                     : BorderSide.none,
               ),
             ),
-            padding: const EdgeInsets.only(bottom: 2.0, top: 2.0),
-            child: Text(
-              amount,
-              style: TextStyle(
-                fontSize: fontSize,
-                fontWeight: fontWeight,
-                color: textColor,
-                fontFeatures: const [FontFeature.tabularFigures()],
+            padding: EdgeInsets.only(
+              bottom: drawDoubleLine ? 2.0 : 0.0,
+              top: 2.0,
+            ),
+            child: Container(
+              decoration: BoxDecoration(
+                border: Border(
+                  bottom: drawDoubleLine
+                      ? BorderSide(color: textColor, width: 1.0)
+                      : BorderSide.none,
+                ),
               ),
-              textAlign: TextAlign.right,
+              child: Text(
+                amount,
+                style: TextStyle(
+                  fontSize: fontSize,
+                  fontWeight: fontWeight,
+                  color: textColor,
+                  fontFeatures: const [FontFeature.tabularFigures()],
+                ),
+                textAlign: TextAlign.right,
+              ),
             ),
           ),
         ],
