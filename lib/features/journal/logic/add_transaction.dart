@@ -1,6 +1,7 @@
 import 'package:bookkeeping/core/database/app_database.dart';
 import 'package:bookkeeping/core/database/daos/journal_entry_daos.dart';
 import 'package:bookkeeping/core/database/tables/account_categories_table.dart';
+import 'package:bookkeeping/core/widgets/app_toast.dart';
 import 'package:flutter/material.dart';
 import 'package:drift/drift.dart' as drift;
 import 'package:intl/intl.dart';
@@ -353,13 +354,10 @@ class _AddJournalEntryFormState extends State<AddJournalEntryForm> {
 
   Future<void> _saveEntry() async {
     if (_descController.text.trim().isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'Please enter a description.',
-            style: TextStyle(color: Colors.white),
-          ),
-        ),
+      AppToast.show(
+        context,
+        message: 'Description is required.',
+        isError: true,
       );
       return;
     }
@@ -372,32 +370,30 @@ class _AddJournalEntryFormState extends State<AddJournalEntryForm> {
         .toList();
 
     if (validLines.length < 2) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('A journal entry must contain at least two accounts.'),
-          backgroundColor: Colors.red,
-        ),
+      AppToast.show(
+        context,
+        message: 'A journal entry must contain at least two accounts.',
+        isError: true,
       );
       return;
     }
 
     if (validLines.length < 2) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('A journal entry must contain at least two accounts.'),
-          backgroundColor: Colors.red,
-        ),
+      AppToast.show(
+        context,
+        message: 'A journal entry must contain at least two accounts.',
+        isError: true,
       );
       return;
     }
 
     final selectedIds = validLines.map((l) => l.accountId).toList();
     if (selectedIds.length != selectedIds.toSet().length) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('An account cannot be used more than once.'),
-          backgroundColor: Colors.red,
-        ),
+      AppToast.show(
+        context,
+        message:
+            'Duplicate accounts detected. Please ensure each line has a unique account.',
+        isError: true,
       );
       return;
     }
@@ -421,11 +417,10 @@ class _AddJournalEntryFormState extends State<AddJournalEntryForm> {
       );
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Journal entry saved safely!'),
-            backgroundColor: Colors.green,
-          ),
+        AppToast.show(
+          context,
+          message: 'Journal entry saved successfully!',
+          icon: Icons.check_circle_outline,
         );
 
         Navigator.pop(context, true);
@@ -433,11 +428,10 @@ class _AddJournalEntryFormState extends State<AddJournalEntryForm> {
     } catch (e) {
       debugPrint("Database Error: $e");
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Failed to save entry: $e'),
-            backgroundColor: Colors.red,
-          ),
+        AppToast.show(
+          context,
+          message: 'Failed to save journal entry. Please try again.',
+          isError: true,
         );
       }
     }
@@ -495,8 +489,8 @@ class _AddJournalEntryFormState extends State<AddJournalEntryForm> {
               hint: "Select Date",
               icon: Icons.calendar_today,
               controller: _dateController,
-              readOnly: true, 
-              onTap: _pickDate, 
+              readOnly: true,
+              onTap: _pickDate,
             ),
             const SizedBox(height: 16),
 

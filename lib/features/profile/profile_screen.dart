@@ -4,6 +4,7 @@ import 'package:bookkeeping/core/widgets/appbar.dart';
 import 'package:bookkeeping/core/database/app_database.dart';
 import 'package:bookkeeping/core/database/daos/users_dao.dart';
 import 'package:bookkeeping/core/database/tables/user_table.dart';
+import 'package:bookkeeping/core/widgets/app_toast.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -98,10 +99,27 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Future<void> _saveChanges() async {
     if (_userId == null) return;
 
+    // 1. Pre-submission Validation
+    final String username = _usernameController.text.trim();
+    final String email = _emailController.text.trim();
+
+    if (username.isEmpty || email.isEmpty) {
+      if (mounted) {
+        AppToast.show(
+          context,
+          message:
+              'Failed to update profile. Username and Email cannot be empty.',
+          isError: true,
+        );
+      }
+      return; // Stop here and don't call the service
+    }
+
+    // 2. Proceed with update if validation passes
     final success = await _userService.saveProfileUpdates(
       id: _userId!,
-      username: _usernameController.text,
-      email: _emailController.text,
+      username: username,
+      email: email,
       businessName: _businessNameController.text,
       businessType: _selectedBusinessType,
       businessAddress: _businessAddressController.text,
@@ -111,19 +129,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
     if (mounted) {
       if (success) {
         setState(() {
-          _headerUsername = _usernameController.text;
-          _headerEmail = _emailController.text;
+          _headerUsername = username;
+          _headerEmail = email;
         });
       }
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            success
-                ? 'Profile updated successfully!'
-                : 'Failed to update profile.',
-          ),
-        ),
+      AppToast.show(
+        context,
+        message: success
+            ? 'Profile updated successfully!'
+            : 'Failed to update profile.',
+        isError: !success,
       );
     }
   }

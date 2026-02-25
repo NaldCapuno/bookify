@@ -6,7 +6,7 @@ import 'package:bookkeeping/core/widgets/app_fab.dart';
 import 'package:bookkeeping/core/widgets/app_confirmation_sheet.dart';
 import 'package:bookkeeping/features/accounts/account_details_sheet.dart';
 import 'package:bookkeeping/core/database/tables/account_categories_table.dart';
-import 'package:bookkeeping/core/widgets/appt_toast.dart';
+import 'package:bookkeeping/core/widgets/app_toast.dart';
 import 'add_account_form.dart';
 
 class AccountsScreen extends StatelessWidget {

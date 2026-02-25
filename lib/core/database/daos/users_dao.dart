@@ -1,6 +1,6 @@
 import 'package:bookkeeping/core/database/tables/user_table.dart';
 import 'package:drift/drift.dart';
-import 'package:bookkeeping/core/database/app_database.dart'; 
+import 'package:bookkeeping/core/database/app_database.dart';
 
 part 'users_dao.g.dart';
 

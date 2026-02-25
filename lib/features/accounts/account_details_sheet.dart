@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:bookkeeping/core/database/app_database.dart';
 import 'package:bookkeeping/core/database/tables/account_categories_table.dart';
 import 'package:bookkeeping/core/widgets/app_confirmation_sheet.dart';
-import 'package:bookkeeping/core/widgets/appt_toast.dart';
+import 'package:bookkeeping/core/widgets/app_toast.dart';
 
 class AccountDetailsSheet extends StatelessWidget {
   final Account account;
