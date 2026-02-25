@@ -1,220 +1,125 @@
 import 'package:flutter/material.dart';
+
 import '../../core/database/app_database.dart';
 import '../../core/database/daos/ledger_dao.dart';
-import 'widgets/ledger_entry_card.dart';
+import 'category_detail_screen.dart';
 
-class LedgerScreen extends StatefulWidget {
+class LedgerScreen extends StatelessWidget {
   const LedgerScreen({super.key});
 
-  @override
-  State<LedgerScreen> createState() => _LedgerScreenState();
-}
+  static int _countForCategory(List<LedgerEntry> entries, int categoryId) {
+    return entries
+        .where(
+          (e) =>
+              e.category.parent == categoryId || e.category.id == categoryId,
+        )
+        .length;
+  }
 
-class _LedgerScreenState extends State<LedgerScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF2F4F7),
       body: SafeArea(
         child: StreamBuilder<List<LedgerEntry>>(
-        stream: appDb.ledgerDao.watchLedgerEntries(),
-        builder: (context, snapshot) {
-          if (snapshot.hasError) {
-            return Center(child: Text("Error: ${snapshot.error}"));
-          }
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          }
+          stream: appDb.ledgerDao.watchLedgerEntries(),
+          builder: (context, snapshot) {
+            final entries = snapshot.data ?? [];
+            final counts = [
+              _countForCategory(entries, 1),
+              _countForCategory(entries, 2),
+              _countForCategory(entries, 3),
+              _countForCategory(entries, 4),
+              _countForCategory(entries, 5),
+            ];
 
-          final entries = snapshot.data ?? [];
-          final Set<int> displayedIds = {};
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const Center(
+                child: CircularProgressIndicator(color: Colors.black),
+              );
+            }
 
-          return ListView(
-            padding: const EdgeInsets.all(16.0),
-            children: [
-              _buildSection(
-                context,
-                entries,
-                1,
-                'Assets',
-                const Color(0xFF10893E),
-                displayedIds,
-              ),
-              _buildSection(
-                context,
-                entries,
-                2,
-                'Liabilities',
-                const Color(0xFFD31111),
-                displayedIds,
-              ),
-              _buildSection(
-                context,
-                entries,
-                3,
-                "Owner's Equity",
-                const Color(0xFF1565C0),
-                displayedIds,
-              ),
-              _buildSection(
-                context,
-                entries,
-                4,
-                'Revenue',
-                const Color(0xFF00897B),
-                displayedIds,
-              ),
-              _buildSection(
-                context,
-                entries,
-                5,
-                'Expenses',
-                const Color(0xFFE65100),
-                displayedIds,
-              ),
-              _buildMiscSection(context, entries, displayedIds),
-            ],
-          );
-        },
+            return ListView(
+              padding: const EdgeInsets.all(16.0),
+              children: [
+                _buildCategoryTile(context, 1, 'Assets', counts[0]),
+                _buildCategoryTile(context, 2, 'Liabilities', counts[1]),
+                _buildCategoryTile(
+                  context,
+                  3,
+                  "Owner's Equity",
+                  counts[2],
+                ),
+                _buildCategoryTile(context, 4, 'Revenue', counts[3]),
+                _buildCategoryTile(context, 5, 'Expenses', counts[4]),
+              ],
+            );
+          },
         ),
       ),
     );
   }
 
-  /// Only include accounts that have at least one transaction or non-zero balance.
-  bool _hasActivity(LedgerEntry e) =>
-      e.transactionCount > 0 || e.balance != 0.0;
-
-  Widget _buildSection(
+  Widget _buildCategoryTile(
     BuildContext context,
-    List<LedgerEntry> allEntries,
-    int rootId,
+    int id,
     String title,
-    Color color,
-    Set<int> displayedIds,
+    int accountCount,
   ) {
-    final allInCategory = allEntries
-        .where(
-          (e) =>
-              (e.category.parent == rootId || e.category.id == rootId) &&
-              !displayedIds.contains(e.account.id),
-        )
-        .toList();
-    final sectionItems =
-        allInCategory.where((e) => _hasActivity(e)).toList();
-
-    for (final item in allInCategory) {
-      displayedIds.add(item.account.id);
-    }
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        _buildHeader(title, allInCategory.length, color),
-        if (sectionItems.isEmpty)
-          const Padding(
-            padding: EdgeInsets.only(left: 16, bottom: 20),
-            child: Text(
-              "No accounts in this category",
-              style: TextStyle(
-                color: Colors.grey,
-                fontSize: 12,
-                fontStyle: FontStyle.italic,
-              ),
-            ),
-          )
-        else
-          ...sectionItems.map(
-            (item) => LedgerEntryCard(
-              accountDbId: item.account.id,
-              icon: _getIconForAccount(item.account.code),
-              code: item.account.code.toString(),
-              name: item.account.name,
-              transactions: item.transactionCount,
-              balance: item.balance.toStringAsFixed(2),
+    return GestureDetector(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => CategoryDetailScreen(
+              categoryId: id,
+              categoryName: title,
             ),
           ),
-        const SizedBox(height: 12),
-      ],
-    );
-  }
-
-  Widget _buildMiscSection(
-    BuildContext context,
-    List<LedgerEntry> allEntries,
-    Set<int> displayedIds,
-  ) {
-    final allMisc = allEntries
-        .where((e) => !displayedIds.contains(e.account.id))
-        .toList();
-    final miscItems = allMisc.where((e) => _hasActivity(e)).toList();
-    if (allMisc.isEmpty) return const SizedBox.shrink();
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        _buildHeader("Uncategorized", allMisc.length, Colors.blueGrey),
-        if (miscItems.isEmpty)
-          const Padding(
-            padding: EdgeInsets.only(left: 16, bottom: 20),
-            child: Text(
-              "No accounts in this category",
-              style: TextStyle(
-                color: Colors.grey,
-                fontSize: 12,
-                fontStyle: FontStyle.italic,
-              ),
-            ),
-          )
-        else
-        ...miscItems.map(
-          (item) => LedgerEntryCard(
-            accountDbId: item.account.id,
-            icon: Icons.help_outline,
-            code: item.account.code.toString(),
-            name: item.account.name,
-            transactions: item.transactionCount,
-            balance: item.balance.toStringAsFixed(2),
-          ),
+        );
+      },
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(24),
+        margin: const EdgeInsets.only(bottom: 16),
+        decoration: BoxDecoration(
+          color: Colors.black,
+          borderRadius: BorderRadius.circular(16),
         ),
-        const SizedBox(height: 24),
-      ],
-    );
-  }
-
-  Widget _buildHeader(String title, int count, Color color) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(16),
-      margin: const EdgeInsets.only(bottom: 12),
-      decoration: BoxDecoration(
-        color: color,
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            title,
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              title.toUpperCase(),
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                letterSpacing: 1.2,
+              ),
             ),
-          ),
-          Text(
-            '$count accounts',
-            style: const TextStyle(color: Colors.white70, fontSize: 12),
-          ),
-        ],
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  '$accountCount',
+                  style: const TextStyle(
+                    color: Colors.white70,
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                const Icon(
+                  Icons.arrow_forward_ios,
+                  color: Colors.white,
+                  size: 16,
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
     );
-  }
-
-  IconData _getIconForAccount(int code) {
-    if (code < 200) return Icons.account_balance_wallet_outlined;
-    if (code < 300) return Icons.credit_card_outlined;
-    if (code < 400) return Icons.person_outline;
-    return Icons.receipt_long_outlined;
   }
 }
