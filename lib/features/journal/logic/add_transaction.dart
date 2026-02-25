@@ -352,7 +352,6 @@ class _AddJournalEntryFormState extends State<AddJournalEntryForm> {
   }
 
   Future<void> _saveEntry() async {
-    // 1. Validate the description is not empty (since your DB requires min 1 char)
     if (_descController.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -365,7 +364,6 @@ class _AddJournalEntryFormState extends State<AddJournalEntryForm> {
       return;
     }
 
-    // 2. Filter out empty/incomplete lines (e.g., user added a line but didn't fill it)
     final validLines = lines
         .where(
           (line) =>
@@ -373,13 +371,39 @@ class _AddJournalEntryFormState extends State<AddJournalEntryForm> {
         )
         .toList();
 
-    if (validLines.isEmpty) return;
+    if (validLines.length < 2) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('A journal entry must contain at least two accounts.'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
 
-    // 3. Map your UI 'JournalLine' into Drift's 'TransactionsCompanion'
+    if (validLines.length < 2) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('A journal entry must contain at least two accounts.'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    final selectedIds = validLines.map((l) => l.accountId).toList();
+    if (selectedIds.length != selectedIds.toSet().length) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('An account cannot be used more than once.'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
     final companionLines = validLines.map((line) {
-      // REMOVED .insert to avoid the required journalId error
       return TransactionsCompanion(
-        // Everything must now be explicitly wrapped in drift.Value()
         accountId: drift.Value(line.accountId!),
         debit: drift.Value(line.debit),
         credit: drift.Value(line.credit),
@@ -387,7 +411,6 @@ class _AddJournalEntryFormState extends State<AddJournalEntryForm> {
     }).toList();
 
     try {
-      // 4. Call the DAO method using your global appDb instance
       await appDb.journalEntryDao.insertFullJournalEntry(
         date: _selectedDate,
         description: _descController.text.trim(),
@@ -397,7 +420,6 @@ class _AddJournalEntryFormState extends State<AddJournalEntryForm> {
         lines: companionLines,
       );
 
-      // 5. Provide feedback and close the form
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -406,7 +428,6 @@ class _AddJournalEntryFormState extends State<AddJournalEntryForm> {
           ),
         );
 
-        // Pass 'true' back to the parent screen so it knows to refresh the list
         Navigator.pop(context, true);
       }
     } catch (e) {
@@ -424,14 +445,22 @@ class _AddJournalEntryFormState extends State<AddJournalEntryForm> {
 
   @override
   Widget build(BuildContext context) {
-    // 1. Check if the math balances
-    bool isBalanced = (totalDebit - totalCredit).abs() < 0.01 && totalDebit > 0;
+    int validLinesCount = lines
+        .where((l) => l.accountId != null && (l.debit > 0 || l.credit > 0))
+        .length;
 
-    // 2. Check if the description is filled out
+    final selectedAccounts = lines
+        .where((l) => l.accountId != null)
+        .map((l) => l.accountId)
+        .toList();
+    bool hasDuplicates =
+        selectedAccounts.length != selectedAccounts.toSet().length;
+
+    bool isBalanced = (totalDebit - totalCredit).abs() < 0.01 && totalDebit > 0;
     bool hasDescription = _descController.text.trim().isNotEmpty;
 
-    // 3. The button is ONLY active if BOTH are true
-    bool canSave = isBalanced && hasDescription;
+    bool canSave =
+        isBalanced && hasDescription && validLinesCount >= 2 && !hasDuplicates;
 
     return Container(
       padding: EdgeInsets.only(
@@ -461,14 +490,13 @@ class _AddJournalEntryFormState extends State<AddJournalEntryForm> {
             ),
             const SizedBox(height: 24),
 
-            // UPDATED: Date field now uses the picker
             _buildModernField(
               label: "Date",
               hint: "Select Date",
               icon: Icons.calendar_today,
               controller: _dateController,
-              readOnly: true, // Prevents keyboard from popping up
-              onTap: _pickDate, // Opens the calendar
+              readOnly: true, 
+              onTap: _pickDate, 
             ),
             const SizedBox(height: 16),
 
@@ -525,7 +553,6 @@ class _AddJournalEntryFormState extends State<AddJournalEntryForm> {
     );
   }
 
-  // UPDATED: Added readOnly and onTap parameters
   Widget _buildModernField({
     required String label,
     required String hint,
@@ -688,13 +715,18 @@ class _AddJournalEntryFormState extends State<AddJournalEntryForm> {
               Expanded(
                 child: _buildAmountInput(
                   label: "Debit",
-                  // Pass the controller and focus node from your upgraded JournalLine
                   controller: lines[index].debitController,
                   focusNode: lines[index].debitFocus,
                   onChanged: (val) {
-                    // Strip out commas before parsing so live math doesn't break
                     String cleanVal = val.replaceAll(',', '');
-                    lines[index].debit = double.tryParse(cleanVal) ?? 0;
+                    double parsed = double.tryParse(cleanVal) ?? 0;
+                    lines[index].debit = parsed;
+
+                    // RULE 1: Mutual Exclusivity. If Debit has a value, clear Credit.
+                    if (parsed > 0) {
+                      lines[index].credit = 0;
+                      lines[index].creditController.clear();
+                    }
                     _calculateTotals();
                   },
                 ),
@@ -703,13 +735,18 @@ class _AddJournalEntryFormState extends State<AddJournalEntryForm> {
               Expanded(
                 child: _buildAmountInput(
                   label: "Credit",
-                  // Pass the controller and focus node from your upgraded JournalLine
                   controller: lines[index].creditController,
                   focusNode: lines[index].creditFocus,
                   onChanged: (val) {
-                    // Strip out commas before parsing so live math doesn't break
                     String cleanVal = val.replaceAll(',', '');
-                    lines[index].credit = double.tryParse(cleanVal) ?? 0;
+                    double parsed = double.tryParse(cleanVal) ?? 0;
+                    lines[index].credit = parsed;
+
+                    // RULE 1: Mutual Exclusivity. If Credit has a value, clear Debit.
+                    if (parsed > 0) {
+                      lines[index].debit = 0;
+                      lines[index].debitController.clear();
+                    }
                     _calculateTotals();
                   },
                 ),
@@ -769,22 +806,35 @@ class _AddJournalEntryFormState extends State<AddJournalEntryForm> {
   Widget _buildTableFooter() {
     bool isBalanced = (totalDebit - totalCredit).abs() < 0.01 && totalDebit > 0;
     double difference = (totalDebit - totalCredit).abs();
-
-    // Check if the user has entered any numbers yet
     bool hasAmounts = totalDebit > 0 || totalCredit > 0;
+
+    // Check for duplicates here as well for the UI warning
+    final selectedAccounts = lines
+        .where((l) => l.accountId != null)
+        .map((l) => l.accountId)
+        .toList();
+    bool hasDuplicates =
+        selectedAccounts.length != selectedAccounts.toSet().length;
+
+    // Determine box color (Red if out of balance OR if duplicates are found)
+    Color boxColor = !hasAmounts && !hasDuplicates
+        ? Colors.grey.shade50
+        : (hasDuplicates || !isBalanced
+              ? Colors.red.shade50
+              : Colors.green.shade50);
+
+    Color borderColor = !hasAmounts && !hasDuplicates
+        ? Colors.grey.shade200
+        : (hasDuplicates || !isBalanced
+              ? Colors.red.shade200
+              : Colors.green.shade200);
 
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: !hasAmounts
-            ? Colors.grey.shade50
-            : (isBalanced ? Colors.green.shade50 : Colors.red.shade50),
+        color: boxColor,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: !hasAmounts
-              ? Colors.grey.shade200
-              : (isBalanced ? Colors.green.shade200 : Colors.red.shade200),
-        ),
+        border: Border.all(color: borderColor),
       ),
       child: Column(
         children: [
@@ -828,35 +878,57 @@ class _AddJournalEntryFormState extends State<AddJournalEntryForm> {
             ],
           ),
 
-          // Only show the Status and Difference if there are actual amounts typed in
-          if (hasAmounts) ...[
+          // Show the Status, Difference, or Duplicate Warning
+          if (hasAmounts || hasDuplicates) ...[
             const Padding(
               padding: EdgeInsets.symmetric(vertical: 12),
               child: Divider(height: 1),
             ),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  isBalanced ? "Balanced" : "Out of Balance",
-                  style: TextStyle(
-                    color: isBalanced
-                        ? Colors.green.shade700
-                        : Colors.red.shade700,
-                    fontWeight: FontWeight.bold,
+
+            // If duplicates exist, prioritize showing the Duplicate Error
+            if (hasDuplicates)
+              Row(
+                children: [
+                  Icon(
+                    Icons.warning_amber_rounded,
+                    size: 16,
+                    color: Colors.red.shade700,
                   ),
-                ),
-                if (!isBalanced)
+                  const SizedBox(width: 6),
                   Text(
-                    "Difference: ₱ ${difference.toStringAsFixed(2)}",
+                    "Duplicate accounts detected",
                     style: TextStyle(
                       color: Colors.red.shade700,
-                      fontSize: 13,
-                      fontWeight: FontWeight.w500,
+                      fontWeight: FontWeight.bold,
                     ),
                   ),
-              ],
-            ),
+                ],
+              )
+            // Otherwise, show the normal balance status
+            else
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    isBalanced ? "Balanced" : "Out of Balance",
+                    style: TextStyle(
+                      color: isBalanced
+                          ? Colors.green.shade700
+                          : Colors.red.shade700,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  if (!isBalanced)
+                    Text(
+                      "Difference: ₱ ${NumberFormat('#,##0.00').format(difference)}",
+                      style: TextStyle(
+                        color: Colors.red.shade700,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                ],
+              ),
           ],
         ],
       ),

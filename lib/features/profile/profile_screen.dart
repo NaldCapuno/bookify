@@ -12,7 +12,6 @@ class ProfileScreen extends StatefulWidget {
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
-  late final AppDatabase _db;
   late final UserService _userService;
 
   // Added controllers for username and email
@@ -34,8 +33,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   @override
   void initState() {
     super.initState();
-    _db = AppDatabase();
-    _userService = UserService(UsersDao(_db));
+    _userService = UserService(UsersDao(appDb));
     _loadUserData();
   }
 
@@ -117,7 +115,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     _businessNameController.dispose();
     _businessAddressController.dispose();
     _contactNumberController.dispose();
-    _db.close();
     super.dispose();
   }
 

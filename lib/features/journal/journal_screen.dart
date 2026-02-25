@@ -1,12 +1,27 @@
 import 'package:bookkeeping/core/database/app_database.dart';
 import 'package:bookkeeping/core/database/daos/journal_entry_daos.dart';
-import 'package:bookkeeping/features/journal/add_transaction.dart';
+import 'package:bookkeeping/core/widgets/app_fab.dart';
+import 'package:bookkeeping/features/journal/logic/add_transaction.dart';
 import 'package:intl/intl.dart';
 import 'package:flutter/material.dart';
 
-class JournalScreen extends StatelessWidget {
+class JournalScreen extends StatefulWidget {
   const JournalScreen({super.key});
 
+  @override
+  State<JournalScreen> createState() => _JournalScreenState();
+}
+
+class _JournalScreenState extends State<JournalScreen> {
+  // 2. State variable to track the selected filter
+  String _selectedFilter = 'All';
+  final List<String> _filters = [
+    'All',
+    'Weekly',
+    'Monthly',
+    'Quarterly',
+    'Yearly',
+  ];
   void _openAddTransaction(BuildContext context) {
     showModalBottomSheet(
       context: context,
@@ -16,97 +31,160 @@ class JournalScreen extends StatelessWidget {
     );
   }
 
+  List<JournalSummary> _filterSummaries(List<JournalSummary> summaries) {
+    if (_selectedFilter == 'All') return summaries;
+
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+
+    return summaries.where((summary) {
+      final date = summary.journal.date;
+      final summaryDate = DateTime(date.year, date.month, date.day);
+
+      if (_selectedFilter == 'Yearly') {
+        return summaryDate.year == today.year;
+      } else if (_selectedFilter == 'Quarterly') {
+        final currentQuarter = (today.month - 1) ~/ 3 + 1;
+        final summaryQuarter = (summaryDate.month - 1) ~/ 3 + 1;
+        return summaryDate.year == today.year &&
+            summaryQuarter == currentQuarter;
+      } else if (_selectedFilter == 'Monthly') {
+        return summaryDate.year == today.year &&
+            summaryDate.month == today.month;
+      } else if (_selectedFilter == 'Weekly') {
+        final diff = today.difference(summaryDate).inDays;
+        return diff >= 0 && diff <= 7;
+      }
+      return true;
+    }).toList();
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Column(
-      children: [
-        // 1. The New Entry Button fixed at the top
-        Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: _buildNewEntryButton(context),
-        ),
+    return Scaffold(
+      backgroundColor: Colors.transparent,
+      body: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildFilterChips(),
 
-        // 2. The Dynamic List of Entries
-        Expanded(
-          // 1. Change the type to List<JournalSummary>
-          child: StreamBuilder<List<JournalSummary>>(
-            // 2. Listen to our new powerful joined query
-            stream: appDb.journalEntryDao.watchJournalSummaries(),
-            builder: (context, snapshot) {
-              if (snapshot.connectionState == ConnectionState.waiting) {
-                return const Center(child: CircularProgressIndicator());
-              }
+          Expanded(
+            child: StreamBuilder<List<JournalSummary>>(
+              stream: appDb.journalEntryDao.watchJournalSummaries(),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator());
+                }
 
-              if (snapshot.hasError) {
-                return Center(child: Text('Error: ${snapshot.error}'));
-              }
+                if (snapshot.hasError) {
+                  return Center(child: Text('Error: ${snapshot.error}'));
+                }
 
-              final summaryList = snapshot.data ?? [];
+                final rawList = snapshot.data ?? [];
+                final filteredList = _filterSummaries(rawList);
 
-              if (summaryList.isEmpty) {
-                return const Center(
-                  child: Text(
-                    'No journal entries yet. Tap above to create one!',
-                    style: TextStyle(color: Colors.grey),
-                  ),
-                );
-              }
-
-              return ListView.builder(
-                padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                itemCount: summaryList.length,
-                itemBuilder: (context, index) {
-                  // 'summary' now holds the Journal AND the computed totals
-                  final summary = summaryList[index];
-
-                  final dateString = DateFormat(
-                    'MMM dd, yyyy',
-                  ).format(summary.journal.date);
-
-                  // Format the amount with commas (e.g., 80000.0 becomes "80,000.00")
-                  final formattedAmount = NumberFormat(
-                    '#,##0.00',
-                  ).format(summary.totalAmount);
-
-                  return Padding(
-                    padding: const EdgeInsets.only(bottom: 16.0),
-                    child: JournalEntryCard(
-                      id: summary.journal.id.toString(),
-                      date: dateString,
-                      title: summary.journal.description,
-
-                      // 3. Inject the live calculated data directly into your card!
-                      accounts: summary.accountCount,
-                      amount: formattedAmount,
-                      isInitiallyVoided: summary.journal.isVoid,
+                if (filteredList.isEmpty) {
+                  return Center(
+                    child: Text(
+                      _selectedFilter == 'All'
+                          ? 'No journal entries yet.'
+                          : 'No entries for this $_selectedFilter period.',
+                      style: const TextStyle(color: Colors.grey),
                     ),
                   );
-                },
-              );
-            },
+                }
+
+                return ListView.builder(
+                  padding: const EdgeInsets.only(
+                    left: 16.0,
+                    right: 16.0,
+                    top: 15.0,
+                    bottom: 80.0,
+                  ),
+                  itemCount: filteredList.length,
+                  itemBuilder: (context, index) {
+                    final summary = filteredList[index];
+
+                    final dateString = DateFormat(
+                      'MMM dd, yyyy',
+                    ).format(summary.journal.date);
+                    final formattedAmount = NumberFormat(
+                      '#,##0.00',
+                    ).format(summary.totalAmount);
+
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 10.0),
+                      child: JournalEntryCard(
+                        key: ValueKey(summary.journal.id),
+                        id: summary.journal.id.toString(),
+                        date: dateString,
+                        title: summary.journal.description,
+                        accounts: summary.accountCount,
+                        amount: formattedAmount,
+                        isInitiallyVoided: summary.journal.isVoid,
+                        details: summary.details,
+                      ),
+                    );
+                  },
+                );
+              },
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
+      floatingActionButton: AppFloatingActionButton(
+        label: 'New Entry',
+        icon: Icons.add,
+        onPressed: () => _openAddTransaction(context),
+      ),
     );
   }
 
-  Widget _buildNewEntryButton(BuildContext context) {
-    return SizedBox(
-      width: double.infinity,
-      height: 55,
-      child: ElevatedButton.icon(
-        onPressed: () => _openAddTransaction(context),
-        icon: const Icon(Icons.add, color: Colors.white, size: 20),
-        label: const Text(
-          'New Journal Entry',
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-        ),
-        style: ElevatedButton.styleFrom(
-          backgroundColor: Colors.black,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-        ),
+  Widget _buildFilterChips() {
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      // 1. Better overall padding for the entire row of chips
+      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+      child: Row(
+        children: _filters.map((filter) {
+          final isSelected = filter == _selectedFilter;
+
+          return Padding(
+            // 2. Slightly wider gap between each individual chip
+            padding: const EdgeInsets.only(right: 10.0),
+            child: ChoiceChip(
+              label: Text(filter),
+              selected: isSelected,
+              onSelected: (selected) {
+                if (selected) {
+                  setState(() => _selectedFilter = filter);
+                }
+              },
+              selectedColor: const Color(0xFF1A1C1E),
+              backgroundColor: Colors.white,
+              labelStyle: TextStyle(
+                color: isSelected ? Colors.white : Colors.grey.shade700,
+                fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                fontSize: 13,
+              ),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
+                side: BorderSide(
+                  color: isSelected
+                      ? const Color(0xFF1A1C1E)
+                      : Colors.grey.shade300,
+                ),
+              ),
+              showCheckmark: false,
+              elevation: 0,
+              // 3. Internal padding makes the chips taller and more "pill-shaped"
+              padding: const EdgeInsets.symmetric(
+                horizontal: 12.0,
+                vertical: 8.0,
+              ),
+            ),
+          );
+        }).toList(),
       ),
     );
   }
@@ -120,6 +198,7 @@ class JournalEntryCard extends StatefulWidget {
   final String amount;
   final bool isInitiallyExpanded;
   final bool isInitiallyVoided;
+  final List<TransactionWithAccount> details; // Receives nested DB details
 
   const JournalEntryCard({
     super.key,
@@ -128,6 +207,7 @@ class JournalEntryCard extends StatefulWidget {
     required this.title,
     required this.accounts,
     required this.amount,
+    required this.details, // Required now
     this.isInitiallyExpanded = false,
     this.isInitiallyVoided = false,
   });
@@ -144,25 +224,9 @@ class _JournalEntryCardState extends State<JournalEntryCard> {
   void initState() {
     super.initState();
     _isExpanded = widget.isInitiallyExpanded;
-    _isVoided = widget.isInitiallyVoided;
+    _isVoided = widget.isInitiallyVoided; // Initialize with real DB state
   }
 
-  @override
-  void didUpdateWidget(JournalEntryCard oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (oldWidget.isInitiallyVoided != widget.isInitiallyVoided) {
-      _isVoided = widget.isInitiallyVoided;
-    }
-  }
-
-  Future<void> _persistVoid() async {
-    final journalId = int.tryParse(widget.id);
-    if (journalId == null) return;
-    await appDb.journalEntryDao.voidJournalEntry(journalId);
-    if (mounted) setState(() => _isVoided = true);
-  }
-
-  // Changed to return a Future<bool> so Dismissible knows what the user chose
   Future<bool> _showVoidConfirmation(BuildContext context) async {
     if (_isVoided) return false;
 
@@ -203,7 +267,6 @@ class _JournalEntryCardState extends State<JournalEntryCard> {
                 children: [
                   Expanded(
                     child: TextButton(
-                      // Return false if canceled
                       onPressed: () => Navigator.pop(context, false),
                       child: const Text(
                         'Cancel',
@@ -214,7 +277,6 @@ class _JournalEntryCardState extends State<JournalEntryCard> {
                   const SizedBox(width: 12),
                   Expanded(
                     child: ElevatedButton(
-                      // Return true if confirmed
                       onPressed: () => Navigator.pop(context, true),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.red.shade700,
@@ -237,8 +299,7 @@ class _JournalEntryCardState extends State<JournalEntryCard> {
       },
     );
 
-    return result ??
-        false; // If user taps outside the bottom sheet, return false
+    return result ?? false;
   }
 
   @override
@@ -247,16 +308,13 @@ class _JournalEntryCardState extends State<JournalEntryCard> {
       children: [
         Container(
           margin: const EdgeInsets.only(bottom: 12),
-          // We wrap the Material inside a Dismissible for the slide effect
           child: ClipRRect(
             borderRadius: BorderRadius.circular(16),
             child: Dismissible(
               key: ValueKey('journal_entry_${widget.id}'),
               direction: _isVoided
-                  ? DismissDirection
-                        .none // Disable swiping if already voided
-                  : DismissDirection.endToStart, // Swipe right to left
-              // What shows behind the card when swiping
+                  ? DismissDirection.none
+                  : DismissDirection.endToStart,
               background: Container(
                 color: Colors.red.shade50,
                 alignment: Alignment.centerRight,
@@ -277,17 +335,17 @@ class _JournalEntryCardState extends State<JournalEntryCard> {
                   ],
                 ),
               ),
-
-              // The logic when the swipe completes
               confirmDismiss: (direction) async {
                 bool shouldVoid = await _showVoidConfirmation(context);
                 if (shouldVoid) {
-                  await _persistVoid();
+                  // UPDATE DATABASE ON SWIPE
+                  await appDb.journalEntryDao.markJournalAsVoided(
+                    int.parse(widget.id),
+                  );
+                  setState(() => _isVoided = true);
                 }
-                // ALWAYS return false so the card snaps back into the list.
                 return false;
               },
-
               child: Material(
                 color: _isVoided ? Colors.grey.shade50 : Colors.white,
                 clipBehavior: Clip.antiAlias,
@@ -300,7 +358,6 @@ class _JournalEntryCardState extends State<JournalEntryCard> {
                   ),
                 ),
                 child: InkWell(
-                  // Removed onLongPress!
                   onTap: () => setState(() => _isExpanded = !_isExpanded),
                   splashColor: Colors.black.withValues(alpha: 0.05),
                   highlightColor: Colors.black.withValues(alpha: 0.05),
@@ -331,7 +388,6 @@ class _JournalEntryCardState extends State<JournalEntryCard> {
                                     ),
                                   ],
                                 ),
-                                // Smooth animated rotation for the arrow!
                                 AnimatedRotation(
                                   turns: _isExpanded ? 0.5 : 0.0,
                                   duration: const Duration(milliseconds: 300),
@@ -419,20 +475,35 @@ class _JournalEntryCardState extends State<JournalEntryCard> {
                                       opacity: _isVoided ? 0.6 : 1.0,
                                       child: Column(
                                         children: [
-                                          _buildAccountDetail(
-                                            name: 'Cash',
-                                            amount: widget.amount,
-                                            isDebit: true,
-                                          ),
-                                          const SizedBox(height: 12),
-                                          _buildAccountDetail(
-                                            name: "Owner's Capital",
-                                            amount: widget.amount,
-                                            isDebit: false,
+                                          // NO MORE FUTURE BUILDER! We just map the details list directly.
+                                          Column(
+                                            children: widget.details.map((
+                                              line,
+                                            ) {
+                                              bool isDebit =
+                                                  line.transactionLine.debit >
+                                                  0;
+                                              double amountValue = isDebit
+                                                  ? line.transactionLine.debit
+                                                  : line.transactionLine.credit;
+                                              final formattedAmount =
+                                                  NumberFormat(
+                                                    '#,##0.00',
+                                                  ).format(amountValue);
+
+                                              return Padding(
+                                                padding: const EdgeInsets.only(
+                                                  bottom: 12.0,
+                                                ),
+                                                child: _buildAccountDetail(
+                                                  name: line.account.name,
+                                                  amount: formattedAmount,
+                                                  isDebit: isDebit,
+                                                ),
+                                              );
+                                            }).toList(),
                                           ),
 
-                                          // Optional: You can also show a subtle Void button here
-                                          // so users have two ways to void (Swipe AND Tap)
                                           if (!_isVoided) ...[
                                             const SizedBox(height: 16),
                                             Align(
@@ -444,7 +515,14 @@ class _JournalEntryCardState extends State<JournalEntryCard> {
                                                         context,
                                                       );
                                                   if (shouldVoid) {
-                                                    await _persistVoid();
+                                                    // UPDATE DATABASE ON BUTTON TAP
+                                                    await appDb.journalEntryDao
+                                                        .markJournalAsVoided(
+                                                          int.parse(widget.id),
+                                                        );
+                                                    setState(
+                                                      () => _isVoided = true,
+                                                    );
                                                   }
                                                 },
                                                 icon: const Icon(
