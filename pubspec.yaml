@@ -23,6 +23,7 @@ dependencies:
   printing: ^5.11.1
   grouped_list: ^6.0.0
   sticky_headers: ^0.3.0+2
+  fl_chart: ^1.1.1
   tutorial_coach_mark: ^1.3.3
 
 dev_dependencies:
