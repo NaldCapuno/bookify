@@ -85,12 +85,15 @@ class JournalEntryDao extends DatabaseAccessor<AppDatabase>
   }
 
   Future<List<AccountWithCategory>> getAccountsWithCategories() async {
-    final query = select(accounts).join([
-      innerJoin(
-        accountCategories,
-        accountCategories.id.equalsExp(accounts.categoryId),
-      ),
-    ])..where(accounts.isActive.equals(true));
+    final query =
+        select(accounts).join([
+          innerJoin(
+            accountCategories,
+            accountCategories.id.equalsExp(accounts.categoryId),
+          ),
+        ])..where(
+          accounts.isActive.equals(true) & accounts.isArchived.equals(false),
+        );
 
     final rows = await query.get();
 
@@ -113,6 +116,7 @@ class JournalEntryDao extends DatabaseAccessor<AppDatabase>
     required List<TransactionsCompanion> lines,
   }) async {
     await transaction(() async {
+      // 1. Insert the main Journal record
       final journalId = await into(journals).insert(
         JournalsCompanion.insert(
           date: date,
@@ -121,11 +125,23 @@ class JournalEntryDao extends DatabaseAccessor<AppDatabase>
         ),
       );
 
+      // 2. Insert all the transaction lines
       for (var line in lines) {
         await into(
           transactions,
         ).insert(line.copyWith(journalId: Value(journalId)));
       }
+
+      // 3. Extract the unique account IDs involved in this transaction
+      final accountIds = lines
+          .map((line) => line.accountId.value)
+          .toSet()
+          .toList();
+
+      // 4. Lock the accounts (only if they aren't already locked)
+      await (update(accounts)
+            ..where((a) => a.id.isIn(accountIds) & a.isLocked.equals(false)))
+          .write(const AccountsCompanion(isLocked: Value(true)));
     });
   }
 
@@ -141,10 +157,9 @@ class JournalEntryDao extends DatabaseAccessor<AppDatabase>
     );
   }
 
-  /// Soft-delete: mark a journal entry as voided. Ledger and reports exclude voided entries.
   Future<void> voidJournalEntry(int journalId) async {
     await (update(journals)..where((j) => j.id.equals(journalId))).write(
-      JournalsCompanion(isVoid: Value(true)),
+      const JournalsCompanion(isVoid: Value(true)),
     );
   }
 }
