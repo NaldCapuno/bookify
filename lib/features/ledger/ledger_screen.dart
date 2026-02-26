@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-
 import '../../core/database/app_database.dart';
 import '../../core/database/daos/ledger_dao.dart';
+import '../../core/widgets/feature_card.dart'; // Import the reusable widget
 import 'category_detail_screen.dart';
 
 class LedgerScreen extends StatelessWidget {
@@ -10,8 +10,7 @@ class LedgerScreen extends StatelessWidget {
   static int _countForCategory(List<LedgerEntry> entries, int categoryId) {
     return entries
         .where(
-          (e) =>
-              e.category.parent == categoryId || e.category.id == categoryId,
+          (e) => e.category.parent == categoryId || e.category.id == categoryId,
         )
         .length;
   }
@@ -19,105 +18,77 @@ class LedgerScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF2F4F7),
+      backgroundColor: const Color(0xFFF8FAFC),
       body: SafeArea(
         child: StreamBuilder<List<LedgerEntry>>(
           stream: appDb.ledgerDao.watchLedgerEntries(),
           builder: (context, snapshot) {
-            final entries = snapshot.data ?? [];
-            final counts = [
-              _countForCategory(entries, 1),
-              _countForCategory(entries, 2),
-              _countForCategory(entries, 3),
-              _countForCategory(entries, 4),
-              _countForCategory(entries, 5),
-            ];
-
             if (snapshot.connectionState == ConnectionState.waiting) {
               return const Center(
-                child: CircularProgressIndicator(color: Colors.black),
+                child: CircularProgressIndicator(
+                  color: Colors.black,
+                  strokeWidth: 2,
+                ),
               );
             }
 
-            return ListView(
-              padding: const EdgeInsets.all(16.0),
-              children: [
-                _buildCategoryTile(context, 1, 'Assets', counts[0]),
-                _buildCategoryTile(context, 2, 'Liabilities', counts[1]),
-                _buildCategoryTile(
-                  context,
-                  3,
-                  "Owner's Equity",
-                  counts[2],
-                ),
-                _buildCategoryTile(context, 4, 'Revenue', counts[3]),
-                _buildCategoryTile(context, 5, 'Expenses', counts[4]),
-              ],
+            final entries = snapshot.data ?? [];
+
+            // Define your categories metadata
+            final categories = [
+              {
+                'id': 1,
+                'name': 'Assets',
+                'icon': Icons.account_balance_outlined,
+              },
+              {
+                'id': 2,
+                'name': 'Liabilities',
+                'icon': Icons.credit_card_outlined,
+              },
+              {
+                'id': 3,
+                'name': "Owner's Equity",
+                'icon': Icons.pie_chart_outline,
+              },
+              {'id': 4, 'name': 'Revenue', 'icon': Icons.trending_up_outlined},
+              {
+                'id': 5,
+                'name': 'Expenses',
+                'icon': Icons.trending_down_outlined,
+              },
+            ];
+
+            return ListView.builder(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+              itemCount: categories.length,
+              itemBuilder: (context, index) {
+                final cat = categories[index];
+                final id = cat['id'] as int;
+                final title = cat['name'] as String;
+                final count = _countForCategory(entries, id);
+
+                // Using the reusable FeatureCard instead of a local method
+                return FeatureCard(
+                  title: title,
+                  subtitle: '$count ${count == 1 ? 'account' : 'accounts'}',
+                  icon: cat['icon'] as IconData,
+                  isFullWidth: true, // This ensures the list-style layout
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => CategoryDetailScreen(
+                          categoryId: id,
+                          categoryName: title,
+                        ),
+                      ),
+                    );
+                  },
+                );
+              },
             );
           },
-        ),
-      ),
-    );
-  }
-
-  Widget _buildCategoryTile(
-    BuildContext context,
-    int id,
-    String title,
-    int accountCount,
-  ) {
-    return GestureDetector(
-      onTap: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => CategoryDetailScreen(
-              categoryId: id,
-              categoryName: title,
-            ),
-          ),
-        );
-      },
-      child: Container(
-        width: double.infinity,
-        padding: const EdgeInsets.all(24),
-        margin: const EdgeInsets.only(bottom: 16),
-        decoration: BoxDecoration(
-          color: Colors.black,
-          borderRadius: BorderRadius.circular(16),
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(
-              title.toUpperCase(),
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                letterSpacing: 1.2,
-              ),
-            ),
-            Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  '$accountCount',
-                  style: const TextStyle(
-                    color: Colors.white70,
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(width: 8),
-                const Icon(
-                  Icons.arrow_forward_ios,
-                  color: Colors.white,
-                  size: 16,
-                ),
-              ],
-            ),
-          ],
         ),
       ),
     );
