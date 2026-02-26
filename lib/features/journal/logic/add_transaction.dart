@@ -176,9 +176,25 @@ class _AddJournalEntryFormState extends State<AddJournalEntryForm> {
   }
 
   void _showAccountSearchSheet(int lineIndex) {
-    // Hold our filtered combined list
     List<AccountWithCategory> filteredAccounts = List.from(_availableAccounts);
     final TextEditingController searchController = TextEditingController();
+
+    // 1. Grab the currently selected account ID
+    final selectedAccountId = lines[lineIndex].accountId;
+
+    // 2. Create a GlobalKey to uniquely track the selected item's physical location
+    final GlobalKey selectedItemKey = GlobalKey();
+
+    // 3. Helper to group accounts manually (since we are replacing GroupedListView)
+    Map<String, List<AccountWithCategory>> _groupAccounts(
+      List<AccountWithCategory> accounts,
+    ) {
+      final Map<String, List<AccountWithCategory>> grouped = {};
+      for (var a in accounts) {
+        grouped.putIfAbsent(a.category.name, () => []).add(a);
+      }
+      return grouped;
+    }
 
     showModalBottomSheet(
       context: context,
@@ -190,6 +206,21 @@ class _AddJournalEntryFormState extends State<AddJournalEntryForm> {
       builder: (context) {
         return StatefulBuilder(
           builder: (BuildContext context, StateSetter setSheetState) {
+            // 4. INSTANT SNAP: The moment the UI builds, instantly jump to our GlobalKey!
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (selectedItemKey.currentContext != null) {
+                Scrollable.ensureVisible(
+                  selectedItemKey.currentContext!,
+                  duration:
+                      Duration.zero, // Zero duration means it happens instantly
+                  alignment:
+                      0.3, // 0.3 puts it nicely in the upper-middle of the screen
+                );
+              }
+            });
+
+            final groupedData = _groupAccounts(filteredAccounts);
+
             return Padding(
               padding: EdgeInsets.only(
                 bottom: MediaQuery.of(context).viewInsets.bottom,
@@ -197,155 +228,167 @@ class _AddJournalEntryFormState extends State<AddJournalEntryForm> {
                 left: 16,
                 right: 16,
               ),
-              child: DraggableScrollableSheet(
-                initialChildSize: 0.6,
-                minChildSize: 0.4,
-                maxChildSize: 0.9,
-                expand: false,
-                builder: (context, scrollController) {
-                  return Column(
-                    children: [
-                      const Text(
-                        "Select Account",
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                        ),
+              child: SizedBox(
+                height: MediaQuery.of(context).size.height * 0.85,
+                child: Column(
+                  children: [
+                    const Text(
+                      "Select Account",
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
                       ),
-                      const SizedBox(height: 16),
+                    ),
+                    const SizedBox(height: 16),
 
-                      // Search Bar
-                      TextField(
-                        controller: searchController,
-                        decoration: InputDecoration(
-                          hintText: "Search accounts or categories...",
-                          prefixIcon: const Icon(Icons.search),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          contentPadding: const EdgeInsets.symmetric(
-                            vertical: 0,
-                          ),
+                    // Search Bar
+                    TextField(
+                      controller: searchController,
+                      decoration: InputDecoration(
+                        hintText: "Search accounts or categories...",
+                        prefixIcon: const Icon(Icons.search),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
                         ),
-                        onChanged: (query) {
-                          setSheetState(() {
-                            // Trim whitespace and lowercase the query once
-                            final trimmedQuery = query.trim().toLowerCase();
-
-                            filteredAccounts = _availableAccounts.where((a) {
-                              final matchAccount = a.account.name
-                                  .toLowerCase()
-                                  .contains(trimmedQuery);
-                              final matchCategory = a.category.name
-                                  .toLowerCase()
-                                  .contains(trimmedQuery);
-                              return matchAccount || matchCategory;
-                            }).toList();
-                          });
-                        },
+                        contentPadding: const EdgeInsets.symmetric(vertical: 0),
                       ),
-                      const SizedBox(height: 12),
+                      onChanged: (query) {
+                        setSheetState(() {
+                          final trimmedQuery = query.trim().toLowerCase();
+                          filteredAccounts = _availableAccounts.where((a) {
+                            final matchAccount = a.account.name
+                                .toLowerCase()
+                                .contains(trimmedQuery);
+                            final matchCategory = a.category.name
+                                .toLowerCase()
+                                .contains(trimmedQuery);
+                            return matchAccount || matchCategory;
+                          }).toList();
+                        });
+                      },
+                    ),
+                    const SizedBox(height: 12),
 
-                      // THE STICKY GROUPED LIST
-                      Expanded(
-                        child: GroupedListView<AccountWithCategory, String>(
-                          controller: scrollController,
-                          elements: filteredAccounts,
-                          // 1. Tell it what to group by (the category name)
-                          groupBy: (element) => element.category.name,
+                    // 5. MANUAL GROUPED LIST (Allows us to use our GlobalKey)
+                    Expanded(
+                      child: SingleChildScrollView(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: groupedData.entries.map((entry) {
+                            final categoryName = entry.key;
+                            final accounts = entry.value;
 
-                          // 2. Turn on the sticky headers!
-                          useStickyGroupSeparators: true,
-
-                          // 3. Design the sticky header
-                          groupSeparatorBuilder: (String categoryName) =>
-                              Container(
-                                width: double.infinity,
-                                padding: const EdgeInsets.symmetric(
-                                  vertical: 8,
-                                  horizontal: 12,
-                                ),
-                                color: Colors
-                                    .grey
-                                    .shade100, // Light background to separate it
-                                child: Text(
-                                  categoryName.toUpperCase(), // e.g., "ASSETS"
-                                  style: TextStyle(
-                                    fontSize: 13,
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.blueGrey.shade700,
-                                    letterSpacing: 1.2,
+                            return Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                // Category Header
+                                Container(
+                                  width: double.infinity,
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 8,
+                                    horizontal: 12,
+                                  ),
+                                  color: Colors.grey.shade100,
+                                  child: Text(
+                                    categoryName.toUpperCase(),
+                                    style: TextStyle(
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.blueGrey.shade700,
+                                      letterSpacing: 1.2,
+                                    ),
                                   ),
                                 ),
-                              ),
 
-                          // 4. Design the actual account list item
-                          // 4. Design the actual account list item
-                          itemBuilder: (context, element) {
-                            final isDebit =
-                                element.category.normalBalance ==
-                                NormalBalance.debit;
+                                // Accounts under this category
+                                ...accounts.map((element) {
+                                  final isDebit =
+                                      element.category.normalBalance ==
+                                      NormalBalance.debit;
 
-                            // Plain English Labels
-                            final badgeText = isDebit
-                                ? 'Debit Account'
-                                : 'Credit Account';
+                                  // Find out if this specific item is the selected one
+                                  final isSelectedAccount =
+                                      selectedAccountId == element.account.id;
 
-                            // BRINGING BACK THE LIVELY COLORS
-                            final badgeColor = isDebit
-                                ? Colors.blue.shade700
-                                : Colors.orange.shade700;
-                            final badgeBg = isDebit
-                                ? Colors.blue.shade50
-                                : Colors.orange.shade50;
+                                  final badgeText = isDebit
+                                      ? 'Debit Account'
+                                      : 'Credit Account';
+                                  final badgeColor = isDebit
+                                      ? Colors.blue.shade700
+                                      : Colors.orange.shade700;
+                                  final badgeBg = isDebit
+                                      ? Colors.blue.shade50
+                                      : Colors.orange.shade50;
 
-                            return ListTile(
-                              title: Text(
-                                element.account.name,
-                                style: const TextStyle(
-                                  fontSize: 15,
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
-                              trailing: Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 12,
-                                  vertical: 6,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: badgeBg,
-                                  borderRadius: BorderRadius.circular(
-                                    20,
-                                  ), // Keeps the modern pill shape
-                                ),
-                                child: Text(
-                                  badgeText,
-                                  style: TextStyle(
-                                    fontSize: 11,
-                                    fontWeight: FontWeight
-                                        .bold, // Bold to match the vibrant color
-                                    color: badgeColor,
-                                    letterSpacing: 0.3,
-                                  ),
-                                ),
-                              ),
-                              onTap: () {
-                                setState(() {
-                                  lines[lineIndex].accountId =
-                                      element.account.id;
-                                  // Auto-Toggle to match the account type
-                                  lines[lineIndex].isDebit = isDebit;
-                                  _calculateTotals();
-                                });
-                                Navigator.pop(context);
-                              },
+                                  return Container(
+                                    // 6. ATTACH THE KEY IF IT IS THE SELECTED ID!
+                                    key: isSelectedAccount
+                                        ? selectedItemKey
+                                        : null,
+                                    margin: const EdgeInsets.symmetric(
+                                      horizontal: 8.0,
+                                      vertical: 2.0,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: isSelectedAccount
+                                          ? Colors.grey.shade200
+                                          : Colors.transparent,
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    child: ListTile(
+                                      title: Text(
+                                        element.account.name,
+                                        style: TextStyle(
+                                          fontSize: 15,
+                                          fontWeight: isSelectedAccount
+                                              ? FontWeight.bold
+                                              : FontWeight.w500,
+                                          color: isSelectedAccount
+                                              ? Colors.black87
+                                              : Colors.grey.shade800,
+                                        ),
+                                      ),
+                                      trailing: Container(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 12,
+                                          vertical: 6,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color: badgeBg,
+                                          borderRadius: BorderRadius.circular(
+                                            20,
+                                          ),
+                                        ),
+                                        child: Text(
+                                          badgeText,
+                                          style: TextStyle(
+                                            fontSize: 11,
+                                            fontWeight: FontWeight.bold,
+                                            color: badgeColor,
+                                            letterSpacing: 0.3,
+                                          ),
+                                        ),
+                                      ),
+                                      onTap: () {
+                                        setState(() {
+                                          lines[lineIndex].accountId =
+                                              element.account.id;
+                                          lines[lineIndex].isDebit = isDebit;
+                                          _calculateTotals();
+                                        });
+                                        Navigator.pop(context);
+                                      },
+                                    ),
+                                  );
+                                }),
+                              ],
                             );
-                          },
+                          }).toList(),
                         ),
                       ),
-                    ],
-                  );
-                },
+                    ),
+                  ],
+                ),
               ),
             );
           },
@@ -364,7 +407,7 @@ class _AddJournalEntryFormState extends State<AddJournalEntryForm> {
         message: 'Description is required.',
         isError: true,
       );
-      _descFocus.requestFocus(); // MAGIC: Auto-scrolls to the description box!
+      _descFocus.requestFocus(); 
       return;
     }
 
@@ -373,7 +416,6 @@ class _AddJournalEntryFormState extends State<AddJournalEntryForm> {
       bool hasAccount = lines[i].accountId != null;
       bool hasAmount = lines[i].amount > 0;
 
-      // If a line is missing either an account or an amount (or if we don't have 2 lines filled yet)
       if (hasAccount != hasAmount || (!hasAccount && !hasAmount && i < 2)) {
         AppToast.show(
           context,
@@ -381,7 +423,7 @@ class _AddJournalEntryFormState extends State<AddJournalEntryForm> {
           isError: true,
         );
         lines[i].amountFocus
-            .requestFocus(); // MAGIC: Auto-scrolls to the specific offending row!
+            .requestFocus(); 
         return;
       }
     }
