@@ -18,7 +18,7 @@ class DashboardScreen extends StatelessWidget {
           title: 'Journal',
           subtitle: 'Record daily transactions',
           icon: Icons.menu_book_outlined,
-          color: Colors.blue,
+          // color: Colors.blue,
           onTap: () => onFeatureTap(1),
         ),
 
@@ -27,7 +27,7 @@ class DashboardScreen extends StatelessWidget {
           title: 'Ledger',
           subtitle: 'View account summaries',
           icon: Icons.description_outlined,
-          color: Colors.purple,
+          // color: Colors.purple,
           onTap: () => onFeatureTap(2),
         ),
 
@@ -36,7 +36,7 @@ class DashboardScreen extends StatelessWidget {
           title: 'Reports',
           subtitle: 'Analyze your finances',
           icon: Icons.analytics_outlined,
-          color: Colors.green,
+          // color: Colors.green,
           onTap: () => onFeatureTap(3),
         ),
       ],

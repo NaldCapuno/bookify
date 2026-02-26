@@ -8,64 +8,132 @@ import 'package:bookkeeping/features/accounts/account_details_sheet.dart';
 import 'package:bookkeeping/core/database/tables/account_categories_table.dart';
 import 'package:bookkeeping/core/widgets/app_toast.dart';
 import 'add_account_form.dart';
+import 'package:bookkeeping/features/accounts/account_search_header.dart';
 
-class AccountsScreen extends StatelessWidget {
+class AccountsScreen extends StatefulWidget {
   const AccountsScreen({super.key});
+
+  @override
+  State<AccountsScreen> createState() => _AccountsScreenState();
+}
+
+class _AccountsScreenState extends State<AccountsScreen> {
+  final TextEditingController _searchController = TextEditingController();
+  final FocusNode _searchFocusNode = FocusNode();
+  String _searchQuery = '';
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    _searchFocusNode.dispose();
+    super.dispose();
+  }
+
+  void _hideKeyboard() {
+    _searchFocusNode.unfocus();
+    FocusManager.instance.primaryFocus?.unfocus();
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      // Ensure the background color doesn't blend with the search bar
+      backgroundColor: const Color(0xFFF8FAFC),
       floatingActionButton: AppFloatingActionButton(
         label: 'Add Account',
         onPressed: () => _showAddAccountDialog(context),
       ),
-      body: StreamBuilder<List<AccountRow>>(
-        stream: appDb.accountsDao.watchAccountsGrouped(),
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          }
+      body: SafeArea(
+        // We use a Column to stack the search bar on top of the list
+        child: Column(
+          children: [
+            // --- SEARCH BAR SECTION ---
+            // Added a Container wrapper to ensure visibility and spacing
+            Container(
+              color: Colors.white,
+              child: AccountSearchHeader(
+                controller: _searchController,
+                focusNode: _searchFocusNode,
+                searchQuery: _searchQuery,
+                onChanged: (value) => setState(() => _searchQuery = value),
+                onClear: () {
+                  _hideKeyboard();
+                  _searchController.clear();
+                  setState(() => _searchQuery = '');
+                },
+              ),
+            ),
 
-          final data = snapshot.data ?? [];
-          if (data.isEmpty) {
-            return const Center(child: Text('No accounts found.'));
-          }
+            // --- LIST SECTION ---
+            Expanded(
+              child: StreamBuilder<List<AccountRow>>(
+                stream: appDb.accountsDao.watchAccountsGrouped(),
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return const Center(
+                      child: CircularProgressIndicator(color: Colors.black),
+                    );
+                  }
 
-          // Grouping logic
-          final Map<String, List<AccountRow>> groupedData = {};
-          for (var row in data) {
-            groupedData.putIfAbsent(row.category.name, () => []).add(row);
-          }
+                  final data = snapshot.data ?? [];
 
-          final categoryNames = groupedData.keys.toList();
+                  // Logic: If query matches Category, Name, or Code
+                  final filteredData = data.where((row) {
+                    final query = _searchQuery.toLowerCase();
+                    return row.account.name.toLowerCase().contains(query) ||
+                        row.account.code.toString().contains(query) ||
+                        row.category.name.toLowerCase().contains(query);
+                  }).toList();
 
-          return ListView.builder(
-            padding: const EdgeInsets.only(bottom: 80),
-            itemCount: categoryNames.length,
-            itemBuilder: (context, index) {
-              final categoryName = categoryNames[index];
-              final rows = groupedData[categoryName]!;
+                  if (filteredData.isEmpty) {
+                    return Center(
+                      child: Text(
+                        _searchQuery.isEmpty
+                            ? 'No accounts found.'
+                            : 'No results for "$_searchQuery"',
+                      ),
+                    );
+                  }
 
-              return StickyHeader(
-                header: _buildStickyHeader(categoryName),
-                content: Column(
-                  children: rows
-                      .map((row) => _buildAccountTile(row, context))
-                      .toList(),
-                ),
-              );
-            },
-          );
-        },
+                  // Grouping logic remains the same
+                  final Map<String, List<AccountRow>> groupedData = {};
+                  for (var row in filteredData) {
+                    groupedData
+                        .putIfAbsent(row.category.name, () => [])
+                        .add(row);
+                  }
+
+                  return ListView.builder(
+                    padding: const EdgeInsets.only(bottom: 80),
+                    itemCount: groupedData.length,
+                    itemBuilder: (context, index) {
+                      final categoryName = groupedData.keys.elementAt(index);
+                      final rows = groupedData[categoryName]!;
+
+                      return StickyHeader(
+                        header: _buildStickyHeader(categoryName),
+                        content: Column(
+                          children: rows
+                              .map((row) => _buildAccountTile(row, context))
+                              .toList(),
+                        ),
+                      );
+                    },
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
 
-  // --- Helper Widgets ---
+  // --- HELPER WIDGETS ---
 
   Widget _buildStickyHeader(String title) {
     return Container(
-      height: 45.0,
+      height: 40.0,
       width: double.infinity,
       color: const Color(0xFFF2F4F7),
       padding: const EdgeInsets.symmetric(horizontal: 16.0),
@@ -75,7 +143,7 @@ class AccountsScreen extends StatelessWidget {
         style: TextStyle(
           color: Colors.blueGrey[800],
           fontWeight: FontWeight.bold,
-          fontSize: 12,
+          fontSize: 10,
           letterSpacing: 1.2,
         ),
       ),
@@ -87,7 +155,6 @@ class AccountsScreen extends StatelessWidget {
     final bool isArchived = account.isArchived;
     final bool isLocked = account.isLocked;
 
-    // Logic for DR/CR Tag
     final bool isDebit = row.category.normalBalance == NormalBalance.debit;
     final String balanceTag = isDebit ? 'DR' : 'CR';
     final Color tagColor = isDebit
@@ -101,7 +168,6 @@ class AccountsScreen extends StatelessWidget {
           direction: isArchived
               ? DismissDirection.none
               : DismissDirection.endToStart,
-
           background: Container(
             color: isLocked ? Colors.orange.shade50 : Colors.red.shade50,
             alignment: Alignment.centerRight,
@@ -116,7 +182,7 @@ class AccountsScreen extends StatelessWidget {
                   color: isLocked
                       ? Colors.orange.shade400
                       : Colors.red.shade400,
-                  size: 28,
+                  size: 24,
                 ),
                 Text(
                   isLocked ? 'ARCHIVE' : 'DELETE',
@@ -129,7 +195,6 @@ class AccountsScreen extends StatelessWidget {
               ],
             ),
           ),
-
           confirmDismiss: (direction) async {
             if (isLocked) {
               await _showArchiveConfirmation(context, account);
@@ -138,7 +203,6 @@ class AccountsScreen extends StatelessWidget {
             }
             return false;
           },
-
           child: Container(
             color: isArchived ? const Color(0xFFF8FAFC) : Colors.white,
             child: Column(
@@ -147,13 +211,14 @@ class AccountsScreen extends StatelessWidget {
                   onTap: () => _showAccountDetails(context, row),
                   contentPadding: const EdgeInsets.symmetric(
                     horizontal: 20,
-                    vertical: 4,
+                    vertical: 0,
                   ),
                   leading: Text(
                     account.code.toString(),
                     style: TextStyle(
                       color: isArchived ? Colors.grey : Colors.blueGrey,
                       fontFamily: 'monospace',
+                      fontSize: 13,
                     ),
                   ),
                   title: Row(
@@ -168,12 +233,6 @@ class AccountsScreen extends StatelessWidget {
                               ? Colors.grey.shade200
                               : tagColor.withOpacity(0.1),
                           borderRadius: BorderRadius.circular(4),
-                          border: Border.all(
-                            color: isArchived
-                                ? Colors.grey.shade300
-                                : tagColor.withOpacity(0.3),
-                            width: 0.5,
-                          ),
                         ),
                         child: Text(
                           balanceTag,
@@ -190,7 +249,8 @@ class AccountsScreen extends StatelessWidget {
                           account.name,
                           overflow: TextOverflow.ellipsis,
                           style: TextStyle(
-                            color: isArchived ? Colors.grey : Colors.black,
+                            color: isArchived ? Colors.grey : Colors.black87,
+                            fontSize: 15,
                           ),
                         ),
                       ),
@@ -201,10 +261,14 @@ class AccountsScreen extends StatelessWidget {
                       : (isLocked
                             ? const Icon(
                                 Icons.lock_outline,
-                                size: 16,
+                                size: 14,
                                 color: Colors.grey,
                               )
-                            : const Icon(Icons.chevron_right, size: 20)),
+                            : const Icon(
+                                Icons.chevron_right,
+                                size: 18,
+                                color: Colors.grey,
+                              )),
                 ),
                 const Divider(
                   height: 1,
@@ -224,12 +288,12 @@ class AccountsScreen extends StatelessWidget {
   Widget _buildArchiveStamp() {
     return Positioned(
       right: 50,
-      top: 20,
+      top: 15,
       child: IgnorePointer(
         child: Transform.rotate(
           angle: -0.15,
           child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
             decoration: BoxDecoration(
               border: Border.all(
                 color: Colors.orange.withOpacity(0.4),
@@ -242,8 +306,7 @@ class AccountsScreen extends StatelessWidget {
               style: TextStyle(
                 color: Colors.orange.withOpacity(0.4),
                 fontWeight: FontWeight.bold,
-                fontSize: 12,
-                letterSpacing: 1.0,
+                fontSize: 10,
               ),
             ),
           ),
@@ -264,16 +327,17 @@ class AccountsScreen extends StatelessWidget {
       builder: (context) => AppConfirmationSheet(
         title: 'Archive ${account.name}?',
         message:
-            'Archived accounts won\'t appear in your active list but will remain in historical reports.',
+            'Archived accounts won\'t appear in active lists but remain in historical reports.',
         confirmLabel: 'Archive',
         confirmColor: Colors.orange.shade700,
         icon: Icons.archive_outlined,
       ),
     );
-
     if (result == true) {
       await appDb.accountsDao.archiveAccount(account.id, true);
-      AppToast.show(context, message: 'Account archived successfully!');
+      if (mounted) {
+        AppToast.show(context, message: 'Account archived successfully!');
+      }
     }
   }
 
@@ -295,14 +359,16 @@ class AccountsScreen extends StatelessWidget {
         icon: Icons.delete_forever_outlined,
       ),
     );
-
     if (result == true) {
       await appDb.accountsDao.deleteAccount(account.id);
-      AppToast.show(context, message: 'Account deleted successfully!');
+      if (mounted) {
+        AppToast.show(context, message: 'Account deleted successfully!');
+      }
     }
   }
 
   void _showAddAccountDialog(BuildContext context) {
+    FocusScope.of(context).unfocus();
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -312,6 +378,7 @@ class AccountsScreen extends StatelessWidget {
   }
 
   void _showAccountDetails(BuildContext context, AccountRow row) {
+    FocusScope.of(context).unfocus();
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
