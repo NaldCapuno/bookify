@@ -4,10 +4,18 @@ import '../../core/database/app_database.dart';
 import '../../core/database/daos/ledger_dao.dart';
 import '../../core/database/daos/journal_entry_daos.dart';
 
-class DashboardScreen extends StatelessWidget {
+class DashboardScreen extends StatefulWidget {
   final Function(int) onFeatureTap;
 
-  DashboardScreen({super.key, required this.onFeatureTap});
+  const DashboardScreen({super.key, required this.onFeatureTap});
+
+  @override
+  State<DashboardScreen> createState() => _DashboardScreenState();
+}
+
+class _DashboardScreenState extends State<DashboardScreen> {
+  // Tracks how many sales items to display in the feed
+  int _visibleSalesCount = 3;
 
   // Currency and Date Formatters
   final NumberFormat _currencyFormat = NumberFormat('#,##0.00', 'en_US');
@@ -49,9 +57,7 @@ class DashboardScreen extends StatelessWidget {
         if (snapshot.hasData) {
           for (var entry in snapshot.data!) {
             final accName = entry.account.name.toLowerCase();
-            if (accName.contains('cash') ||
-                accName.contains('hand') ||
-                accName.contains('bank')) {
+            if (accName.contains('cash on hand')) {
               totalCash += entry.balance;
             }
           }
@@ -93,7 +99,7 @@ class DashboardScreen extends StatelessWidget {
                   ),
                   const SizedBox(width: 12),
                   const Text(
-                    'Total Cash',
+                    'Cash on Hand',
                     style: TextStyle(
                       color: Colors.white,
                       fontSize: 18,
@@ -132,7 +138,9 @@ class DashboardScreen extends StatelessWidget {
         double income = 0.0;
         double expenses = 0.0;
         List<double> quarterlySales = [0.0, 0.0, 0.0, 0.0];
-        List<JournalSummary> recentActivities = [];
+
+        // List explicitly for sales entries
+        List<JournalSummary> salesActivities = [];
 
         if (snapshot.hasData) {
           final now = DateTime.now();
@@ -140,28 +148,25 @@ class DashboardScreen extends StatelessWidget {
           for (var summary in snapshot.data!) {
             if (summary.journal.isVoid) continue;
 
-            // Add ALL non-voided journal entries to the recent activity feed
-            recentActivities.add(summary);
-
             double entryCashIn = 0;
             double entryCashOut = 0;
             double entryIncome = 0;
             double entryExpense = 0;
+            bool isSale = false;
 
             for (var detail in summary.details) {
               final accName = detail.account.name.toLowerCase();
               final deb = detail.transactionLine.debit;
               final cred = detail.transactionLine.credit;
 
-              if (accName.contains('cash') ||
-                  accName.contains('hand') ||
-                  accName.contains('bank')) {
+              if (accName.contains('cash on hand')) {
                 entryCashIn += deb;
                 entryCashOut += cred;
               }
-              // STRICT MATCH: Only accounts containing "Sales Revenue" count towards Total Sales
+              // STRICT MATCH: Only accounts containing "Sales Revenue"
               else if (accName.contains('sales revenue')) {
                 entryIncome += (cred - deb);
+                isSale = true; // Mark that this journal entry contains a sale
               } else if (accName.contains('expense') ||
                   accName.contains('cost') ||
                   accName.contains('purchases') ||
@@ -182,6 +187,11 @@ class DashboardScreen extends StatelessWidget {
                 quarterlySales[q] += entryIncome;
               }
             }
+
+            // If it is a sale, add it to our specific sales feed list
+            if (isSale && entryIncome > 0) {
+              salesActivities.add(summary);
+            }
           }
         }
 
@@ -192,7 +202,7 @@ class DashboardScreen extends StatelessWidget {
               children: [
                 Expanded(
                   child: _buildFlowCard(
-                    'Cash Inflow',
+                    'Cash In',
                     _formatAccounting(inflow),
                     Icons.arrow_downward,
                     Colors.green,
@@ -201,7 +211,7 @@ class DashboardScreen extends StatelessWidget {
                 const SizedBox(width: 12),
                 Expanded(
                   child: _buildFlowCard(
-                    'Cash Outflow',
+                    'Cash Out',
                     _formatAccounting(outflow),
                     Icons.arrow_upward,
                     Colors.red,
@@ -217,21 +227,17 @@ class DashboardScreen extends StatelessWidget {
             _buildTotalSalesChart(quarterlySales),
             const SizedBox(height: 24),
 
-            Row(
+            const Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text(
-                  'Recent Activity',
+                Text(
+                  'Recent Sales',
                   style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                ),
-                TextButton(
-                  onPressed: () => onFeatureTap(1),
-                  child: const Text('View All'),
                 ),
               ],
             ),
             const SizedBox(height: 8),
-            _buildRecentActivityList(recentActivities),
+            _buildRecentSalesList(salesActivities),
           ],
         );
       },
@@ -313,9 +319,7 @@ class DashboardScreen extends StatelessWidget {
             fit: BoxFit.scaleDown,
             alignment: Alignment.centerLeft,
             child: Text(
-              _formatAccounting(
-                netProfit,
-              ), // Automatically applies ( ) if negative!
+              _formatAccounting(netProfit),
               style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
             ),
           ),
@@ -328,55 +332,52 @@ class DashboardScreen extends StatelessWidget {
                 children: [
                   Expanded(
                     flex: incomeFlex,
-                    child: Container(
-                      color: const Color(0xFFC7CDFF),
-                      alignment: Alignment.centerLeft,
-                      padding: const EdgeInsets.symmetric(horizontal: 12),
-                      child: FittedBox(
-                        fit: BoxFit.scaleDown,
-                        child: Text(
-                          '₱${compactCurrency.format(income)}',
-                          style: const TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 14,
-                          ),
-                        ),
-                      ),
-                    ),
+                    child: Container(color: const Color(0xFFC7CDFF)),
                   ),
                   Expanded(
                     flex: expenseFlex,
-                    child: Container(
-                      color: const Color(0xFFFFD1D1),
-                      alignment: Alignment.centerRight,
-                      padding: const EdgeInsets.symmetric(horizontal: 12),
-                      child: FittedBox(
-                        fit: BoxFit.scaleDown,
-                        child: Text(
-                          '₱${compactCurrency.format(expenses)}',
-                          style: const TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 14,
-                          ),
-                        ),
-                      ),
-                    ),
+                    child: Container(color: const Color(0xFFFFD1D1)),
                   ),
                 ],
               ),
             ),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 12),
+          // Moved the numeric values down here for better readability
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                'Income',
-                style: TextStyle(color: Colors.grey[500], fontSize: 12),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Income',
+                    style: TextStyle(color: Colors.grey[500], fontSize: 12),
+                  ),
+                  Text(
+                    '₱${compactCurrency.format(income)}',
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
+                    ),
+                  ),
+                ],
               ),
-              Text(
-                'Expenses',
-                style: TextStyle(color: Colors.grey[500], fontSize: 12),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Text(
+                    'Expenses',
+                    style: TextStyle(color: Colors.grey[500], fontSize: 12),
+                  ),
+                  Text(
+                    '₱${compactCurrency.format(expenses)}',
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
@@ -530,41 +531,63 @@ class DashboardScreen extends StatelessWidget {
     );
   }
 
-  // --- NEUTRAL RECENT ACTIVITY LIST ---
-  Widget _buildRecentActivityList(List<JournalSummary> recentActivities) {
-    if (recentActivities.isEmpty) {
+  // --- STRICTLY SALES ACTIVITY LIST ---
+  Widget _buildRecentSalesList(List<JournalSummary> salesActivities) {
+    if (salesActivities.isEmpty) {
       return Padding(
         padding: const EdgeInsets.symmetric(vertical: 24.0),
         child: Center(
           child: Text(
-            'No entries found',
+            'No sales found',
             style: TextStyle(color: Colors.grey[500]),
           ),
         ),
       );
     }
 
-    final topActivities = recentActivities.take(3).toList();
+    final visibleActivities = salesActivities.take(_visibleSalesCount).toList();
 
     return Column(
-      children: topActivities.map((summary) {
-        // Calculate the total amount of the journal entry (Sum of Debits)
-        double totalAmount = summary.details.fold(
-          0.0,
-          (sum, item) => sum + item.transactionLine.debit,
-        );
-        final dateStr = _dateFormat.format(summary.journal.date);
+      children: [
+        ...visibleActivities.map((summary) {
+          // Extract the exact sales amount from this specific journal entry
+          double entrySaleAmount = 0.0;
+          for (var detail in summary.details) {
+            final accName = detail.account.name.toLowerCase();
+            if (accName.contains('sales revenue')) {
+              entrySaleAmount +=
+                  (detail.transactionLine.credit -
+                  detail.transactionLine.debit);
+            }
+          }
 
-        return _buildActivityItem(
-          summary.journal.description,
-          dateStr,
-          totalAmount,
-        );
-      }).toList(),
+          final dateStr = _dateFormat.format(summary.journal.date);
+
+          return _buildSaleItem(
+            summary.journal.description,
+            dateStr,
+            entrySaleAmount,
+          );
+        }),
+
+        // Dynamic Load More Button
+        if (salesActivities.length > _visibleSalesCount)
+          Padding(
+            padding: const EdgeInsets.only(top: 8.0),
+            child: TextButton(
+              onPressed: () {
+                setState(() {
+                  _visibleSalesCount += 3;
+                });
+              },
+              child: const Text('Load More'),
+            ),
+          ),
+      ],
     );
   }
 
-  Widget _buildActivityItem(String description, String date, double amount) {
+  Widget _buildSaleItem(String description, String date, double amount) {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
@@ -585,18 +608,14 @@ class DashboardScreen extends StatelessWidget {
           Expanded(
             child: Row(
               children: [
-                // Neutral Icon Styling
+                // Restored the Green "Add" Icon
                 Container(
                   padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
-                    color: Colors.grey.shade100,
+                    color: Colors.green.withOpacity(0.1),
                     shape: BoxShape.circle,
                   ),
-                  child: Icon(
-                    Icons.receipt_long, // Standard journal/receipt icon
-                    color: Colors.grey.shade700,
-                    size: 18,
-                  ),
+                  child: const Icon(Icons.add, color: Colors.green, size: 18),
                 ),
                 const SizedBox(width: 14),
                 Expanded(
@@ -614,7 +633,7 @@ class DashboardScreen extends StatelessWidget {
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        date, // Only date is shown now
+                        date,
                         style: TextStyle(color: Colors.grey[500], fontSize: 12),
                       ),
                     ],
@@ -624,12 +643,12 @@ class DashboardScreen extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 8),
-          // Neutral text color for the amount
+          // Restored the Green Text
           Text(
             _formatAccounting(amount),
             style: const TextStyle(
               fontWeight: FontWeight.bold,
-              color: Colors.black87,
+              color: Colors.green,
             ),
           ),
         ],

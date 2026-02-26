@@ -126,6 +126,7 @@ MigrationStrategy buildMigrationStrategy(AppDatabase db) {
               'Currencies, coins, and checks currently in the physical possession of the business.',
             ),
             categoryId: 11,
+            isLocked: const Value(true),
           ),
           AccountsCompanion.insert(
             code: 102,
