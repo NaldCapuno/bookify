@@ -1,3 +1,4 @@
+import 'package:bookkeeping/core/widgets/empty_placeholder.dart';
 import 'package:bookkeeping/core/widgets/financial_line_item.dart';
 import 'package:bookkeeping/features/balancesheet/balance_sheet.dart';
 import 'package:flutter/material.dart';
@@ -17,6 +18,14 @@ class BalanceSheetCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Check if the entire report is empty
+    final bool hasAnyData =
+        data.totalAssets != 0 || data.totalLiabilitiesAndEquity != 0;
+
+    if (!hasAnyData) {
+      return const EmptyReportPlaceholder(message: "No transaction recorded.");
+    }
+
     return LayoutBuilder(
       builder: (context, constraints) {
         bool isPortrait = constraints.maxWidth < 600;
@@ -45,7 +54,11 @@ class BalanceSheetCard extends StatelessWidget {
   }
 
   Widget _buildAssetsColumn() {
-    final bool hasAssets = data.totalAssets > 0;
+    if (data.totalAssets == 0) {
+      return const EmptyReportPlaceholder(
+        message: "No asset transactions recorded.",
+      );
+    }
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -56,39 +69,39 @@ class BalanceSheetCard extends StatelessWidget {
           style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
         ),
         const SizedBox(height: 16),
-        if (!hasAssets)
-          _buildPlaceholder("No asset transactions recorded.")
-        else ...[
-          _buildSection("Current Assets", data.currentAssets),
-          if (data.currentAssets.isNotEmpty)
-            FinancialLineItem(
-              label: "Total Current Assets",
-              amount: _formatAccounting(data.totalCurrentAssets),
-              isTotal: true,
-            ),
-          if (data.nonCurrentAssets.isNotEmpty) ...[
-            const SizedBox(height: 16),
-            _buildSection("Long-term Assets", data.nonCurrentAssets),
-            FinancialLineItem(
-              label: "Total Long-term Assets",
-              amount: _formatAccounting(data.totalNonCurrentAssets),
-              isTotal: true,
-            ),
-          ],
-          const SizedBox(height: 20),
+        _buildSection("Current Assets", data.currentAssets),
+        if (data.currentAssets.isNotEmpty)
           FinancialLineItem(
-            label: "Total Assets:",
-            amount: _formatAccounting(data.totalAssets),
+            label: "Total Current Assets",
+            amount: _formatAccounting(data.totalCurrentAssets),
             isTotal: true,
-            isBold: true,
+          ),
+        if (data.nonCurrentAssets.isNotEmpty) ...[
+          const SizedBox(height: 16),
+          _buildSection("Long-term Assets", data.nonCurrentAssets),
+          FinancialLineItem(
+            label: "Total Long-term Assets",
+            amount: _formatAccounting(data.totalNonCurrentAssets),
+            isTotal: true,
           ),
         ],
+        const SizedBox(height: 20),
+        FinancialLineItem(
+          label: "Total Assets:",
+          amount: _formatAccounting(data.totalAssets),
+          isTotal: true,
+          isBold: true,
+        ),
       ],
     );
   }
 
   Widget _buildLiabilitiesEquityColumn() {
-    final bool hasData = data.totalLiabilitiesAndEquity > 0;
+    if (data.totalLiabilitiesAndEquity == 0) {
+      return const EmptyReportPlaceholder(
+        message: "No liability or equity entries found.",
+      );
+    }
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -99,95 +112,68 @@ class BalanceSheetCard extends StatelessWidget {
           style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
         ),
         const SizedBox(height: 16),
-        if (!hasData)
-          _buildPlaceholder("No liability or equity entries found.")
-        else ...[
-          if (data.currentLiabilities.isNotEmpty) ...[
-            _buildSection("Current Liabilities", data.currentLiabilities),
-            FinancialLineItem(
-              label: "Total Current Liabilities",
-              amount: _formatAccounting(data.totalCurrentLiabilities),
-              isTotal: true,
-            ),
-          ],
-          if (data.nonCurrentLiabilities.isNotEmpty) ...[
-            const SizedBox(height: 16),
-            _buildSection("Long-term Liabilities", data.nonCurrentLiabilities),
-            FinancialLineItem(
-              label: "Total Long-term Liabilities",
-              amount: _formatAccounting(data.totalNonCurrentLiabilities),
-              isTotal: true,
-            ),
-          ],
-          if (data.totalLiabilities > 0)
-            FinancialLineItem(
-              label: "Total Liabilities",
-              amount: _formatAccounting(data.totalLiabilities),
-              isTotal: true,
-              isBold: true,
-            ),
-          const SizedBox(height: 24),
-
-          if (data.totalOwnerEquity != 0 || data.netIncome != 0) ...[
-            // 1. Centered Main Header
-            const Text(
-              "Owner's Equity",
-              textAlign: TextAlign.center,
-              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-            ),
-            const SizedBox(height: 16),
-
-            // 2. Left-Aligned Category Subheader (Added to match your image)
-            const Text("Owner's Equity", style: TextStyle(fontSize: 14)),
-
-            // 3. Indented Items
-            ...data.equityItems.map((item) {
-              return Padding(
-                padding: const EdgeInsets.only(left: 24.0),
-                child: FinancialLineItem(
-                  label: item.name,
-                  amount: _formatAccounting(item.amount),
-                ),
-              );
-            }),
-            Padding(
-              padding: const EdgeInsets.only(left: 24.0),
-              child: FinancialLineItem(
-                label: "Retained Earnings (Net Income)",
-                amount: _formatAccounting(data.netIncome),
-              ),
-            ),
-
-            // 4. Section Total
-            FinancialLineItem(
-              label: "Total Owner's Equity",
-              amount: _formatAccounting(data.totalOwnerEquity),
-              isTotal: true,
-            ),
-          ],
-
-          const SizedBox(height: 20),
+        if (data.currentLiabilities.isNotEmpty) ...[
+          _buildSection("Current Liabilities", data.currentLiabilities),
           FinancialLineItem(
-            label: "Total Liabilities and Owner's Equity",
-            amount: _formatAccounting(data.totalLiabilitiesAndEquity),
-            isGrandTotal: true,
+            label: "Total Current Liabilities",
+            amount: _formatAccounting(data.totalCurrentLiabilities),
+            isTotal: true,
           ),
         ],
-      ],
-    );
-  }
-
-  Widget _buildPlaceholder(String message) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 20.0),
-      child: Text(
-        message,
-        style: const TextStyle(
-          color: Colors.grey,
-          fontSize: 13,
-          fontStyle: FontStyle.italic,
+        if (data.nonCurrentLiabilities.isNotEmpty) ...[
+          const SizedBox(height: 16),
+          _buildSection("Long-term Liabilities", data.nonCurrentLiabilities),
+          FinancialLineItem(
+            label: "Total Long-term Liabilities",
+            amount: _formatAccounting(data.totalNonCurrentLiabilities),
+            isTotal: true,
+          ),
+        ],
+        if (data.totalLiabilities > 0)
+          FinancialLineItem(
+            label: "Total Liabilities",
+            amount: _formatAccounting(data.totalLiabilities),
+            isTotal: true,
+            isBold: true,
+          ),
+        const SizedBox(height: 24),
+        if (data.totalOwnerEquity != 0 || data.netIncome != 0) ...[
+          const Text(
+            "Owner's Equity",
+            textAlign: TextAlign.center,
+            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+          ),
+          const SizedBox(height: 16),
+          const Text("Owner's Equity", style: TextStyle(fontSize: 14)),
+          ...data.equityItems.map((item) {
+            return Padding(
+              padding: const EdgeInsets.only(left: 24.0),
+              child: FinancialLineItem(
+                label: item.name,
+                amount: _formatAccounting(item.amount),
+              ),
+            );
+          }),
+          Padding(
+            padding: const EdgeInsets.only(left: 24.0),
+            child: FinancialLineItem(
+              label: "Retained Earnings (Net Income)",
+              amount: _formatAccounting(data.netIncome),
+            ),
+          ),
+          FinancialLineItem(
+            label: "Total Owner's Equity",
+            amount: _formatAccounting(data.totalOwnerEquity),
+            isTotal: true,
+          ),
+        ],
+        const SizedBox(height: 20),
+        FinancialLineItem(
+          label: "Total Liabilities and Owner's Equity",
+          amount: _formatAccounting(data.totalLiabilitiesAndEquity),
+          isGrandTotal: true,
         ),
-      ),
+      ],
     );
   }
 
