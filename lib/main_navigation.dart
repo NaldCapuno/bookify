@@ -150,6 +150,7 @@ class _MainNavigationState extends State<MainNavigation> {
           userInitials: _userInitials,
           onProfileTap: _navigateToProfile,
           onSettingsTap: () => Navigator.pushNamed(context, '/settings'),
+          onUserGuideTap: () => Navigator.pushNamed(context, '/user-guide'),
         ),
         body: IndexedStack(
           index: _selectedIndex,

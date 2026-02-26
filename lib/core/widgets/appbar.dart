@@ -4,6 +4,7 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
   final String title;
   final VoidCallback? onSettingsTap;
   final VoidCallback? onProfileTap; // Added this
+  final VoidCallback? onUserGuideTap;
   final bool showBackButton;
   final VoidCallback? onBackTap;
   final String userInitials; // Added this
@@ -13,6 +14,7 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
     required this.title,
     this.onSettingsTap,
     this.onProfileTap,
+    this.onUserGuideTap,
     this.showBackButton = false,
     this.onBackTap,
     this.userInitials = '', // Default to empty
@@ -60,6 +62,12 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
                 } else {
                   Navigator.pushNamed(context, '/settings');
                 }
+              } else if (value == 2) {
+                if (onUserGuideTap != null) {
+                  onUserGuideTap!();
+                } else {
+                  Navigator.pushNamed(context, '/user-guide');
+                }
               }
             },
             itemBuilder: (context) => [
@@ -80,6 +88,16 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
                     Icon(Icons.settings, color: Colors.black54, size: 20),
                     SizedBox(width: 10),
                     Text("Settings"),
+                  ],
+                ),
+              ),
+              const PopupMenuItem(
+                value: 2,
+                child: Row(
+                  children: [
+                    Icon(Icons.help_outline, color: Colors.black54, size: 20),
+                    SizedBox(width: 10),
+                    Text("User Guide"),
                   ],
                 ),
               ),
