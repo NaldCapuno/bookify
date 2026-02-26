@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:bookkeeping/features/splash_screen/splash_screen.dart';
 import 'package:bookkeeping/main_navigation.dart';
 import 'package:bookkeeping/features/profile/profile_screen.dart';
@@ -6,13 +7,21 @@ import 'package:bookkeeping/features/settings/settings_screen.dart';
 import 'package:bookkeeping/features/incomestatement/incomestatement_screen.dart';
 import 'package:bookkeeping/features/balancesheet/balance_sheet_screen.dart';
 import 'package:bookkeeping/features/cashflow/cash_flow_screen.dart';
+import 'package:bookkeeping/features/onboarding/onboarding_screen.dart';
 
-void main() {
-  runApp(const MyApp());
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  final prefs = await SharedPreferences.getInstance();
+  final bool onboardingComplete = prefs.getBool('onboarding_complete') ?? false;
+
+  runApp(MyApp(onboardingComplete: onboardingComplete));
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+  final bool onboardingComplete;
+
+  // 4. Update constructor to receive the flag
+  const MyApp({super.key, required this.onboardingComplete});
 
   @override
   Widget build(BuildContext context) {
@@ -33,8 +42,10 @@ class MyApp extends StatelessWidget {
           iconTheme: IconThemeData(color: Color(0xFF1A1C1E)),
         ),
       ),
-      initialRoute: '/',
+      // 5. If onboarding is complete, start with Splash, otherwise go to Onboarding
+      initialRoute: onboardingComplete ? '/' : '/onboarding',
       routes: {
+        '/onboarding': (context) => const OnboardingScreen(),
         '/': (context) => const SplashScreen(),
         '/home': (context) => const MainNavigation(),
         '/profile': (context) => const ProfileScreen(),

@@ -38,6 +38,7 @@ flutter:
   assets:
     - assets/images/google_logo.png
     - assets/images/k1.png
+    - assets/images/logo.png
 
 flutter_icons:
   android: true
