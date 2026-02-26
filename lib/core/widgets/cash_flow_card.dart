@@ -1,3 +1,4 @@
+import 'package:bookkeeping/core/widgets/empty_placeholder.dart';
 import 'package:bookkeeping/core/widgets/financial_line_item.dart';
 import 'package:bookkeeping/features/incomestatement/financial_item.dart';
 import 'package:bookkeeping/features/cashflow/cash_flow_statement.dart';
@@ -25,23 +26,33 @@ class CashFlowStatementCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // GUARD CLAUSE: Check for any cash flow activity
+    final bool hasActivity =
+        data.netIncome != 0 ||
+        data.operatingAssetChanges.isNotEmpty ||
+        data.operatingLiabilityChanges.isNotEmpty ||
+        data.investingActivities.isNotEmpty ||
+        data.financingLiabilities.isNotEmpty ||
+        data.financingEquity.isNotEmpty;
+
+    if (!hasActivity) {
+      return const EmptyReportPlaceholder(
+        message: "No cash flow activity recorded for this period.",
+      );
+    }
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // ==========================================
-        // 1. OPERATING ACTIVITIES
-        // ==========================================
         const Text(
           "CASH FLOWS FROM OPERATING ACTIVITIES",
           style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
         ),
         const SizedBox(height: 8),
-
         FinancialLineItem(
           label: "Net income",
           amount: _formatAccounting(data.netIncome, showSymbol: true),
         ),
-
         const Padding(
           padding: EdgeInsets.only(left: 16.0, top: 8.0, bottom: 4.0),
           child: Text(
@@ -49,14 +60,12 @@ class CashFlowStatementCard extends StatelessWidget {
             style: TextStyle(fontSize: 12),
           ),
         ),
-
         if (data.depreciationExpense > 0)
           _buildIndentedAccount(
             label: "Depreciation on fixed assets",
             amount: _formatAccounting(data.depreciationExpense),
             indent: 32.0,
           ),
-
         if (data.operatingAssetChanges.isNotEmpty) ...[
           const Padding(
             padding: EdgeInsets.only(left: 16.0, top: 4.0, bottom: 4.0),
@@ -71,7 +80,6 @@ class CashFlowStatementCard extends StatelessWidget {
             isLastSection: data.operatingLiabilityChanges.isEmpty,
           ),
         ],
-
         if (data.operatingLiabilityChanges.isNotEmpty) ...[
           const Padding(
             padding: EdgeInsets.only(left: 16.0, top: 4.0, bottom: 4.0),
@@ -86,7 +94,6 @@ class CashFlowStatementCard extends StatelessWidget {
             isLastSection: true,
           ),
         ],
-
         Padding(
           padding: const EdgeInsets.only(top: 8.0),
           child: FinancialLineItem(
@@ -95,27 +102,20 @@ class CashFlowStatementCard extends StatelessWidget {
               data.netCashFromOperating,
             ),
             amount: _formatAccounting(data.netCashFromOperating),
-            isBold: true, // <--- ADDED BOLD HERE
+            isBold: true,
           ),
         ),
-
         const SizedBox(height: 24),
-
-        // ==========================================
-        // 2. INVESTING ACTIVITIES
-        // ==========================================
         const Text(
           "CASH FLOWS FROM INVESTING ACTIVITIES",
           style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
         ),
         const SizedBox(height: 8),
-
         ..._buildItemRows(
           data.investingActivities,
           indent: 16.0,
           isLastSection: true,
         ),
-
         Padding(
           padding: const EdgeInsets.only(top: 8.0),
           child: FinancialLineItem(
@@ -124,21 +124,15 @@ class CashFlowStatementCard extends StatelessWidget {
               data.netCashFromInvesting,
             ),
             amount: _formatAccounting(data.netCashFromInvesting),
-            isBold: true, // <--- ADDED BOLD HERE
+            isBold: true,
           ),
         ),
-
         const SizedBox(height: 24),
-
-        // ==========================================
-        // 3. FINANCING ACTIVITIES
-        // ==========================================
         const Text(
           "CASH FLOWS FROM FINANCING ACTIVITIES",
           style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
         ),
         const SizedBox(height: 8),
-
         ..._buildItemRows(
           data.financingLiabilities,
           indent: 16.0,
@@ -149,7 +143,6 @@ class CashFlowStatementCard extends StatelessWidget {
           indent: 16.0,
           isLastSection: true,
         ),
-
         Padding(
           padding: const EdgeInsets.only(top: 8.0),
           child: FinancialLineItem(
@@ -158,32 +151,25 @@ class CashFlowStatementCard extends StatelessWidget {
               data.netCashFromFinancing,
             ),
             amount: _formatAccounting(data.netCashFromFinancing),
-            isBold: true, // <--- ADDED BOLD HERE
+            isBold: true,
             isLastInGroup: true,
           ),
         ),
-
         const SizedBox(height: 12),
-
-        // ==========================================
-        // SUMMARY (THE BOTTOM LINE)
-        // ==========================================
         Padding(
           padding: const EdgeInsets.only(left: 32.0),
           child: FinancialLineItem(
             label: "NET INCREASE (DECREASE) IN CASH",
             amount: _formatAccounting(data.netIncreaseInCash),
+            isBold: true,
           ),
         ),
-
         const SizedBox(height: 12),
-
         FinancialLineItem(
           label: "BEGINNING CASH BALANCE",
           amount: _formatAccounting(data.beginningCashBalance),
           isLastInGroup: true,
         ),
-
         FinancialLineItem(
           label: "ENDING CASH BALANCE",
           amount: _formatAccounting(data.endingCashBalance, showSymbol: true),
@@ -194,7 +180,7 @@ class CashFlowStatementCard extends StatelessWidget {
     );
   }
 
-  // Helpers remain the same...
+  // Row and indentation helpers remain the same as previous versions
   List<Widget> _buildItemRows(
     List<FinancialItem> items, {
     required double indent,

@@ -7,9 +7,8 @@ class EmptyReportPlaceholder extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Center(
-      // Added Center for better UI
       child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 60.0),
+        padding: const EdgeInsets.all(24.0),
         child: Text(
           message,
           textAlign: TextAlign.center,
