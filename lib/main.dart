@@ -7,6 +7,7 @@ import 'package:bookkeeping/features/incomestatement/incomestatement_screen.dart
 import 'package:bookkeeping/features/balancesheet/balance_sheet_screen.dart';
 import 'package:bookkeeping/features/cashflow/cash_flow_screen.dart';
 import 'package:bookkeeping/features/userguide/user_guide_screen.dart';
+import 'package:bookkeeping/features/userguide/about_us_screen.dart';
 
 void main() {
   runApp(const MyApp());
@@ -44,6 +45,7 @@ class MyApp extends StatelessWidget {
         '/balance-sheet': (context) => const BalanceSheetScreen(),
         '/cash-flow': (context) => const CashFlowStatementScreen(),
         '/user-guide': (context) => const UserGuideScreen(),
+        '/about-us': (context) => const AboutUsScreen(),
       },
     );
   }
