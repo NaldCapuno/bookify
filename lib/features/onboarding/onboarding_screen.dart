@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-// import 'package:shared_preferences/shared_preferences.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class OnboardingScreen extends StatefulWidget {
   const OnboardingScreen({super.key});
@@ -21,22 +21,24 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     ),
     OnboardingData(
       title: "Track Your Finances",
-      desc: "Monitor your Assets, Liabilities, and Equity with real-time reports.",
+      desc:
+          "Monitor your Assets, Liabilities, and Equity with real-time reports.",
       icon: Icons.bar_chart_outlined,
       color: Colors.blue.shade800,
     ),
     OnboardingData(
       title: "Secure & Offline",
-      desc: "Your data stays on your device. Private, secure, and always accessible.",
+      desc:
+          "Your data stays on your device. Private, secure, and always accessible.",
       icon: Icons.security_outlined,
       color: Colors.green.shade800,
     ),
   ];
 
   Future<void> _completeOnboarding() async {
-    // final prefs = await SharedPreferences.getInstance();
-    // await prefs.setBool('onboarding_complete', false);
-    
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('onboarding_complete', false);
+
     if (mounted) {
       Navigator.pushReplacementNamed(context, '/home');
     }
@@ -56,7 +58,10 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 onPressed: _completeOnboarding,
                 child: const Text(
                   "SKIP",
-                  style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold),
+                  style: TextStyle(
+                    color: Colors.grey,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ),
             ),
@@ -87,7 +92,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                     ),
                   ),
                   const SizedBox(height: 40),
-                  
+
                   // Next / Get Started Button
                   SizedBox(
                     width: double.infinity,
@@ -111,7 +116,9 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                         elevation: 0,
                       ),
                       child: Text(
-                        _currentPage == _pages.length - 1 ? "GET STARTED" : "NEXT",
+                        _currentPage == _pages.length - 1
+                            ? "GET STARTED"
+                            : "NEXT",
                         style: const TextStyle(
                           color: Colors.white,
                           fontSize: 16,
@@ -130,56 +137,56 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   }
 
   Widget _buildPage(OnboardingData data) {
-  return Padding(
-    padding: const EdgeInsets.symmetric(horizontal: 40.0),
-    child: Column(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        // 1. Show Image if imagePath is provided
-        if (data.image != null) ...[
-          Image.asset(
-            data.image!,
-            height: 200, // Adjust size as needed for your logo
-            fit: BoxFit.contain,
-          ),
-          const SizedBox(height: 40),
-        ] 
-        // 2. Otherwise show Icon if available
-        else if (data.icon != null) ...[
-          Container(
-            padding: const EdgeInsets.all(30),
-            decoration: BoxDecoration(
-              color: data.color.withOpacity(0.1),
-              shape: BoxShape.circle,
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 40.0),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          // 1. Show Image if imagePath is provided
+          if (data.image != null) ...[
+            Image.asset(
+              data.image!,
+              height: 200, // Adjust size as needed for your logo
+              fit: BoxFit.contain,
             ),
-            child: Icon(data.icon, size: 100, color: data.color),
-          ),
-          const SizedBox(height: 40),
-        ],
+            const SizedBox(height: 40),
+          ]
+          // 2. Otherwise show Icon if available
+          else if (data.icon != null) ...[
+            Container(
+              padding: const EdgeInsets.all(30),
+              decoration: BoxDecoration(
+                color: data.color.withOpacity(0.1),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(data.icon, size: 100, color: data.color),
+            ),
+            const SizedBox(height: 40),
+          ],
 
-        Text(
-          data.title,
-          textAlign: TextAlign.center,
-          style: const TextStyle(
-            fontSize: 28,
-            fontWeight: FontWeight.bold,
-            color: Color(0xFF1A1C1E),
+          Text(
+            data.title,
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              fontSize: 28,
+              fontWeight: FontWeight.bold,
+              color: Color(0xFF1A1C1E),
+            ),
           ),
-        ),
-        const SizedBox(height: 16),
-        Text(
-          data.desc,
-          textAlign: TextAlign.center,
-          style: const TextStyle(
-            fontSize: 16,
-            color: Colors.blueGrey,
-            height: 1.5,
+          const SizedBox(height: 16),
+          Text(
+            data.desc,
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              fontSize: 16,
+              color: Colors.blueGrey,
+              height: 1.5,
+            ),
           ),
-        ),
-      ],
-    ),
-  );
-}
+        ],
+      ),
+    );
+  }
 
   Widget _buildDot(int index) {
     return AnimatedContainer(
@@ -188,7 +195,9 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       height: 8,
       width: _currentPage == index ? 24 : 8,
       decoration: BoxDecoration(
-        color: _currentPage == index ? const Color(0xFF1A1C1E) : Colors.grey.shade300,
+        color: _currentPage == index
+            ? const Color(0xFF1A1C1E)
+            : Colors.grey.shade300,
         borderRadius: BorderRadius.circular(4),
       ),
     );
