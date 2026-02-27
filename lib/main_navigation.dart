@@ -97,11 +97,28 @@ class _MainNavigationState extends State<MainNavigation> {
         body: IndexedStack(
           index: _selectedIndex,
           children: [
-            DashboardScreen(onFeatureTap: _onItemTapped),
-            const JournalScreen(),
-            const LedgerScreen(),
-            ReportsScreen(onFeatureTap: _onItemTapped),
-            const AccountsScreen(),
+            DashboardScreen(
+              onFeatureTap: _onItemTapped,
+              selectedIndex: _selectedIndex,
+              myIndex: 0,
+            ),
+            JournalScreen(
+              selectedIndex: _selectedIndex,
+              myIndex: 1,
+            ),
+            LedgerScreen(
+              selectedIndex: _selectedIndex,
+              myIndex: 2,
+            ),
+            ReportsScreen(
+              onFeatureTap: _onItemTapped,
+              selectedIndex: _selectedIndex,
+              myIndex: 3,
+            ),
+            AccountsScreen(
+              selectedIndex: _selectedIndex,
+              myIndex: 4,
+            ),
           ],
         ),
         bottomNavigationBar: CustomNavBar(

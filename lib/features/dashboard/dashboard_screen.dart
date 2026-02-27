@@ -9,8 +9,15 @@ import 'package:bookkeeping/core/services/walkthrough_service.dart';
 
 class DashboardScreen extends StatefulWidget {
   final Function(int) onFeatureTap;
+  final int selectedIndex;
+  final int myIndex;
 
-  const DashboardScreen({super.key, required this.onFeatureTap});
+  const DashboardScreen({
+    super.key,
+    required this.onFeatureTap,
+    required this.selectedIndex,
+    required this.myIndex,
+  });
 
   @override
   State<DashboardScreen> createState() => _DashboardScreenState();
@@ -34,17 +41,33 @@ class _DashboardScreenState extends State<DashboardScreen> {
     return amount < 0 ? '(₱$formatted)' : '₱$formatted';
   }
 
+  bool _hasShownTour = false;
+
   @override
   void initState() {
     super.initState();
     _userService = UserService(UsersDao(appDb));
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _startWalkthrough();
+      _maybeStartWalkthrough();
     });
   }
 
-  void _startWalkthrough() {
+  @override
+  void didUpdateWidget(covariant DashboardScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.selectedIndex == widget.myIndex && !_hasShownTour) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _maybeStartWalkthrough();
+      });
+    }
+  }
+
+  void _maybeStartWalkthrough() {
+    if (!mounted || _hasShownTour || widget.selectedIndex != widget.myIndex) {
+      return;
+    }
+    _hasShownTour = true;
     WalkthroughService.showDashboardTour(
       context,
       bannerKey: _bannerKey,

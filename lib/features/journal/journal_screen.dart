@@ -4,16 +4,60 @@ import 'package:bookkeeping/core/widgets/app_fab.dart';
 import 'package:bookkeeping/features/journal/logic/add_transaction.dart';
 import 'package:intl/intl.dart';
 import 'package:flutter/material.dart';
+import 'package:bookkeeping/core/services/walkthrough_service.dart';
 
 class JournalScreen extends StatefulWidget {
-  const JournalScreen({super.key});
+  final int selectedIndex;
+  final int myIndex;
+
+  const JournalScreen({
+    super.key,
+    required this.selectedIndex,
+    required this.myIndex,
+  });
 
   @override
   State<JournalScreen> createState() => _JournalScreenState();
 }
 
 class _JournalScreenState extends State<JournalScreen> {
-  // 2. State variable to track the selected filter
+  final GlobalKey _filterKey = GlobalKey();
+  final GlobalKey _emptyStateKey = GlobalKey();
+  final GlobalKey _fabKey = GlobalKey();
+
+  bool _hasShownTour = false;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _maybeStartJournalTour();
+    });
+  }
+
+  @override
+  void didUpdateWidget(covariant JournalScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.selectedIndex == widget.myIndex && !_hasShownTour) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _maybeStartJournalTour();
+      });
+    }
+  }
+
+  void _maybeStartJournalTour() {
+    if (!mounted || _hasShownTour || widget.selectedIndex != widget.myIndex) {
+      return;
+    }
+    _hasShownTour = true;
+    WalkthroughService.showJournalTour(
+      context,
+      filterKey: _filterKey,
+      emptyKey: _emptyStateKey,
+      fabKey: _fabKey,
+    );
+  }
+
   String _selectedFilter = 'All';
   final List<String> _filters = [
     'All',
@@ -86,6 +130,7 @@ class _JournalScreenState extends State<JournalScreen> {
                 if (filteredList.isEmpty) {
                   return Center(
                     child: Text(
+                      key: _emptyStateKey,
                       _selectedFilter == 'All'
                           ? 'No journal entries yet.'
                           : 'No entries for this $_selectedFilter period.',
@@ -133,6 +178,7 @@ class _JournalScreenState extends State<JournalScreen> {
         ],
       ),
       floatingActionButton: AppFloatingActionButton(
+        key: _fabKey,
         label: 'New Entry',
         icon: Icons.add,
         onPressed: () => _openAddTransaction(context),
@@ -142,6 +188,7 @@ class _JournalScreenState extends State<JournalScreen> {
 
   Widget _buildFilterChips() {
     return SingleChildScrollView(
+      key: _filterKey,
       scrollDirection: Axis.horizontal,
       // IMPROVED PADDING: Added top padding to push it away from the screen edge,
       // and bottom padding to give space before the cards begin.

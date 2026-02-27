@@ -14,7 +14,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
   final List<OnboardingData> _pages = [
     OnboardingData(
-      title: "Welcome to Superbook",
+      title: "Welcome to TsekBooks",
       desc: "An easy-to-use bookkeeping app designed for your business needs.",
       image: 'assets/images/logo.png',
       color: const Color(0xFF1A1C1E),

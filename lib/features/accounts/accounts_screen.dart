@@ -7,11 +7,19 @@ import 'package:bookkeeping/core/widgets/app_confirmation_sheet.dart';
 import 'package:bookkeeping/features/accounts/account_details_sheet.dart';
 import 'package:bookkeeping/core/database/tables/account_categories_table.dart';
 import 'package:bookkeeping/core/widgets/app_toast.dart';
+import 'package:bookkeeping/core/services/walkthrough_service.dart';
 import 'add_account_form.dart';
 import 'package:bookkeeping/features/accounts/account_search_header.dart';
 
 class AccountsScreen extends StatefulWidget {
-  const AccountsScreen({super.key});
+  final int selectedIndex;
+  final int myIndex;
+
+  const AccountsScreen({
+    super.key,
+    required this.selectedIndex,
+    required this.myIndex,
+  });
 
   @override
   State<AccountsScreen> createState() => _AccountsScreenState();
@@ -22,6 +30,42 @@ class _AccountsScreenState extends State<AccountsScreen> {
   final FocusNode _searchFocusNode = FocusNode();
   String _searchQuery = '';
   BalanceFilter _currentFilter = BalanceFilter.all;
+
+  final GlobalKey _searchKey = GlobalKey();
+  final GlobalKey _listKey = GlobalKey();
+  final GlobalKey _fabKey = GlobalKey();
+  bool _hasShownTour = false;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _maybeStartAccountsTour();
+    });
+  }
+
+  @override
+  void didUpdateWidget(covariant AccountsScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.selectedIndex == widget.myIndex && !_hasShownTour) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _maybeStartAccountsTour();
+      });
+    }
+  }
+
+  void _maybeStartAccountsTour() {
+    if (!mounted || _hasShownTour || widget.selectedIndex != widget.myIndex) {
+      return;
+    }
+    _hasShownTour = true;
+    WalkthroughService.showAccountsTour(
+      context,
+      searchKey: _searchKey,
+      listKey: _listKey,
+      fabKey: _fabKey,
+    );
+  }
 
   @override
   void dispose() {
@@ -41,6 +85,7 @@ class _AccountsScreenState extends State<AccountsScreen> {
       // Ensure the background color doesn't blend with the search bar
       backgroundColor: const Color(0xFFF8FAFC),
       floatingActionButton: AppFloatingActionButton(
+        key: _fabKey,
         label: 'Add Account',
         onPressed: () => _showAddAccountDialog(context),
       ),
@@ -51,6 +96,7 @@ class _AccountsScreenState extends State<AccountsScreen> {
             // --- SEARCH BAR SECTION ---
             // Added a Container wrapper to ensure visibility and spacing
             Container(
+              key: _searchKey,
               color: Colors.white,
               child: AccountSearchHeader(
                 controller: _searchController,
@@ -81,6 +127,11 @@ class _AccountsScreenState extends State<AccountsScreen> {
 
                   final data = snapshot.data ?? [];
 
+                  // Schedule tour after content is built (key must be attached)
+                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                    _maybeStartAccountsTour();
+                  });
+
                   // Logic: If query matches Category, Name, or Code
                   final filteredData = data.where((row) {
                     final query = _searchQuery.toLowerCase();
@@ -106,6 +157,7 @@ class _AccountsScreenState extends State<AccountsScreen> {
                   if (filteredData.isEmpty) {
                     return Center(
                       child: Text(
+                        key: _listKey,
                         _searchQuery.isEmpty
                             ? 'No accounts found.'
                             : 'No results for "$_searchQuery"',
@@ -129,7 +181,10 @@ class _AccountsScreenState extends State<AccountsScreen> {
                       final rows = groupedData[categoryName]!;
 
                       return StickyHeader(
-                        header: _buildStickyHeader(categoryName),
+                        header: _buildStickyHeader(
+                          categoryName,
+                          key: index == 0 ? _listKey : null,
+                        ),
                         content: Column(
                           children: rows
                               .map((row) => _buildAccountTile(row, context))
@@ -149,8 +204,9 @@ class _AccountsScreenState extends State<AccountsScreen> {
 
   // --- HELPER WIDGETS ---
 
-  Widget _buildStickyHeader(String title) {
+  Widget _buildStickyHeader(String title, {Key? key}) {
     return Container(
+      key: key,
       height: 40.0,
       width: double.infinity,
       color: const Color(0xFFF2F4F7),
