@@ -21,6 +21,7 @@ class _AccountsScreenState extends State<AccountsScreen> {
   final TextEditingController _searchController = TextEditingController();
   final FocusNode _searchFocusNode = FocusNode();
   String _searchQuery = '';
+  BalanceFilter _currentFilter = BalanceFilter.all;
 
   @override
   void dispose() {
@@ -54,6 +55,9 @@ class _AccountsScreenState extends State<AccountsScreen> {
               child: AccountSearchHeader(
                 controller: _searchController,
                 focusNode: _searchFocusNode,
+                selectedFilter: _currentFilter,
+                onFilterChanged: (filter) =>
+                    setState(() => _currentFilter = filter),
                 searchQuery: _searchQuery,
                 onChanged: (value) => setState(() => _searchQuery = value),
                 onClear: () {
@@ -80,9 +84,23 @@ class _AccountsScreenState extends State<AccountsScreen> {
                   // Logic: If query matches Category, Name, or Code
                   final filteredData = data.where((row) {
                     final query = _searchQuery.toLowerCase();
-                    return row.account.name.toLowerCase().contains(query) ||
+
+                    // Existing Search Logic
+                    final matchesSearch =
+                        row.account.name.toLowerCase().contains(query) ||
                         row.account.code.toString().contains(query) ||
                         row.category.name.toLowerCase().contains(query);
+
+                    // New Filter Logic
+                    final isDebit =
+                        row.category.normalBalance == NormalBalance.debit;
+                    bool matchesFilter = true;
+                    if (_currentFilter == BalanceFilter.dr)
+                      matchesFilter = isDebit;
+                    if (_currentFilter == BalanceFilter.cr)
+                      matchesFilter = !isDebit;
+
+                    return matchesSearch && matchesFilter;
                   }).toList();
 
                   if (filteredData.isEmpty) {
