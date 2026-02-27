@@ -14,6 +14,10 @@ class UserService {
     return await _usersDao.getSingleUser();
   }
 
+  Stream<User?> watchUserProfile() {
+    return _usersDao.watchSingleUser();
+  }
+
   /// Updates specific fields from the UI
   Future<bool> saveProfileUpdates({
     required int id,

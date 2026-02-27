@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import '../../core/database/app_database.dart';
-import '../../core/database/daos/ledger_dao.dart';
-import '../../core/database/daos/journal_entry_daos.dart';
+import 'package:bookkeeping/core/database/app_database.dart';
+import 'package:bookkeeping/core/database/daos/ledger_dao.dart';
+import 'package:bookkeeping/core/database/daos/journal_entry_daos.dart';
+import 'package:bookkeeping/core/services/user_service.dart';
+import 'package:bookkeeping/core/database/daos/users_dao.dart';
 
 class DashboardScreen extends StatefulWidget {
   final Function(int) onFeatureTap;
@@ -20,6 +22,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   // Currency and Date Formatters
   final NumberFormat _currencyFormat = NumberFormat('#,##0.00', 'en_US');
   final DateFormat _dateFormat = DateFormat('MMM dd, yyyy');
+  late final UserService _userService;
 
   // Helper method for strict Accounting Standard formatting (Negative numbers in parentheses)
   String _formatAccounting(double amount) {
@@ -29,10 +32,19 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   @override
+  void initState() {
+    super.initState();
+    // 2. Initialize it using the global appDb instance
+    _userService = UserService(UsersDao(appDb));
+  }
+
+  @override
   Widget build(BuildContext context) {
     return ListView(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+      padding: const EdgeInsets.all(20),
       children: [
+        _buildWelcomeBanner(),
+        const SizedBox(height: 16),
         _buildTotalCashSection(),
         const SizedBox(height: 24),
 
@@ -653,6 +665,56 @@ class _DashboardScreenState extends State<DashboardScreen> {
           ),
         ],
       ),
+    );
+  }
+
+  // Inside your Dashboard widget
+  Widget _buildWelcomeBanner() {
+    return StreamBuilder<User?>(
+      stream: _userService.watchUserProfile(),
+      builder: (context, snapshot) {
+        final user = snapshot.data;
+
+        // Fallback values while loading or if data is missing
+        final String name = user?.username ?? "User";
+        final String business = user?.business ?? "Your Business";
+
+        return Container(
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            color: const Color(0xFF1A1C1E), // Your signature black/dark grey
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Welcome, $name',
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 22,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 6),
+              Row(
+                children: [
+                  const Icon(
+                    Icons.business_center,
+                    color: Colors.white70,
+                    size: 16,
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    business,
+                    style: const TextStyle(color: Colors.white70, fontSize: 14),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 }

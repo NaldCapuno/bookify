@@ -18,7 +18,7 @@ class LedgerScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFC),
+      // backgroundColor: const Color(0xFFF8FAFC),
       body: SafeArea(
         child: StreamBuilder<List<LedgerEntry>>(
           stream: appDb.ledgerDao.watchLedgerEntries(),
@@ -60,7 +60,7 @@ class LedgerScreen extends StatelessWidget {
             ];
 
             return ListView.builder(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+              padding: const EdgeInsets.all(20),
               itemCount: categories.length,
               itemBuilder: (context, index) {
                 final cat = categories[index];

@@ -8,7 +8,7 @@ import 'package:bookkeeping/features/ledger/ledger_screen.dart';
 import 'package:bookkeeping/features/reports/reports_screen.dart';
 import 'package:bookkeeping/features/accounts/accounts_screen.dart';
 
-import 'package:bookkeeping/features/profile/user_service.dart';
+import 'package:bookkeeping/core/services/user_service.dart';
 import 'package:bookkeeping/core/database/app_database.dart';
 import 'package:bookkeeping/core/database/daos/users_dao.dart';
 

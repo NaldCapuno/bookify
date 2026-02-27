@@ -10,6 +10,8 @@ class UsersDao extends DatabaseAccessor<AppDatabase> with _$UsersDaoMixin {
 
   Future<User?> getSingleUser() => select(users).getSingleOrNull();
 
+  Stream<User?> watchSingleUser() => select(users).watchSingleOrNull();
+
   Future<bool> updateUser(UsersCompanion userCompanion) async {
     return await update(users).replace(userCompanion);
   }

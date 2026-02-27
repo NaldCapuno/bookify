@@ -1,4 +1,4 @@
-import 'package:bookkeeping/features/profile/user_service.dart';
+import 'package:bookkeeping/core/services/user_service.dart';
 import 'package:flutter/material.dart';
 import 'package:bookkeeping/core/widgets/appbar.dart';
 import 'package:bookkeeping/core/database/app_database.dart';

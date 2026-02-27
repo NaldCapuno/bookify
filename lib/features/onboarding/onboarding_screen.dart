@@ -37,7 +37,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
   Future<void> _completeOnboarding() async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool('onboarding_complete', false);
+    await prefs.setBool('onboarding_complete', true);
 
     if (mounted) {
       Navigator.pushReplacementNamed(context, '/home');
