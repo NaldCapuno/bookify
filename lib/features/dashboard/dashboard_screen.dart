@@ -5,6 +5,7 @@ import 'package:bookkeeping/core/database/daos/ledger_dao.dart';
 import 'package:bookkeeping/core/database/daos/journal_entry_daos.dart';
 import 'package:bookkeeping/core/services/user_service.dart';
 import 'package:bookkeeping/core/database/daos/users_dao.dart';
+import 'package:bookkeeping/core/services/walkthrough_service.dart';
 
 class DashboardScreen extends StatefulWidget {
   final Function(int) onFeatureTap;
@@ -16,10 +17,12 @@ class DashboardScreen extends StatefulWidget {
 }
 
 class _DashboardScreenState extends State<DashboardScreen> {
-  // Tracks how many sales items to display in the feed
-  int _visibleSalesCount = 3;
+  final GlobalKey _bannerKey = GlobalKey();
+  final GlobalKey _cashCardKey = GlobalKey();
+  final GlobalKey _plKey = GlobalKey();
+  final GlobalKey _chartKey = GlobalKey();
 
-  // Currency and Date Formatters
+  int _visibleSalesCount = 3;
   final NumberFormat _currencyFormat = NumberFormat('#,##0.00', 'en_US');
   final DateFormat _dateFormat = DateFormat('MMM dd, yyyy');
   late final UserService _userService;
@@ -34,18 +37,32 @@ class _DashboardScreenState extends State<DashboardScreen> {
   @override
   void initState() {
     super.initState();
-    // 2. Initialize it using the global appDb instance
     _userService = UserService(UsersDao(appDb));
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _startWalkthrough();
+    });
+  }
+
+  void _startWalkthrough() {
+    WalkthroughService.showDashboardTour(
+      context,
+      bannerKey: _bannerKey,
+      cashCardKey: _cashCardKey,
+      profitAndLossKey: _plKey,
+      salesChartKey: _chartKey,
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     return ListView(
       padding: const EdgeInsets.all(20),
+      cacheExtent: 2000,
       children: [
-        _buildWelcomeBanner(),
+        _buildWelcomeBanner(key: _bannerKey),
         const SizedBox(height: 16),
-        _buildTotalCashSection(),
+        _buildTotalCashSection(key: _cashCardKey),
         const SizedBox(height: 24),
 
         const Text(
@@ -60,7 +77,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   // --- SECTION 1: TOTAL CASH ---
-  Widget _buildTotalCashSection() {
+  Widget _buildTotalCashSection({required Key key}) {
     return StreamBuilder<List<LedgerEntry>>(
       stream: appDb.ledgerDao.watchLedgerEntries(),
       builder: (context, snapshot) {
@@ -76,6 +93,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         }
 
         return Container(
+          key: key,
           padding: const EdgeInsets.all(24),
           decoration: BoxDecoration(
             gradient: LinearGradient(
@@ -233,10 +251,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
             ),
             const SizedBox(height: 24),
 
-            _buildProfitAndLossSection(income, expenses),
+            _buildProfitAndLossSection(income, expenses, key: _plKey),
             const SizedBox(height: 24),
 
-            _buildTotalSalesChart(quarterlySales),
+            _buildTotalSalesChart(quarterlySales, key: _chartKey),
             const SizedBox(height: 24),
 
             const Row(
@@ -296,7 +314,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  Widget _buildProfitAndLossSection(double income, double expenses) {
+  Widget _buildProfitAndLossSection(
+    double income,
+    double expenses, {
+    required Key key,
+  }) {
     double netProfit = income - expenses;
     int incomeFlex = (income <= 0 && expenses <= 0)
         ? 1
@@ -307,6 +329,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final NumberFormat compactCurrency = NumberFormat('#,##0', 'en_US');
 
     return Container(
+      key: key,
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: Colors.white,
@@ -398,7 +421,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  Widget _buildTotalSalesChart(List<double> quarterlySales) {
+  Widget _buildTotalSalesChart(
+    List<double> quarterlySales, {
+    required Key key,
+  }) {
     double maxSales = quarterlySales.reduce((a, b) => a > b ? a : b);
     if (maxSales == 0) maxSales = 1;
     double totalYearSales = quarterlySales.fold(
@@ -411,6 +437,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     int currentQ = (now.month - 1) ~/ 3;
 
     return Container(
+      key: key,
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: Colors.white,
@@ -669,7 +696,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   // Inside your Dashboard widget
-  Widget _buildWelcomeBanner() {
+  Widget _buildWelcomeBanner({required Key key}) {
     return StreamBuilder<User?>(
       stream: _userService.watchUserProfile(),
       builder: (context, snapshot) {
@@ -680,6 +707,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         final String business = user?.business ?? "Your Business";
 
         return Container(
+          key: key,
           padding: const EdgeInsets.all(24),
           decoration: BoxDecoration(
             color: const Color(0xFF1A1C1E), // Your signature black/dark grey
