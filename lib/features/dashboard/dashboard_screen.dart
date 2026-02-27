@@ -68,13 +68,17 @@ class _DashboardScreenState extends State<DashboardScreen> {
       return;
     }
     _hasShownTour = true;
-    WalkthroughService.showDashboardTour(
-      context,
-      bannerKey: _bannerKey,
-      cashCardKey: _cashCardKey,
-      profitAndLossKey: _plKey,
-      salesChartKey: _chartKey,
-    );
+    // Delay so splash/onboarding transition settles and first target positions correctly
+    Future.delayed(const Duration(milliseconds: 800), () {
+      if (!mounted) return;
+      WalkthroughService.showDashboardTour(
+        context,
+        bannerKey: _bannerKey,
+        cashCardKey: _cashCardKey,
+        profitAndLossKey: _plKey,
+        salesChartKey: _chartKey,
+      );
+    });
   }
 
   @override
