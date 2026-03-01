@@ -4,7 +4,7 @@ class AppConfirmationSheet extends StatelessWidget {
   final String title;
   final String message;
   final String confirmLabel;
-  final Color confirmColor;
+  final Color? confirmColor;
   final IconData icon;
 
   const AppConfirmationSheet({
@@ -12,12 +12,15 @@ class AppConfirmationSheet extends StatelessWidget {
     required this.title,
     required this.message,
     required this.confirmLabel,
-    required this.confirmColor,
+    this.confirmColor,
     required this.icon,
   });
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final confirm = confirmColor ?? colorScheme.primary;
     return Padding(
       padding: const EdgeInsets.all(24.0),
       child: Column(
@@ -29,22 +32,25 @@ class AppConfirmationSheet extends StatelessWidget {
             height: 4,
             margin: const EdgeInsets.only(bottom: 20),
             decoration: BoxDecoration(
-              color: Colors.grey[300],
+              color: colorScheme.outline.withOpacity(0.3),
               borderRadius: BorderRadius.circular(10),
             ),
           ),
-          Icon(icon, color: confirmColor, size: 50),
+          Icon(icon, color: confirm, size: 50),
           const SizedBox(height: 16),
           Text(
             title,
-            style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            style: theme.textTheme.titleLarge,
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 8),
           Text(
             message,
             textAlign: TextAlign.center,
-            style: const TextStyle(color: Colors.grey, fontSize: 14),
+            style: theme.textTheme.bodyMedium!.copyWith(
+              color: colorScheme.onSurfaceVariant,
+              fontSize: 14,
+            ),
           ),
           const SizedBox(height: 24),
           Row(
@@ -52,9 +58,9 @@ class AppConfirmationSheet extends StatelessWidget {
               Expanded(
                 child: TextButton(
                   onPressed: () => Navigator.pop(context, false),
-                  child: const Text(
+                  child: Text(
                     'Cancel',
-                    style: TextStyle(color: Colors.grey),
+                    style: TextStyle(color: colorScheme.onSurfaceVariant),
                   ),
                 ),
               ),
@@ -63,16 +69,14 @@ class AppConfirmationSheet extends StatelessWidget {
                 child: ElevatedButton(
                   onPressed: () => Navigator.pop(context, true),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: confirmColor,
+                    backgroundColor: confirm,
+                    foregroundColor: colorScheme.onPrimary,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
                     padding: const EdgeInsets.symmetric(vertical: 14),
                   ),
-                  child: Text(
-                    confirmLabel,
-                    style: const TextStyle(color: Colors.white),
-                  ),
+                  child: Text(confirmLabel),
                 ),
               ),
             ],

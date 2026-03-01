@@ -12,28 +12,31 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   final PageController _pageController = PageController();
   int _currentPage = 0;
 
-  final List<OnboardingData> _pages = [
-    OnboardingData(
-      title: "Welcome to TsekBooks",
-      desc: "An easy-to-use bookkeeping app designed for your business needs.",
-      image: 'assets/images/logo.png',
-      color: const Color(0xFF1A1C1E),
-    ),
-    OnboardingData(
-      title: "Track Your Finances",
-      desc:
-          "Monitor your Assets, Liabilities, and Equity with real-time reports.",
-      icon: Icons.bar_chart_outlined,
-      color: Colors.blue.shade800,
-    ),
-    OnboardingData(
-      title: "Secure & Offline",
-      desc:
-          "Your data stays on your device. Private, secure, and always accessible.",
-      icon: Icons.security_outlined,
-      color: Colors.green.shade800,
-    ),
-  ];
+  List<OnboardingData> _pages(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return [
+      OnboardingData(
+        title: "Welcome to TsekBooks",
+        desc: "An easy-to-use bookkeeping app designed for your business needs.",
+        image: 'assets/images/logo.png',
+        color: colorScheme.primary,
+      ),
+      OnboardingData(
+        title: "Track Your Finances",
+        desc:
+            "Monitor your Assets, Liabilities, and Equity with real-time reports.",
+        icon: Icons.bar_chart_outlined,
+        color: colorScheme.tertiary,
+      ),
+      OnboardingData(
+        title: "Secure & Offline",
+        desc:
+            "Your data stays on your device. Private, secure, and always accessible.",
+        icon: Icons.security_outlined,
+        color: colorScheme.primary,
+      ),
+    ];
+  }
 
   Future<void> _completeOnboarding() async {
     final prefs = await SharedPreferences.getInstance();
@@ -46,8 +49,10 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: colorScheme.surface,
       body: SafeArea(
         child: Column(
           children: [
@@ -56,10 +61,10 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
               alignment: Alignment.centerRight,
               child: TextButton(
                 onPressed: _completeOnboarding,
-                child: const Text(
+                child: Text(
                   "SKIP",
                   style: TextStyle(
-                    color: Colors.grey,
+                    color: colorScheme.onSurfaceVariant,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
@@ -71,9 +76,9 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
               child: PageView.builder(
                 controller: _pageController,
                 onPageChanged: (index) => setState(() => _currentPage = index),
-                itemCount: _pages.length,
+                itemCount: _pages(context).length,
                 itemBuilder: (context, index) {
-                  return _buildPage(_pages[index]);
+                  return _buildPage(_pages(context)[index]);
                 },
               ),
             ),
@@ -81,53 +86,55 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
             // Bottom Controls
             Padding(
               padding: const EdgeInsets.all(32.0),
-              child: Column(
-                children: [
-                  // Page Indicators (Dots)
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: List.generate(
-                      _pages.length,
-                      (index) => _buildDot(index),
-                    ),
-                  ),
-                  const SizedBox(height: 40),
+              child: Builder(
+                builder: (ctx) {
+                  final pages = _pages(ctx);
+                  return Column(
+                    children: [
+                      // Page Indicators (Dots)
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: List.generate(
+                          pages.length,
+                          (index) => _buildDot(ctx, index),
+                        ),
+                      ),
+                      const SizedBox(height: 40),
 
-                  // Next / Get Started Button
-                  SizedBox(
-                    width: double.infinity,
-                    height: 56,
-                    child: ElevatedButton(
-                      onPressed: () {
-                        if (_currentPage == _pages.length - 1) {
-                          _completeOnboarding();
-                        } else {
-                          _pageController.nextPage(
-                            duration: const Duration(milliseconds: 300),
-                            curve: Curves.easeInOut,
-                          );
-                        }
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF1A1C1E),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(16),
+                      // Next / Get Started Button
+                      SizedBox(
+                        width: double.infinity,
+                        height: 56,
+                        child: ElevatedButton(
+                          onPressed: () {
+                            if (_currentPage == pages.length - 1) {
+                              _completeOnboarding();
+                            } else {
+                              _pageController.nextPage(
+                                duration: const Duration(milliseconds: 300),
+                                curve: Curves.easeInOut,
+                              );
+                            }
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: colorScheme.primary,
+                            foregroundColor: colorScheme.onPrimary,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                            elevation: 0,
+                          ),
+                          child: Text(
+                            _currentPage == pages.length - 1
+                                ? "GET STARTED"
+                                : "NEXT",
+                            style: theme.textTheme.labelLarge!.copyWith(fontSize: 16),
+                          ),
                         ),
-                        elevation: 0,
                       ),
-                      child: Text(
-                        _currentPage == _pages.length - 1
-                            ? "GET STARTED"
-                            : "NEXT",
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
+                    ],
+                  );
+                },
               ),
             ),
           ],
@@ -167,19 +174,14 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
           Text(
             data.title,
             textAlign: TextAlign.center,
-            style: const TextStyle(
-              fontSize: 28,
-              fontWeight: FontWeight.bold,
-              color: Color(0xFF1A1C1E),
-            ),
+            style: Theme.of(context).textTheme.headlineMedium!.copyWith(fontSize: 28),
           ),
           const SizedBox(height: 16),
           Text(
             data.desc,
             textAlign: TextAlign.center,
-            style: const TextStyle(
-              fontSize: 16,
-              color: Colors.blueGrey,
+            style: Theme.of(context).textTheme.bodyLarge!.copyWith(
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
               height: 1.5,
             ),
           ),
@@ -188,7 +190,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     );
   }
 
-  Widget _buildDot(int index) {
+  Widget _buildDot(BuildContext context, int index) {
+    final colorScheme = Theme.of(context).colorScheme;
     return AnimatedContainer(
       duration: const Duration(milliseconds: 200),
       margin: const EdgeInsets.only(right: 8),
@@ -196,8 +199,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       width: _currentPage == index ? 24 : 8,
       decoration: BoxDecoration(
         color: _currentPage == index
-            ? const Color(0xFF1A1C1E)
-            : Colors.grey.shade300,
+            ? colorScheme.primary
+            : colorScheme.outline.withValues(alpha: 0.5),
         borderRadius: BorderRadius.circular(4),
       ),
     );

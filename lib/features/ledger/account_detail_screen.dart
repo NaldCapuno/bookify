@@ -15,38 +15,41 @@ class AccountDetailScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: colorScheme.surface,
       appBar: AppBar(
         title: Text(
           '${entry.account.code} - ${entry.account.name}',
-          style: const TextStyle(
-            color: Colors.white,
-            fontWeight: FontWeight.bold,
-          ),
+          style: theme.textTheme.titleLarge,
         ),
-        backgroundColor: Colors.black,
-        foregroundColor: Colors.white,
-        elevation: 0,
       ),
       body: StreamBuilder<List<TypedResult>>(
         stream: appDb.ledgerDao.watchTransactionsForAccount(entry.account.id),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(
-              child: CircularProgressIndicator(color: Colors.black),
+            return Center(
+              child: CircularProgressIndicator(color: colorScheme.primary),
             );
           }
           if (snapshot.hasError) {
-            return Center(child: Text('Error: ${snapshot.error}'));
+            return Center(
+              child: Text(
+                'Error: ${snapshot.error}',
+                style: theme.textTheme.bodyLarge,
+              ),
+            );
           }
 
           final rows = snapshot.data ?? [];
           if (rows.isEmpty) {
-            return const Center(
+            return Center(
               child: Text(
                 'No transactions yet',
-                style: TextStyle(color: Colors.grey, fontSize: 14),
+                style: theme.textTheme.bodyMedium!.copyWith(
+                  color: colorScheme.onSurfaceVariant,
+                ),
               ),
             );
           }
@@ -77,13 +80,13 @@ class AccountDetailScreen extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                const Row(
+                Row(
                   children: [
                     Expanded(
                       flex: 2,
                       child: Text(
                         'DATE',
-                        style: TextStyle(
+                        style: theme.textTheme.bodySmall!.copyWith(
                           fontWeight: FontWeight.bold,
                           fontSize: 12,
                         ),
@@ -93,7 +96,7 @@ class AccountDetailScreen extends StatelessWidget {
                       child: Text(
                         'DEBIT',
                         textAlign: TextAlign.right,
-                        style: TextStyle(
+                        style: theme.textTheme.bodySmall!.copyWith(
                           fontWeight: FontWeight.bold,
                           fontSize: 12,
                         ),
@@ -103,7 +106,7 @@ class AccountDetailScreen extends StatelessWidget {
                       child: Text(
                         'CREDIT',
                         textAlign: TextAlign.right,
-                        style: TextStyle(
+                        style: theme.textTheme.bodySmall!.copyWith(
                           fontWeight: FontWeight.bold,
                           fontSize: 12,
                         ),
@@ -111,7 +114,7 @@ class AccountDetailScreen extends StatelessWidget {
                     ),
                   ],
                 ),
-                const Divider(color: Colors.black, thickness: 1),
+                Divider(color: colorScheme.outline, thickness: 1),
                 Expanded(
                   child: ListView.builder(
                     itemCount: txItems.length,
@@ -125,7 +128,7 @@ class AccountDetailScreen extends StatelessWidget {
                               flex: 2,
                               child: Text(
                                 dateFormatter.format(item.date),
-                                style: const TextStyle(fontSize: 13),
+                                style: theme.textTheme.bodyMedium!.copyWith(fontSize: 13),
                               ),
                             ),
                             Expanded(
@@ -134,7 +137,7 @@ class AccountDetailScreen extends StatelessWidget {
                                     ? item.debit.toStringAsFixed(2)
                                     : '—',
                                 textAlign: TextAlign.right,
-                                style: const TextStyle(fontSize: 13),
+                                style: theme.textTheme.bodyMedium!.copyWith(fontSize: 13),
                               ),
                             ),
                             Expanded(
@@ -143,7 +146,7 @@ class AccountDetailScreen extends StatelessWidget {
                                     ? item.credit.toStringAsFixed(2)
                                     : '—',
                                 textAlign: TextAlign.right,
-                                style: const TextStyle(fontSize: 13),
+                                style: theme.textTheme.bodyMedium!.copyWith(fontSize: 13),
                               ),
                             ),
                           ],
@@ -152,14 +155,14 @@ class AccountDetailScreen extends StatelessWidget {
                     },
                   ),
                 ),
-                const Divider(color: Colors.black, thickness: 2),
+                Divider(color: colorScheme.outline, thickness: 2),
                 Row(
                   children: [
-                    const Expanded(
+                    Expanded(
                       flex: 2,
                       child: Text(
                         'TOTAL',
-                        style: TextStyle(
+                        style: theme.textTheme.bodyLarge!.copyWith(
                           fontWeight: FontWeight.w900,
                         ),
                       ),
@@ -168,7 +171,7 @@ class AccountDetailScreen extends StatelessWidget {
                       child: Text(
                         totalDebit.toStringAsFixed(2),
                         textAlign: TextAlign.right,
-                        style: const TextStyle(
+                        style: theme.textTheme.bodyLarge!.copyWith(
                           fontWeight: FontWeight.w900,
                         ),
                       ),
@@ -177,7 +180,7 @@ class AccountDetailScreen extends StatelessWidget {
                       child: Text(
                         totalCredit.toStringAsFixed(2),
                         textAlign: TextAlign.right,
-                        style: const TextStyle(
+                        style: theme.textTheme.bodyLarge!.copyWith(
                           fontWeight: FontWeight.w900,
                         ),
                       ),

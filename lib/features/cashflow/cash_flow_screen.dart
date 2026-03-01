@@ -1,4 +1,5 @@
 import 'package:bookkeeping/core/database/app_database.dart';
+import 'package:bookkeeping/core/theme/app_theme.dart';
 import 'package:bookkeeping/core/utils/date_utils.dart';
 import 'package:bookkeeping/core/widgets/appbar.dart';
 import 'package:bookkeeping/core/widgets/cash_flow_card.dart';
@@ -48,6 +49,7 @@ class _CashFlowStatementScreenState extends State<CashFlowStatementScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     final dateFormat = DateFormat('MMMM dd, yyyy');
 
     return Scaffold(
@@ -55,9 +57,7 @@ class _CashFlowStatementScreenState extends State<CashFlowStatementScreen> {
         title: "Cash Flow Statement",
         showBackButton: true,
       ),
-      backgroundColor: const Color(
-        0xFFF8F9FA,
-      ), // Matching Balance Sheet background
+      backgroundColor: theme.extension<AppColors>()!.surfaceContainer,
       body: SafeArea(
         child: FutureBuilder<CashFlowStatement>(
           future: _statementFuture,
@@ -88,33 +88,30 @@ class _CashFlowStatementScreenState extends State<CashFlowStatementScreen> {
                   // --- REPORT HEADER ---
                   Text(
                     reportData?.businessName ?? "Business Name",
-                    style: const TextStyle(
-                      fontSize: 22,
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xFF001F3F),
+                    style: theme.textTheme.headlineMedium!.copyWith(
+                      color: theme.extension<AppColors>()!.reportPrimaryText,
                     ),
                     textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: 6),
-                  const Text(
+                  Text(
                     "STATEMENT OF CASH FLOWS",
-                    style: TextStyle(
-                      fontSize: 12,
+                    style: theme.textTheme.bodySmall!.copyWith(
                       fontWeight: FontWeight.w600,
-                      color: Color(0xFF6C757D),
                       letterSpacing: 1.2,
+                      color: theme.extension<AppColors>()!.reportSecondaryText,
                     ),
                   ),
                   const SizedBox(height: 8),
                   Text(
                     "For the Period: ${dateFormat.format(_startDate)} - ${dateFormat.format(_endDate)}",
-                    style: const TextStyle(
+                    style: theme.textTheme.bodyMedium!.copyWith(
                       fontSize: 13,
-                      color: Color(0xFF6C757D),
+                      color: theme.extension<AppColors>()!.reportSecondaryText,
                     ),
                   ),
                   const SizedBox(height: 20),
-                  const Divider(color: Color(0xFFE0E0E0)),
+                  Divider(color: theme.extension<AppColors>()!.reportDivider),
                   const SizedBox(height: 20),
 
                   // --- DYNAMIC CONTENT ---

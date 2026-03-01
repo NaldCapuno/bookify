@@ -1,4 +1,5 @@
 import 'package:bookkeeping/core/database/app_database.dart';
+import 'package:bookkeeping/core/theme/app_theme.dart';
 import 'package:bookkeeping/core/utils/date_utils.dart';
 import 'package:bookkeeping/core/widgets/income_statement_card.dart';
 import 'package:bookkeeping/core/widgets/report_control_bar.dart';
@@ -47,12 +48,13 @@ class _IncomeStatementScreenState extends State<IncomeStatementScreen> {
   Widget build(BuildContext context) {
     final dateFormat = DateFormat('MMMM dd, yyyy');
 
+    final theme = Theme.of(context);
     return Scaffold(
       appBar: const CustomAppBar(
         title: "Income Statement",
         showBackButton: true,
       ),
-      backgroundColor: Colors.white,
+      backgroundColor: theme.colorScheme.surface,
       body: SafeArea(
         child: FutureBuilder<IncomeStatement>(
           future: _statementFuture,
@@ -78,34 +80,30 @@ class _IncomeStatementScreenState extends State<IncomeStatementScreen> {
 
                   // --- REPORT HEADER ---
                   Text(
-                    // Pulls business name from the Users table via the model
                     reportData?.businessName ?? "Business Name",
-                    style: const TextStyle(
-                      fontSize: 22,
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xFF001F3F),
+                    style: theme.textTheme.headlineMedium!.copyWith(
+                      color: theme.extension<AppColors>()!.reportPrimaryText,
                     ),
                   ),
                   const SizedBox(height: 6),
-                  const Text(
+                  Text(
                     "INCOME STATEMENT",
-                    style: TextStyle(
-                      fontSize: 12,
+                    style: theme.textTheme.bodySmall!.copyWith(
                       fontWeight: FontWeight.w600,
-                      color: Color(0xFF6C757D),
                       letterSpacing: 1.2,
+                      color: theme.extension<AppColors>()!.reportSecondaryText,
                     ),
                   ),
                   const SizedBox(height: 8),
                   Text(
                     "For the Period: ${dateFormat.format(_startDate)} - ${dateFormat.format(_endDate)}",
-                    style: const TextStyle(
+                    style: theme.textTheme.bodyMedium!.copyWith(
                       fontSize: 13,
-                      color: Color(0xFF6C757D),
+                      color: theme.extension<AppColors>()!.reportSecondaryText,
                     ),
                   ),
                   const SizedBox(height: 20),
-                  const Divider(color: Color(0xFFE0E0E0)),
+                  Divider(color: theme.extension<AppColors>()!.reportDivider),
 
                   // --- DYNAMIC CONTENT ---
                   if (snapshot.connectionState == ConnectionState.waiting)

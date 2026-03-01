@@ -1,8 +1,8 @@
 import 'package:bookkeeping/features/cashflow/cash_flow_statement.dart';
 import 'package:flutter/material.dart';
+import 'package:bookkeeping/core/theme/app_theme.dart';
 import 'package:bookkeeping/core/utils/date_utils.dart';
 import 'package:bookkeeping/core/utils/pdf_export_service.dart';
-import 'package:bookkeeping/core/widgets/reports_color.dart';
 import 'package:bookkeeping/features/incomestatement/income_statement.dart';
 import 'package:bookkeeping/features/balancesheet/balance_sheet.dart';
 
@@ -24,11 +24,12 @@ class ReportControlBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final appColors = Theme.of(context).extension<AppColors>()!;
     return Row(
       children: [
         Text(
           "Period:",
-          style: TextStyle(color: AppColors.secondaryText.withOpacity(0.8)),
+          style: TextStyle(color: appColors.secondaryText.withValues(alpha: 0.8)),
         ),
         const SizedBox(width: 8),
 
@@ -38,12 +39,12 @@ class ReportControlBar extends StatelessWidget {
             height: 40,
             padding: const EdgeInsets.symmetric(horizontal: 12),
             decoration: BoxDecoration(
-              color: AppColors.backgroundGrey,
+              color: appColors.backgroundGrey,
               borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: AppColors.dividerColor),
+              border: Border.all(color: appColors.dividerColor),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.05),
+                  color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.05),
                   blurRadius: 2,
                   offset: const Offset(0, 1),
                 ),
@@ -53,14 +54,14 @@ class ReportControlBar extends StatelessWidget {
               child: DropdownButton<ReportPeriod>(
                 isExpanded: true,
                 value: selectedPeriod,
-                icon: const Icon(
+                icon: Icon(
                   Icons.keyboard_arrow_down,
                   size: 20,
-                  color: AppColors.secondaryText,
+                  color: appColors.secondaryText,
                 ),
-                style: const TextStyle(
+                style: TextStyle(
                   fontWeight: FontWeight.w600,
-                  color: AppColors.primaryText,
+                  color: appColors.primaryText,
                   fontSize: 14,
                 ),
                 onChanged: (ReportPeriod? newValue) {
@@ -120,9 +121,9 @@ class ReportControlBar extends StatelessWidget {
             }
           },
           style: OutlinedButton.styleFrom(
-            backgroundColor: Colors.white,
-            foregroundColor: AppColors.primaryText,
-            side: const BorderSide(color: AppColors.dividerColor),
+            backgroundColor: Theme.of(context).colorScheme.surface,
+            foregroundColor: appColors.primaryText,
+            side: BorderSide(color: appColors.dividerColor),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(8),
             ),

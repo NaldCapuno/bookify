@@ -24,8 +24,10 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
     return AppBar(
-      title: Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
+      title: Text(title, style: theme.textTheme.headlineLarge!.copyWith(fontWeight: FontWeight.bold)),
       elevation: 1,
       automaticallyImplyLeading: false,
       leading: showBackButton
@@ -40,11 +42,11 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
             offset: const Offset(0, 50),
             icon: CircleAvatar(
               radius: 18,
-              backgroundColor: const Color(0xFF232D3F),
+              backgroundColor: colorScheme.secondary,
               child: Text(
-                userInitials.isNotEmpty ? userInitials : '?', // Made dynamic
-                style: const TextStyle(
-                  color: Colors.white,
+                userInitials.isNotEmpty ? userInitials : '?',
+                style: TextStyle(
+                  color: colorScheme.onSecondary,
                   fontSize: 12,
                   fontWeight: FontWeight.bold,
                 ),
@@ -78,48 +80,51 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
                 }
               }
             },
-            itemBuilder: (context) => [
-              const PopupMenuItem(
-                value: 0,
-                child: Row(
-                  children: [
-                    Icon(Icons.account_circle, color: Colors.black54, size: 20),
-                    SizedBox(width: 10),
-                    Text("Profile"),
-                  ],
+            itemBuilder: (context) {
+              final iconColor = theme.colorScheme.onSurface.withOpacity(0.6);
+              return [
+                PopupMenuItem(
+                  value: 0,
+                  child: Row(
+                    children: [
+                      Icon(Icons.account_circle, color: iconColor, size: 20),
+                      const SizedBox(width: 10),
+                      const Text("Profile"),
+                    ],
+                  ),
                 ),
-              ),
-              const PopupMenuItem(
-                value: 1,
-                child: Row(
-                  children: [
-                    Icon(Icons.settings, color: Colors.black54, size: 20),
-                    SizedBox(width: 10),
-                    Text("Settings"),
-                  ],
+                PopupMenuItem(
+                  value: 1,
+                  child: Row(
+                    children: [
+                      Icon(Icons.settings, color: iconColor, size: 20),
+                      const SizedBox(width: 10),
+                      const Text("Settings"),
+                    ],
+                  ),
                 ),
-              ),
-              const PopupMenuItem(
-                value: 2,
-                child: Row(
-                  children: [
-                    Icon(Icons.help_outline, color: Colors.black54, size: 20),
-                    SizedBox(width: 10),
-                    Text("User Guide"),
-                  ],
+                PopupMenuItem(
+                  value: 2,
+                  child: Row(
+                    children: [
+                      Icon(Icons.help_outline, color: iconColor, size: 20),
+                      const SizedBox(width: 10),
+                      const Text("User Guide"),
+                    ],
+                  ),
                 ),
-              ),
-              const PopupMenuItem(
-                value: 3,
-                child: Row(
-                  children: [
-                    Icon(Icons.info_outline, color: Colors.black54, size: 20),
-                    SizedBox(width: 10),
-                    Text("About Us"),
-                  ],
+                PopupMenuItem(
+                  value: 3,
+                  child: Row(
+                    children: [
+                      Icon(Icons.info_outline, color: iconColor, size: 20),
+                      const SizedBox(width: 10),
+                      const Text("About Us"),
+                    ],
+                  ),
                 ),
-              ),
-            ],
+              ];
+            },
           ),
         const SizedBox(width: 8),
       ],

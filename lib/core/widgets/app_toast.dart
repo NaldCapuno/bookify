@@ -8,8 +8,12 @@ class AppToast {
     IconData? icon,
   }) {
     final scaffoldMessenger = ScaffoldMessenger.of(context);
+    final colorScheme = Theme.of(context).colorScheme;
 
     scaffoldMessenger.removeCurrentSnackBar();
+
+    final backgroundColor = isError ? colorScheme.error : colorScheme.inverseSurface;
+    final foregroundColor = isError ? colorScheme.onError : colorScheme.onInverseSurface;
 
     scaffoldMessenger.showSnackBar(
       SnackBar(
@@ -18,24 +22,22 @@ class AppToast {
             Icon(
               icon ??
                   (isError ? Icons.error_outline : Icons.check_circle_outline),
-              color: Colors.white,
+              color: foregroundColor,
               size: 20,
             ),
             const SizedBox(width: 12),
             Expanded(
               child: Text(
                 message,
-                style: const TextStyle(
-                  color: Colors.white,
+                style: Theme.of(context).textTheme.bodyMedium!.copyWith(
+                  color: foregroundColor,
                   fontWeight: FontWeight.w500,
                 ),
               ),
             ),
           ],
         ),
-        backgroundColor: isError
-            ? Colors.red.shade800
-            : Colors.grey.shade800, // Darker background for better contrast
+        backgroundColor: backgroundColor,
         behavior: SnackBarBehavior.floating,
         dismissDirection: DismissDirection.horizontal,
         margin: EdgeInsets.only(

@@ -1,4 +1,4 @@
-import 'package:bookkeeping/core/widgets/reports_color.dart';
+import 'package:bookkeeping/core/theme/app_theme.dart';
 import 'package:flutter/material.dart';
 
 class FinancialLineItem extends StatelessWidget {
@@ -28,12 +28,13 @@ class FinancialLineItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final appColors = Theme.of(context).extension<AppColors>()!;
     // FIX: Removed the buggy '.contains("NET")' logic.
     // Now it only bolds if it is a Grand Total, or if you explicitly pass isBold: true
     bool weightIsBold = isGrandTotal || isBold;
     FontWeight fontWeight = weightIsBold ? FontWeight.bold : FontWeight.normal;
     double fontSize = 13;
-    Color textColor = AppColors.primaryText;
+    Color textColor = appColors.primaryText;
 
     bool drawDoubleLine = hasDoubleUnderline || isGrandTotal;
 

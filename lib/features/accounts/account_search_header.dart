@@ -27,12 +27,14 @@ class AccountSearchHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
     return Container(
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: colorScheme.surface,
         border: Border(
-          bottom: BorderSide(color: Colors.black.withOpacity(0.05)),
+          bottom: BorderSide(color: colorScheme.outline.withValues(alpha: 0.1)),
         ),
       ),
       child: Row(
@@ -45,24 +47,27 @@ class AccountSearchHeader extends StatelessWidget {
               focusNode: focusNode,
               decoration: InputDecoration(
                 hintText: 'Search...',
-                hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 14),
-                prefixIcon: const Icon(
+                hintStyle: theme.textTheme.bodyMedium!.copyWith(
+                  color: colorScheme.onSurfaceVariant,
+                  fontSize: 14,
+                ),
+                prefixIcon: Icon(
                   Icons.search,
-                  color: Colors.black54,
+                  color: colorScheme.onSurfaceVariant,
                   size: 20,
                 ),
                 suffixIcon: searchQuery.isNotEmpty
                     ? IconButton(
-                        icon: const Icon(
+                        icon: Icon(
                           Icons.cancel,
                           size: 18,
-                          color: Colors.grey,
+                          color: colorScheme.onSurfaceVariant,
                         ),
                         onPressed: onClear,
                       )
                     : null,
                 filled: true,
-                fillColor: const Color(0xFFF2F4F7),
+                fillColor: colorScheme.surfaceContainerHighest,
                 contentPadding: const EdgeInsets.symmetric(horizontal: 16),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
@@ -72,31 +77,33 @@ class AccountSearchHeader extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 12),
-          // NEW: DR/CR Filter Toggle
-          _buildFilterToggle(),
+          _buildFilterToggle(context),
         ],
       ),
     );
   }
 
-  Widget _buildFilterToggle() {
+  Widget _buildFilterToggle(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     return Container(
       padding: const EdgeInsets.all(4),
       decoration: BoxDecoration(
-        color: const Color(0xFFF2F4F7),
+        color: colorScheme.surfaceContainerHighest,
         borderRadius: BorderRadius.circular(12),
       ),
       child: Row(
         children: [
-          _buildFilterButton('ALL', BalanceFilter.all),
-          _buildFilterButton('DR', BalanceFilter.dr),
-          _buildFilterButton('CR', BalanceFilter.cr),
+          _buildFilterButton(context, 'ALL', BalanceFilter.all),
+          _buildFilterButton(context, 'DR', BalanceFilter.dr),
+          _buildFilterButton(context, 'CR', BalanceFilter.cr),
         ],
       ),
     );
   }
 
-  Widget _buildFilterButton(String label, BalanceFilter filter) {
+  Widget _buildFilterButton(BuildContext context, String label, BalanceFilter filter) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
     final isSelected = selectedFilter == filter;
     return GestureDetector(
       onTap: () => onFilterChanged(filter),
@@ -104,13 +111,13 @@ class AccountSearchHeader extends StatelessWidget {
         duration: const Duration(milliseconds: 200),
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         decoration: BoxDecoration(
-          color: isSelected ? Colors.black : Colors.transparent,
+          color: isSelected ? colorScheme.primary : Colors.transparent,
           borderRadius: BorderRadius.circular(8),
         ),
         child: Text(
           label,
-          style: TextStyle(
-            color: isSelected ? Colors.white : Colors.blueGrey,
+          style: theme.textTheme.bodySmall!.copyWith(
+            color: isSelected ? colorScheme.onPrimary : colorScheme.onSurfaceVariant,
             fontSize: 10,
             fontWeight: FontWeight.bold,
           ),

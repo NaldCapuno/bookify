@@ -83,18 +83,19 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return ListView(
       padding: const EdgeInsets.all(20),
       cacheExtent: 2000,
       children: [
-        _buildWelcomeBanner(key: _bannerKey),
+        _buildWelcomeBanner(context, key: _bannerKey),
         const SizedBox(height: 16),
-        _buildTotalCashSection(key: _cashCardKey),
+        _buildTotalCashSection(context, key: _cashCardKey),
         const SizedBox(height: 24),
 
-        const Text(
+        Text(
           'Overview',
-          style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+          style: theme.textTheme.titleLarge,
         ),
         const SizedBox(height: 16),
 
@@ -104,7 +105,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   // --- SECTION 1: TOTAL CASH ---
-  Widget _buildTotalCashSection({required Key key}) {
+  Widget _buildTotalCashSection(BuildContext context, {required Key key}) {
     return StreamBuilder<List<LedgerEntry>>(
       stream: appDb.ledgerDao.watchLedgerEntries(),
       builder: (context, snapshot) {
@@ -123,15 +124,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
           key: key,
           padding: const EdgeInsets.all(24),
           decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: [Colors.green.shade700, Colors.green.shade500],
+            gradient: const LinearGradient(
+              colors: [Color(0xFF2E7D32), Color(0xFF43A047)], // Green shades
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
             ),
             borderRadius: BorderRadius.circular(20),
             boxShadow: [
               BoxShadow(
-                color: Colors.green.withOpacity(0.3),
+                color: Colors.green.withValues(alpha: 0.3),
                 blurRadius: 8,
                 offset: const Offset(0, 4),
               ),
@@ -145,7 +146,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.2),
+                      color: Colors.white.withValues(alpha: 0.2),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: const Icon(
@@ -155,9 +156,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     ),
                   ),
                   const SizedBox(width: 12),
-                  const Text(
+                  Text(
                     'Cash on Hand',
-                    style: TextStyle(
+                    style: Theme.of(context).textTheme.titleMedium!.copyWith(
                       color: Colors.white,
                       fontSize: 18,
                       fontWeight: FontWeight.w500,
@@ -171,7 +172,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 alignment: Alignment.centerLeft,
                 child: Text(
                   _formatAccounting(totalCash),
-                  style: const TextStyle(
+                  style: Theme.of(context).textTheme.headlineLarge!.copyWith(
                     color: Colors.white,
                     fontSize: 40,
                     fontWeight: FontWeight.bold,
@@ -259,6 +260,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               children: [
                 Expanded(
                   child: _buildFlowCard(
+                    context,
                     'Cash In',
                     _formatAccounting(inflow),
                     Icons.arrow_downward,
@@ -268,6 +270,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 const SizedBox(width: 12),
                 Expanded(
                   child: _buildFlowCard(
+                    context,
                     'Cash Out',
                     _formatAccounting(outflow),
                     Icons.arrow_upward,
@@ -278,23 +281,23 @@ class _DashboardScreenState extends State<DashboardScreen> {
             ),
             const SizedBox(height: 24),
 
-            _buildProfitAndLossSection(income, expenses, key: _plKey),
+            _buildProfitAndLossSection(context, income, expenses, key: _plKey),
             const SizedBox(height: 24),
 
-            _buildTotalSalesChart(quarterlySales, key: _chartKey),
+            _buildTotalSalesChart(context, quarterlySales, key: _chartKey),
             const SizedBox(height: 24),
 
-            const Row(
+            Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
                   'Recent Sales',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  style: Theme.of(context).textTheme.titleMedium,
                 ),
               ],
             ),
             const SizedBox(height: 8),
-            _buildRecentSalesList(salesActivities),
+            _buildRecentSalesList(context, salesActivities),
           ],
         );
       },
@@ -302,17 +305,20 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   Widget _buildFlowCard(
+    BuildContext context,
     String title,
     String amount,
     IconData icon,
     Color color,
   ) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.08),
+        color: color.withValues(alpha: 0.08),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: color.withOpacity(0.2)),
+        border: Border.all(color: color.withValues(alpha: 0.2)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -321,9 +327,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
           const SizedBox(height: 12),
           Text(
             title,
-            style: TextStyle(
+            style: theme.textTheme.bodySmall!.copyWith(
               fontSize: 13,
-              color: Colors.grey[700],
+              color: colorScheme.onSurfaceVariant,
               fontWeight: FontWeight.w600,
             ),
           ),
@@ -333,7 +339,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             alignment: Alignment.centerLeft,
             child: Text(
               amount,
-              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              style: theme.textTheme.titleSmall!.copyWith(fontSize: 18),
             ),
           ),
         ],
@@ -342,10 +348,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   Widget _buildProfitAndLossSection(
+    BuildContext context,
     double income,
     double expenses, {
     required Key key,
   }) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
     double netProfit = income - expenses;
     int incomeFlex = (income <= 0 && expenses <= 0)
         ? 1
@@ -359,11 +368,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
       key: key,
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: colorScheme.surface,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.04),
+            color: colorScheme.onSurface.withValues(alpha: 0.04),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -372,9 +381,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
+          Text(
             'Profit & Loss',
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            style: theme.textTheme.titleSmall,
           ),
           const SizedBox(height: 8),
           FittedBox(
@@ -382,7 +391,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             alignment: Alignment.centerLeft,
             child: Text(
               _formatAccounting(netProfit),
-              style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
+              style: theme.textTheme.headlineMedium!.copyWith(fontSize: 28),
             ),
           ),
           const SizedBox(height: 20),
@@ -394,11 +403,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 children: [
                   Expanded(
                     flex: incomeFlex,
-                    child: Container(color: const Color(0xFFC7CDFF)),
+                    child: Container(
+                      color: colorScheme.tertiary.withValues(alpha: 0.3),
+                    ),
                   ),
                   Expanded(
                     flex: expenseFlex,
-                    child: Container(color: const Color(0xFFFFD1D1)),
+                    child: Container(
+                      color: colorScheme.error.withValues(alpha: 0.2),
+                    ),
                   ),
                 ],
               ),
@@ -414,11 +427,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 children: [
                   Text(
                     'Income',
-                    style: TextStyle(color: Colors.grey[500], fontSize: 12),
+                    style: theme.textTheme.bodySmall!.copyWith(
+                      color: colorScheme.onSurfaceVariant,
+                      fontSize: 12,
+                    ),
                   ),
                   Text(
                     '₱${compactCurrency.format(income)}',
-                    style: const TextStyle(
+                    style: theme.textTheme.bodyMedium!.copyWith(
                       fontWeight: FontWeight.bold,
                       fontSize: 14,
                     ),
@@ -430,11 +446,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 children: [
                   Text(
                     'Expenses',
-                    style: TextStyle(color: Colors.grey[500], fontSize: 12),
+                    style: theme.textTheme.bodySmall!.copyWith(
+                      color: colorScheme.onSurfaceVariant,
+                      fontSize: 12,
+                    ),
                   ),
                   Text(
                     '₱${compactCurrency.format(expenses)}',
-                    style: const TextStyle(
+                    style: theme.textTheme.bodyMedium!.copyWith(
                       fontWeight: FontWeight.bold,
                       fontSize: 14,
                     ),
@@ -449,9 +468,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   Widget _buildTotalSalesChart(
+    BuildContext context,
     List<double> quarterlySales, {
     required Key key,
   }) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
     double maxSales = quarterlySales.reduce((a, b) => a > b ? a : b);
     if (maxSales == 0) maxSales = 1;
     double totalYearSales = quarterlySales.fold(
@@ -467,11 +489,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
       key: key,
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: colorScheme.surface,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.04),
+            color: colorScheme.onSurface.withValues(alpha: 0.04),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -480,9 +502,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
+          Text(
             'Total Sales',
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            style: theme.textTheme.titleSmall,
           ),
           const SizedBox(height: 4),
           FittedBox(
@@ -490,10 +512,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
             alignment: Alignment.centerLeft,
             child: Text(
               _formatAccounting(totalYearSales),
-              style: const TextStyle(
+              style: theme.textTheme.titleLarge!.copyWith(
                 fontSize: 24,
                 fontWeight: FontWeight.bold,
-                color: Color(0xFF3B4FFF),
+                color: colorScheme.tertiary,
               ),
             ),
           ),
@@ -505,24 +527,28 @@ class _DashboardScreenState extends State<DashboardScreen> {
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
                 _buildVerticalBar(
+                  context,
                   quarterlySales[0],
                   maxSales,
                   "Q1 '$yearStr",
                   currentQ == 0,
                 ),
                 _buildVerticalBar(
+                  context,
                   quarterlySales[1],
                   maxSales,
                   "Q2 '$yearStr",
                   currentQ == 1,
                 ),
                 _buildVerticalBar(
+                  context,
                   quarterlySales[2],
                   maxSales,
                   "Q3 '$yearStr",
                   currentQ == 2,
                 ),
                 _buildVerticalBar(
+                  context,
                   quarterlySales[3],
                   maxSales,
                   "Q4 '$yearStr",
@@ -537,18 +563,21 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   Widget _buildVerticalBar(
+    BuildContext context,
     double value,
     double max,
     String label,
     bool isCurrent,
   ) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final theme = Theme.of(context);
     double heightFactor = value / max;
     Color barColor = isCurrent
-        ? const Color(0xFF3B4FFF)
-        : const Color(0xFFC7CDFF);
+        ? colorScheme.tertiary
+        : colorScheme.tertiary.withValues(alpha: 0.4);
     Color textColor = isCurrent
-        ? const Color(0xFF3B4FFF)
-        : Colors.grey.shade500;
+        ? colorScheme.tertiary
+        : colorScheme.onSurfaceVariant;
 
     String formatK(double val) {
       if (val == 0) return '';
@@ -565,7 +594,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             fit: BoxFit.scaleDown,
             child: Text(
               formatK(value),
-              style: TextStyle(
+              style: theme.textTheme.bodySmall!.copyWith(
                 color: textColor,
                 fontWeight: FontWeight.bold,
                 fontSize: 12,
@@ -586,7 +615,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           const SizedBox(height: 8),
           Text(
             label,
-            style: TextStyle(
+            style: theme.textTheme.bodySmall!.copyWith(
               color: textColor,
               fontSize: 11,
               fontWeight: isCurrent ? FontWeight.bold : FontWeight.normal,
@@ -598,14 +627,21 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   // --- STRICTLY SALES ACTIVITY LIST ---
-  Widget _buildRecentSalesList(List<JournalSummary> salesActivities) {
+  Widget _buildRecentSalesList(
+    BuildContext context,
+    List<JournalSummary> salesActivities,
+  ) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
     if (salesActivities.isEmpty) {
       return Padding(
         padding: const EdgeInsets.symmetric(vertical: 24.0),
         child: Center(
           child: Text(
             'No sales found',
-            style: TextStyle(color: Colors.grey[500]),
+            style: theme.textTheme.bodyMedium!.copyWith(
+              color: colorScheme.onSurfaceVariant,
+            ),
           ),
         ),
       );
@@ -630,6 +666,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           final dateStr = _dateFormat.format(summary.journal.date);
 
           return _buildSaleItem(
+            context,
             summary.journal.description,
             dateStr,
             entrySaleAmount,
@@ -653,16 +690,23 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  Widget _buildSaleItem(String description, String date, double amount) {
+  Widget _buildSaleItem(
+    BuildContext context,
+    String description,
+    String date,
+    double amount,
+  ) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: colorScheme.surface,
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.03),
+            color: colorScheme.onSurface.withValues(alpha: 0.03),
             blurRadius: 5,
             offset: const Offset(0, 2),
           ),
@@ -674,14 +718,17 @@ class _DashboardScreenState extends State<DashboardScreen> {
           Expanded(
             child: Row(
               children: [
-                // Restored the Green "Add" Icon
                 Container(
                   padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
-                    color: Colors.green.withOpacity(0.1),
+                    color: colorScheme.tertiary.withValues(alpha: 0.15),
                     shape: BoxShape.circle,
                   ),
-                  child: const Icon(Icons.add, color: Colors.green, size: 18),
+                  child: Icon(
+                    Icons.add,
+                    color: colorScheme.tertiary,
+                    size: 18,
+                  ),
                 ),
                 const SizedBox(width: 14),
                 Expanded(
@@ -690,7 +737,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     children: [
                       Text(
                         description,
-                        style: const TextStyle(
+                        style: theme.textTheme.bodyMedium!.copyWith(
                           fontWeight: FontWeight.bold,
                           fontSize: 14,
                         ),
@@ -700,7 +747,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       const SizedBox(height: 4),
                       Text(
                         date,
-                        style: TextStyle(color: Colors.grey[500], fontSize: 12),
+                        style: theme.textTheme.bodySmall!.copyWith(
+                          color: colorScheme.onSurfaceVariant,
+                          fontSize: 12,
+                        ),
                       ),
                     ],
                   ),
@@ -709,12 +759,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
             ),
           ),
           const SizedBox(width: 8),
-          // Restored the Green Text
           Text(
             _formatAccounting(amount),
-            style: const TextStyle(
+            style: theme.textTheme.bodyMedium!.copyWith(
               fontWeight: FontWeight.bold,
-              color: Colors.green,
+              color: colorScheme.tertiary,
             ),
           ),
         ],
@@ -723,7 +772,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   // Inside your Dashboard widget
-  Widget _buildWelcomeBanner({required Key key}) {
+  Widget _buildWelcomeBanner(BuildContext context, {required Key key}) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
     return StreamBuilder<User?>(
       stream: _userService.watchUserProfile(),
       builder: (context, snapshot) {
@@ -737,7 +788,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           key: key,
           padding: const EdgeInsets.all(24),
           decoration: BoxDecoration(
-            color: const Color(0xFF1A1C1E), // Your signature black/dark grey
+            color: colorScheme.primary,
             borderRadius: BorderRadius.circular(20),
           ),
           child: Column(
@@ -745,8 +796,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
             children: [
               Text(
                 'Welcome, $name',
-                style: const TextStyle(
-                  color: Colors.white,
+                style: theme.textTheme.headlineMedium!.copyWith(
+                  color: colorScheme.onPrimary,
                   fontSize: 22,
                   fontWeight: FontWeight.bold,
                 ),
@@ -754,15 +805,18 @@ class _DashboardScreenState extends State<DashboardScreen> {
               const SizedBox(height: 6),
               Row(
                 children: [
-                  const Icon(
+                  Icon(
                     Icons.business_center,
-                    color: Colors.white70,
+                    color: colorScheme.onPrimary.withValues(alpha: 0.8),
                     size: 16,
                   ),
                   const SizedBox(width: 8),
                   Text(
                     business,
-                    style: const TextStyle(color: Colors.white70, fontSize: 14),
+                    style: theme.textTheme.bodyMedium!.copyWith(
+                      color: colorScheme.onPrimary.withValues(alpha: 0.8),
+                      fontSize: 14,
+                    ),
                   ),
                 ],
               ),

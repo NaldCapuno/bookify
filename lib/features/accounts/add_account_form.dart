@@ -111,7 +111,7 @@ class _AddAccountFormState extends State<AddAccountForm> {
   }) {
     showModalBottomSheet(
       context: context,
-      backgroundColor: Colors.white,
+      backgroundColor: Theme.of(context).colorScheme.surface,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
@@ -122,7 +122,7 @@ class _AddAccountFormState extends State<AddAccountForm> {
           children: [
             Text(
               title,
-              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              style: Theme.of(context).textTheme.titleMedium,
             ),
             const Divider(),
             ...items.map(
@@ -171,10 +171,12 @@ class _AddAccountFormState extends State<AddAccountForm> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
     final bottomInset = MediaQuery.of(context).viewInsets.bottom;
 
     return Material(
-      color: Colors.white,
+      color: colorScheme.surface,
       borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
       child: Container(
         padding: EdgeInsets.fromLTRB(24, 24, 24, 24 + bottomInset),
@@ -291,7 +293,9 @@ class _AddAccountFormState extends State<AddAccountForm> {
                     ), // Add the arrow so they know it's a menu
                     hintText: 'Select balance',
                   ),
-                  style: const TextStyle(fontWeight: FontWeight.bold),
+                  style: Theme.of(context).textTheme.bodyMedium!.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
                   validator: (val) =>
                       val == null || val.isEmpty ? 'Required' : null,
                 ),
@@ -312,6 +316,7 @@ class _AddAccountFormState extends State<AddAccountForm> {
     required VoidCallback onTap,
     bool enabled = true,
   }) {
+    final colorScheme = Theme.of(context).colorScheme;
     return TextFormField(
       controller: controller,
       readOnly: true,
@@ -322,9 +327,9 @@ class _AddAccountFormState extends State<AddAccountForm> {
         border: const OutlineInputBorder(),
         suffixIcon: const Icon(Icons.arrow_drop_down),
         disabledBorder: OutlineInputBorder(
-          borderSide: BorderSide(color: Colors.grey.shade300),
+          borderSide: BorderSide(color: colorScheme.outlineVariant),
         ),
-        fillColor: enabled ? null : Colors.grey[50],
+        fillColor: enabled ? null : colorScheme.surfaceContainerHighest,
         filled: !enabled,
       ),
       validator: (val) => val == null || val.isEmpty ? 'Required' : null,
@@ -332,41 +337,45 @@ class _AddAccountFormState extends State<AddAccountForm> {
   }
 
   Widget _buildSaveButton() {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
     return ElevatedButton(
       onPressed: _isSaving ? null : _submitData,
       style: ElevatedButton.styleFrom(
-        backgroundColor: const Color(0xFF1A1C1E),
-        foregroundColor: Colors.white,
+        backgroundColor: colorScheme.primary,
+        foregroundColor: colorScheme.onPrimary,
         padding: const EdgeInsets.symmetric(vertical: 16),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
       ),
       child: _isSaving
-          ? const SizedBox(
+          ? SizedBox(
               height: 20,
               width: 20,
               child: CircularProgressIndicator(
                 strokeWidth: 2,
-                color: Colors.white,
+                color: colorScheme.onPrimary,
               ),
             )
-          : const Text(
+          : Text(
               'Save Account',
-              style: TextStyle(fontWeight: FontWeight.bold),
+              style: theme.textTheme.labelLarge,
             ),
     );
   }
 
   Widget _buildHeader() {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        const Text(
+        Text(
           'New Account',
-          style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+          style: theme.textTheme.titleLarge,
         ),
         IconButton(
           onPressed: () => Navigator.pop(context),
-          icon: const Icon(Icons.close),
+          icon: Icon(Icons.close, color: colorScheme.onSurface),
         ),
       ],
     );

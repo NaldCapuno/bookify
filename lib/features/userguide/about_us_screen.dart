@@ -5,16 +5,14 @@ import 'package:bookkeeping/core/widgets/appbar.dart';
 class AboutUsScreen extends StatelessWidget {
   const AboutUsScreen({super.key});
 
-  static const Color _headingColor = Color(0xFF1A1C1E);
-  static const Color _bodyColor = Color(0xFF3D4043);
-  static const TextStyle _bodyStyle = TextStyle(
-    fontSize: 15,
-    height: 1.5,
-    color: _bodyColor,
-  );
-
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final bodyStyle = theme.textTheme.bodyLarge!.copyWith(
+      height: 1.5,
+      color: colorScheme.onSurfaceVariant,
+    );
     return Scaffold(
       appBar: CustomAppBar(
         title: 'About Us',
@@ -24,7 +22,7 @@ class AboutUsScreen extends StatelessWidget {
       body: ListView(
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
         children: [
-          _buildLogoAndTitle(),
+          _buildLogoAndTitle(context),
           const SizedBox(height: 28),
           _Section(
             icon: Icons.info_outline,
@@ -35,8 +33,8 @@ class AboutUsScreen extends StatelessWidget {
                 'and run reports such as Income Statement, Balance Sheet, and Cash Flow. You can manage your accounts, '
                 'update your profile and business details, and export reports to PDF.',
             indentFirstLine: true,
-            bodyStyle: _bodyStyle,
-            headingColor: _headingColor,
+            bodyStyle: bodyStyle,
+            headingColor: colorScheme.onSurface,
           ),
           _Section(
             icon: Icons.check_circle_outline,
@@ -49,8 +47,8 @@ class AboutUsScreen extends StatelessWidget {
                 '• Profile — Store your name, business name, and contact details.\n\n'
                 '• Export — Generate PDFs of your reports.',
             indentFirstLine: false,
-            bodyStyle: _bodyStyle,
-            headingColor: _headingColor,
+            bodyStyle: bodyStyle,
+            headingColor: colorScheme.onSurface,
           ),
           _Section(
             icon: Icons.people_outline,
@@ -59,8 +57,8 @@ class AboutUsScreen extends StatelessWidget {
                 'Whether you run a small business, freelance, or just want to keep track of your money, '
                 'Bookify explains everything in plain language. No accounting background is required.',
             indentFirstLine: true,
-            bodyStyle: _bodyStyle,
-            headingColor: _headingColor,
+            bodyStyle: bodyStyle,
+            headingColor: colorScheme.onSurface,
           ),
           _Section(
             icon: Icons.security_outlined,
@@ -69,8 +67,8 @@ class AboutUsScreen extends StatelessWidget {
                 'Your data is stored on your device. We don\'t collect or upload your financial information '
                 'unless you use a backup or sync feature.',
             indentFirstLine: true,
-            bodyStyle: _bodyStyle,
-            headingColor: _headingColor,
+            bodyStyle: bodyStyle,
+            headingColor: colorScheme.onSurface,
           ),
           const SizedBox(height: 32),
         ],
@@ -78,7 +76,9 @@ class AboutUsScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildLogoAndTitle() {
+  Widget _buildLogoAndTitle(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -87,43 +87,35 @@ class AboutUsScreen extends StatelessWidget {
             width: 80,
             height: 80,
             decoration: BoxDecoration(
-              color: const Color(0xFF232D3F).withOpacity(0.12),
+              color: colorScheme.secondary.withValues(alpha: 0.15),
               borderRadius: BorderRadius.circular(16),
             ),
-            child: const Icon(
+            child: Icon(
               Icons.menu_book_rounded,
               size: 44,
-              color: Color(0xFF232D3F),
+              color: colorScheme.secondary,
             ),
           ),
         ),
         const SizedBox(height: 16),
-        const Text(
+        Text(
           'Bookify',
-          style: TextStyle(
-            fontSize: 26,
-            fontWeight: FontWeight.bold,
-            color: _headingColor,
-          ),
+          style: theme.textTheme.headlineMedium!.copyWith(fontSize: 26),
           textAlign: TextAlign.center,
         ),
         const SizedBox(height: 6),
         Text(
           'Digital Bookkeeping App',
-          style: TextStyle(
-            fontSize: 15,
-            fontWeight: FontWeight.normal,
-            color: Colors.grey[600],
+          style: theme.textTheme.bodyLarge!.copyWith(
+            color: colorScheme.onSurfaceVariant,
           ),
           textAlign: TextAlign.center,
         ),
         const SizedBox(height: 8),
         Text(
           'Version 1.0.0',
-          style: TextStyle(
-            fontSize: 13,
-            fontWeight: FontWeight.normal,
-            color: Colors.grey[600],
+          style: theme.textTheme.bodySmall!.copyWith(
+            color: colorScheme.onSurfaceVariant,
           ),
           textAlign: TextAlign.center,
         ),
@@ -164,22 +156,20 @@ class _Section extends StatelessWidget {
                 width: 32,
                 height: 32,
                 decoration: BoxDecoration(
-                  color: const Color(0xFF232D3F).withOpacity(0.08),
+                  color: Theme.of(context).colorScheme.secondary.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Icon(
                   icon,
                   size: 20,
-                  color: const Color(0xFF232D3F),
+                  color: Theme.of(context).colorScheme.secondary,
                 ),
               ),
               const SizedBox(width: 12),
               Expanded(
                 child: Text(
                   title,
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
+                  style: Theme.of(context).textTheme.titleMedium!.copyWith(
                     color: headingColor,
                   ),
                 ),

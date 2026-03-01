@@ -18,31 +18,37 @@ class SignupInput extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, 
-          style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 14, color: Color(0xFF374151))),
+        Text(
+          label,
+          style: theme.textTheme.bodyMedium!.copyWith(
+            fontWeight: FontWeight.w500,
+            color: colorScheme.onSurface,
+          ),
+        ),
         const SizedBox(height: 6),
         TextField(
           controller: controller,
           obscureText: isPassword,
-          style: const TextStyle(fontSize: 15),
+          style: theme.textTheme.bodyLarge,
           decoration: InputDecoration(
-            prefixIcon: Icon(icon, size: 20, color: const Color(0xFF9CA3AF)),
+            prefixIcon: Icon(icon, size: 20, color: colorScheme.onSurfaceVariant),
             hintText: hint,
-            hintStyle: const TextStyle(color: Color(0xFF9CA3AF), fontSize: 15),
+            hintStyle: TextStyle(color: colorScheme.onSurfaceVariant, fontSize: 15),
             filled: true,
-            fillColor: const Color(0xFFF3F4F6), // Correct light gray
+            fillColor: colorScheme.surfaceContainerHighest,
             contentPadding: const EdgeInsets.symmetric(vertical: 16),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(8),
               borderSide: BorderSide.none,
             ),
-            // Makes the field look interactive on focus
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(8),
-              borderSide: const BorderSide(color: Colors.blue, width: 1),
+              borderSide: BorderSide(color: colorScheme.primary, width: 1),
             ),
           ),
         ),
