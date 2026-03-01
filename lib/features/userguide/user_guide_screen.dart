@@ -89,10 +89,10 @@ class _OptionCard extends StatelessWidget {
                 width: 48,
                 height: 48,
                 decoration: BoxDecoration(
-                  color: colorScheme.secondary.withValues(alpha: 0.12),
+                  color: colorScheme.primary,
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: Icon(icon, color: colorScheme.secondary, size: 26),
+                child: Icon(icon, color: colorScheme.onPrimary, size: 26),
               ),
               const SizedBox(width: 16),
               Expanded(

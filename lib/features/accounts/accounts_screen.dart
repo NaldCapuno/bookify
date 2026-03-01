@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:sticky_headers/sticky_headers.dart';
-import 'package:bookkeeping/core/theme/app_theme.dart';
 import 'package:bookkeeping/core/database/app_database.dart';
 import 'package:bookkeeping/core/database/daos/accounts_dao.dart';
 import 'package:bookkeeping/core/widgets/app_fab.dart';
@@ -84,9 +83,8 @@ class _AccountsScreenState extends State<AccountsScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
-    final appColors = theme.extension<AppColors>();
     return Scaffold(
-      backgroundColor: appColors?.surfaceContainer ?? colorScheme.surfaceContainerHighest,
+      backgroundColor: colorScheme.surfaceContainerHighest,
       floatingActionButton: AppFloatingActionButton(
         key: _fabKey,
         label: 'Add Account',
@@ -287,7 +285,7 @@ class _AccountsScreenState extends State<AccountsScreen> {
           },
           child: Container(
             color: isArchived
-                ? (theme.extension<AppColors>()?.surfaceContainer ?? colorScheme.surfaceContainerHighest)
+                ? colorScheme.surfaceContainerHighest
                 : colorScheme.surface,
             child: Column(
               children: [

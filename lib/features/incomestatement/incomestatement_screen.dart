@@ -1,5 +1,4 @@
 import 'package:bookkeeping/core/database/app_database.dart';
-import 'package:bookkeeping/core/theme/app_theme.dart';
 import 'package:bookkeeping/core/utils/date_utils.dart';
 import 'package:bookkeeping/core/widgets/income_statement_card.dart';
 import 'package:bookkeeping/core/widgets/report_control_bar.dart';
@@ -82,7 +81,7 @@ class _IncomeStatementScreenState extends State<IncomeStatementScreen> {
                   Text(
                     reportData?.businessName ?? "Business Name",
                     style: theme.textTheme.headlineMedium!.copyWith(
-                      color: theme.extension<AppColors>()!.reportPrimaryText,
+                      color: theme.colorScheme.onSurface,
                     ),
                   ),
                   const SizedBox(height: 6),
@@ -91,7 +90,7 @@ class _IncomeStatementScreenState extends State<IncomeStatementScreen> {
                     style: theme.textTheme.bodySmall!.copyWith(
                       fontWeight: FontWeight.w600,
                       letterSpacing: 1.2,
-                      color: theme.extension<AppColors>()!.reportSecondaryText,
+                      color: theme.colorScheme.onSurfaceVariant,
                     ),
                   ),
                   const SizedBox(height: 8),
@@ -99,11 +98,11 @@ class _IncomeStatementScreenState extends State<IncomeStatementScreen> {
                     "For the Period: ${dateFormat.format(_startDate)} - ${dateFormat.format(_endDate)}",
                     style: theme.textTheme.bodyMedium!.copyWith(
                       fontSize: 13,
-                      color: theme.extension<AppColors>()!.reportSecondaryText,
+                      color: theme.colorScheme.onSurfaceVariant,
                     ),
                   ),
                   const SizedBox(height: 20),
-                  Divider(color: theme.extension<AppColors>()!.reportDivider),
+                  Divider(color: theme.colorScheme.outlineVariant),
 
                   // --- DYNAMIC CONTENT ---
                   if (snapshot.connectionState == ConnectionState.waiting)

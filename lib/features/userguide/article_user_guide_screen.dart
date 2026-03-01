@@ -162,13 +162,13 @@ class _Section extends StatelessWidget {
                 width: 32,
                 height: 32,
                 decoration: BoxDecoration(
-                  color: colorScheme.primary.withValues(alpha: 0.12),
+                  color: colorScheme.primary,
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Icon(
                   icon,
                   size: 20,
-                  color: colorScheme.primary,
+                  color: colorScheme.onPrimary,
                 ),
               ),
               const SizedBox(width: 12),

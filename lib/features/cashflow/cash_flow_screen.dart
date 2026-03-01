@@ -1,5 +1,4 @@
 import 'package:bookkeeping/core/database/app_database.dart';
-import 'package:bookkeeping/core/theme/app_theme.dart';
 import 'package:bookkeeping/core/utils/date_utils.dart';
 import 'package:bookkeeping/core/widgets/appbar.dart';
 import 'package:bookkeeping/core/widgets/cash_flow_card.dart';
@@ -57,7 +56,7 @@ class _CashFlowStatementScreenState extends State<CashFlowStatementScreen> {
         title: "Cash Flow Statement",
         showBackButton: true,
       ),
-      backgroundColor: theme.extension<AppColors>()!.surfaceContainer,
+      backgroundColor: theme.colorScheme.surfaceContainerHighest,
       body: SafeArea(
         child: FutureBuilder<CashFlowStatement>(
           future: _statementFuture,
@@ -89,7 +88,7 @@ class _CashFlowStatementScreenState extends State<CashFlowStatementScreen> {
                   Text(
                     reportData?.businessName ?? "Business Name",
                     style: theme.textTheme.headlineMedium!.copyWith(
-                      color: theme.extension<AppColors>()!.reportPrimaryText,
+                      color: theme.colorScheme.onSurface,
                     ),
                     textAlign: TextAlign.center,
                   ),
@@ -99,7 +98,7 @@ class _CashFlowStatementScreenState extends State<CashFlowStatementScreen> {
                     style: theme.textTheme.bodySmall!.copyWith(
                       fontWeight: FontWeight.w600,
                       letterSpacing: 1.2,
-                      color: theme.extension<AppColors>()!.reportSecondaryText,
+                      color: theme.colorScheme.onSurfaceVariant,
                     ),
                   ),
                   const SizedBox(height: 8),
@@ -107,11 +106,11 @@ class _CashFlowStatementScreenState extends State<CashFlowStatementScreen> {
                     "For the Period: ${dateFormat.format(_startDate)} - ${dateFormat.format(_endDate)}",
                     style: theme.textTheme.bodyMedium!.copyWith(
                       fontSize: 13,
-                      color: theme.extension<AppColors>()!.reportSecondaryText,
+                      color: theme.colorScheme.onSurfaceVariant,
                     ),
                   ),
                   const SizedBox(height: 20),
-                  Divider(color: theme.extension<AppColors>()!.reportDivider),
+                  Divider(color: theme.colorScheme.outlineVariant),
                   const SizedBox(height: 20),
 
                   // --- DYNAMIC CONTENT ---
