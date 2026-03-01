@@ -26,9 +26,9 @@ class AboutUsScreen extends StatelessWidget {
           const SizedBox(height: 28),
           _Section(
             icon: Icons.info_outline,
-            title: 'About Bookify',
+            title: 'About TsekBooks',
             body:
-                'Bookify helps you keep a simple record of your business money—what came in, what went out, '
+                'TsekBooks helps you keep a simple record of your business money—what came in, what went out, '
                 'and what you own or owe. Record transactions in the Journal, view account balances in the Ledger, '
                 'and run reports such as Income Statement, Balance Sheet, and Cash Flow. You can manage your accounts, '
                 'update your profile and business details, and export reports to PDF.',
@@ -83,23 +83,19 @@ class AboutUsScreen extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         Center(
-          child: Container(
-            width: 80,
-            height: 80,
-            decoration: BoxDecoration(
-              color: colorScheme.secondary.withValues(alpha: 0.15),
-              borderRadius: BorderRadius.circular(16),
-            ),
-            child: Icon(
-              Icons.menu_book_rounded,
-              size: 44,
-              color: colorScheme.secondary,
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(16),
+            child: Image.asset(
+              'assets/images/logo.png',
+              width: 80,
+              height: 80,
+              fit: BoxFit.contain,
             ),
           ),
         ),
         const SizedBox(height: 16),
         Text(
-          'Bookify',
+          'TsekBooks',
           style: theme.textTheme.headlineMedium!.copyWith(fontSize: 26),
           textAlign: TextAlign.center,
         ),
@@ -123,7 +119,6 @@ class AboutUsScreen extends StatelessWidget {
     );
   }
 }
-
 
 class _Section extends StatelessWidget {
   const _Section({
@@ -156,22 +151,22 @@ class _Section extends StatelessWidget {
                 width: 32,
                 height: 32,
                 decoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.secondary.withValues(alpha: 0.12),
+                  color: Theme.of(context).colorScheme.primary,
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Icon(
                   icon,
                   size: 20,
-                  color: Theme.of(context).colorScheme.secondary,
+                  color: Theme.of(context).colorScheme.onPrimary,
                 ),
               ),
               const SizedBox(width: 12),
               Expanded(
                 child: Text(
                   title,
-                  style: Theme.of(context).textTheme.titleMedium!.copyWith(
-                    color: headingColor,
-                  ),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.titleMedium!.copyWith(color: headingColor),
                 ),
               ),
             ],
@@ -185,19 +180,13 @@ class _Section extends StatelessWidget {
                       WidgetSpan(
                         alignment: PlaceholderAlignment.baseline,
                         baseline: TextBaseline.alphabetic,
-                        child: SizedBox(
-                          width: 24,
-                          height: 18,
-                        ),
+                        child: SizedBox(width: 24, height: 18),
                       ),
                       TextSpan(text: body),
                     ],
                   ),
                 )
-              : Text(
-                  body,
-                  style: bodyStyle,
-                ),
+              : Text(body, style: bodyStyle),
         ],
       ),
     );
