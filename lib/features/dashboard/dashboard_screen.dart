@@ -6,6 +6,8 @@ import 'package:bookkeeping/core/database/daos/journal_entry_daos.dart';
 import 'package:bookkeeping/core/services/user_service.dart';
 import 'package:bookkeeping/core/database/daos/users_dao.dart';
 import 'package:bookkeeping/core/services/walkthrough_service.dart';
+import 'package:bookkeeping/core/widgets/app_fab.dart';
+import 'package:bookkeeping/core/widgets/quick_actions_sheet.dart';
 
 class DashboardScreen extends StatefulWidget {
   final Function(int) onFeatureTap;
@@ -81,25 +83,42 @@ class _DashboardScreenState extends State<DashboardScreen> {
     });
   }
 
+  void _openQuickActions(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => const QuickActionsSheet(),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    return ListView(
-      padding: const EdgeInsets.all(20),
-      cacheExtent: 2000,
-      children: [
-        _buildWelcomeBanner(key: _bannerKey),
-        const SizedBox(height: 16),
-        _buildTotalCashSection(key: _cashCardKey),
-        const SizedBox(height: 24),
+    return Scaffold(
+      backgroundColor: Colors.transparent,
+      body: ListView(
+        padding: const EdgeInsets.all(20),
+        cacheExtent: 2000,
+        children: [
+          _buildWelcomeBanner(key: _bannerKey),
+          const SizedBox(height: 16),
+          _buildTotalCashSection(key: _cashCardKey),
+          const SizedBox(height: 24),
 
-        const Text(
-          'Overview',
-          style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-        ),
-        const SizedBox(height: 16),
+          const Text(
+            'Overview',
+            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 16),
 
-        _buildDynamicAnalyticsSections(),
-      ],
+          _buildDynamicAnalyticsSections(),
+        ],
+      ),
+      floatingActionButton: AppFloatingActionButton(
+        label: 'Quick Entry',
+        icon: Icons.bolt, // Lightning bolt signifies "Quick Action"
+        onPressed: () => _openQuickActions(context),
+      ),
     );
   }
 
