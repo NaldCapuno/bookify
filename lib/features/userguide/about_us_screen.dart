@@ -55,7 +55,7 @@ class AboutUsScreen extends StatelessWidget {
             title: 'Who it\'s for',
             body:
                 'Whether you run a small business, freelance, or just want to keep track of your money, '
-                'Bookify explains everything in plain language. No accounting background is required.',
+                'TsekBooks explains everything in plain language. No accounting background is required.',
             indentFirstLine: true,
             bodyStyle: bodyStyle,
             headingColor: colorScheme.onSurface,

@@ -21,7 +21,7 @@ class ArticleUserGuideScreen extends StatelessWidget {
           _Section(
             colorScheme: colorScheme,
             icon: Icons.info_outline,
-            title: 'Welcome to Bookify',
+            title: 'Welcome to TsekBooks',
             body:
                 'This app helps you keep a simple record of your business money: what came in, what went out, '
                 'and what you own or owe. You don\'t need to know bookkeeping—this guide explains everything in plain language.',
@@ -165,11 +165,7 @@ class _Section extends StatelessWidget {
                   color: colorScheme.primary,
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: Icon(
-                  icon,
-                  size: 20,
-                  color: colorScheme.onPrimary,
-                ),
+                child: Icon(icon, size: 20, color: colorScheme.onPrimary),
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -193,19 +189,13 @@ class _Section extends StatelessWidget {
                       WidgetSpan(
                         alignment: PlaceholderAlignment.baseline,
                         baseline: TextBaseline.alphabetic,
-                        child: SizedBox(
-                          width: 24,
-                          height: 18,
-                        ),
+                        child: SizedBox(width: 24, height: 18),
                       ),
                       TextSpan(text: body),
                     ],
                   ),
                 )
-              : Text(
-                  body,
-                  style: bodyStyle,
-                ),
+              : Text(body, style: bodyStyle),
         ],
       ),
     );
