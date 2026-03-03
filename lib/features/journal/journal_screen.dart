@@ -66,6 +66,7 @@ class _JournalScreenState extends State<JournalScreen> {
     'Quarterly',
     'Yearly',
   ];
+
   void _openAddTransaction(BuildContext context) {
     showModalBottomSheet(
       context: context,
@@ -162,6 +163,8 @@ class _JournalScreenState extends State<JournalScreen> {
                       child: JournalEntryCard(
                         key: ValueKey(summary.journal.id),
                         id: summary.journal.id.toString(),
+                        // ✅ Pass the reference number to the card
+                        referenceNo: summary.journal.referenceNo ?? '',
                         date: dateString,
                         title: summary.journal.description,
                         accounts: summary.accountCount,
@@ -190,8 +193,6 @@ class _JournalScreenState extends State<JournalScreen> {
     return SingleChildScrollView(
       key: _filterKey,
       scrollDirection: Axis.horizontal,
-      // IMPROVED PADDING: Added top padding to push it away from the screen edge,
-      // and bottom padding to give space before the cards begin.
       padding: const EdgeInsets.only(
         left: 16.0,
         right: 16.0,
@@ -243,17 +244,18 @@ class _JournalScreenState extends State<JournalScreen> {
 
 class JournalEntryCard extends StatefulWidget {
   final String id;
+  final String referenceNo; // ✅ ADDED Reference Number
   final String date;
   final String title;
-  final int
-  accounts; // We keep this to match your existing parameters, even though we hide it in the UI
-  final String amount; // Same here
+  final int accounts;
+  final String amount;
   final bool isInitiallyVoided;
   final List<TransactionWithAccount> details;
 
   const JournalEntryCard({
     super.key,
     required this.id,
+    required this.referenceNo, // ✅ ADDED Reference Number
     required this.date,
     required this.title,
     required this.accounts,
@@ -419,22 +421,52 @@ class _JournalEntryCardState extends State<JournalEntryCard> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        // --- HEADER: Date and Description ---
+                        // --- HEADER: Date, Reference No, and Description ---
                         Row(
+                          mainAxisAlignment: MainAxisAlignment
+                              .spaceBetween, 
                           children: [
-                            Icon(
-                              Icons.calendar_today_outlined,
-                              size: 14,
-                              color: Colors.grey.shade600,
+                            Row(
+                              children: [
+                                Icon(
+                                  Icons.calendar_today_outlined,
+                                  size: 14,
+                                  color: Colors.grey.shade600,
+                                ),
+                                const SizedBox(width: 8),
+                                Text(
+                                  widget.date,
+                                  style: TextStyle(
+                                    color: Colors.grey.shade600,
+                                    fontSize: 13,
+                                  ),
+                                ),
+                              ],
                             ),
-                            const SizedBox(width: 8),
-                            Text(
-                              widget.date,
-                              style: TextStyle(
-                                color: Colors.grey.shade600,
-                                fontSize: 13,
+
+                            // ✅ DISPLAY REFERENCE NUMBER HERE
+                            if (widget.referenceNo.isNotEmpty)
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 6,
+                                  vertical: 2,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: Colors.grey.shade100,
+                                  borderRadius: BorderRadius.circular(4),
+                                  border: Border.all(
+                                    color: Colors.grey.shade300,
+                                  ),
+                                ),
+                                child: Text(
+                                  '#${widget.referenceNo}',
+                                  style: TextStyle(
+                                    color: Colors.grey.shade700,
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
                               ),
-                            ),
                           ],
                         ),
                         const SizedBox(height: 6),
@@ -468,7 +500,6 @@ class _JournalEntryCardState extends State<JournalEntryCard> {
                                 ),
                               ),
                             ),
-                            // Symmetrical Header Padding
                             Expanded(
                               flex: 3,
                               child: Padding(
@@ -487,7 +518,6 @@ class _JournalEntryCardState extends State<JournalEntryCard> {
                                 ),
                               ),
                             ),
-                            // Symmetrical Header Padding
                             Expanded(
                               flex: 3,
                               child: Padding(
@@ -540,7 +570,6 @@ class _JournalEntryCardState extends State<JournalEntryCard> {
                             child: Row(
                               crossAxisAlignment: CrossAxisAlignment.center,
                               children: [
-                                // Account Name (Flex 4)
                                 Expanded(
                                   flex: 4,
                                   child: Padding(
@@ -559,7 +588,6 @@ class _JournalEntryCardState extends State<JournalEntryCard> {
                                     ),
                                   ),
                                 ),
-                                // Debit Column (Flex 3) - Symmetrical Padding + FittedBox
                                 Expanded(
                                   flex: 3,
                                   child: Padding(
@@ -572,8 +600,7 @@ class _JournalEntryCardState extends State<JournalEntryCard> {
                                       child: Text(
                                         isDebit ? formattedAmount : '',
                                         textAlign: TextAlign.right,
-                                        maxLines:
-                                            1, // Ensures it absolutely never wraps
+                                        maxLines: 1,
                                         style: const TextStyle(
                                           fontSize: 13,
                                           fontWeight: FontWeight.w500,
@@ -583,7 +610,6 @@ class _JournalEntryCardState extends State<JournalEntryCard> {
                                     ),
                                   ),
                                 ),
-                                // Credit Column (Flex 3) - Symmetrical Padding + FittedBox
                                 Expanded(
                                   flex: 3,
                                   child: Padding(
@@ -596,8 +622,7 @@ class _JournalEntryCardState extends State<JournalEntryCard> {
                                       child: Text(
                                         !isDebit ? formattedAmount : '',
                                         textAlign: TextAlign.right,
-                                        maxLines:
-                                            1, // Ensures it absolutely never wraps
+                                        maxLines: 1,
                                         style: const TextStyle(
                                           fontSize: 13,
                                           fontWeight: FontWeight.w500,
