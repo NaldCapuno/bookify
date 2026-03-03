@@ -7,6 +7,7 @@ mixin _$JournalEntryDaoMixin on DatabaseAccessor<AppDatabase> {
   $JournalsTable get journals => attachedDatabase.journals;
   $AccountCategoriesTable get accountCategories =>
       attachedDatabase.accountCategories;
+  $SystemTagsTable get systemTags => attachedDatabase.systemTags;
   $AccountsTable get accounts => attachedDatabase.accounts;
   $TransactionsTable get transactions => attachedDatabase.transactions;
   JournalEntryDaoManager get managers => JournalEntryDaoManager(this);
@@ -22,6 +23,8 @@ class JournalEntryDaoManager {
         _db.attachedDatabase,
         _db.accountCategories,
       );
+  $$SystemTagsTableTableManager get systemTags =>
+      $$SystemTagsTableTableManager(_db.attachedDatabase, _db.systemTags);
   $$AccountsTableTableManager get accounts =>
       $$AccountsTableTableManager(_db.attachedDatabase, _db.accounts);
   $$TransactionsTableTableManager get transactions =>

@@ -6,6 +6,7 @@ part of 'ledger_dao.dart';
 mixin _$LedgerDaoMixin on DatabaseAccessor<AppDatabase> {
   $AccountCategoriesTable get accountCategories =>
       attachedDatabase.accountCategories;
+  $SystemTagsTable get systemTags => attachedDatabase.systemTags;
   $AccountsTable get accounts => attachedDatabase.accounts;
   $JournalsTable get journals => attachedDatabase.journals;
   $TransactionsTable get transactions => attachedDatabase.transactions;
@@ -20,6 +21,8 @@ class LedgerDaoManager {
         _db.attachedDatabase,
         _db.accountCategories,
       );
+  $$SystemTagsTableTableManager get systemTags =>
+      $$SystemTagsTableTableManager(_db.attachedDatabase, _db.systemTags);
   $$AccountsTableTableManager get accounts =>
       $$AccountsTableTableManager(_db.attachedDatabase, _db.accounts);
   $$JournalsTableTableManager get journals =>

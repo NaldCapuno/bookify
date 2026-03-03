@@ -321,6 +321,324 @@ class AccountCategoriesCompanion extends UpdateCompanion<AccountCategory> {
   }
 }
 
+class $SystemTagsTable extends SystemTags
+    with TableInfo<$SystemTagsTable, SystemTag> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $SystemTagsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    hasAutoIncrement: true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'PRIMARY KEY AUTOINCREMENT',
+    ),
+  );
+  static const VerificationMeta _codeMeta = const VerificationMeta('code');
+  @override
+  late final GeneratedColumn<String> code = GeneratedColumn<String>(
+    'code',
+    aliasedName,
+    false,
+    additionalChecks: GeneratedColumn.checkTextLength(
+      minTextLength: 1,
+      maxTextLength: 20,
+    ),
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways('UNIQUE'),
+  );
+  static const VerificationMeta _displayNameMeta = const VerificationMeta(
+    'displayName',
+  );
+  @override
+  late final GeneratedColumn<String> displayName = GeneratedColumn<String>(
+    'display_name',
+    aliasedName,
+    false,
+    additionalChecks: GeneratedColumn.checkTextLength(
+      minTextLength: 1,
+      maxTextLength: 50,
+    ),
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _descriptionMeta = const VerificationMeta(
+    'description',
+  );
+  @override
+  late final GeneratedColumn<String> description = GeneratedColumn<String>(
+    'description',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [id, code, displayName, description];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'system_tags';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<SystemTag> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('code')) {
+      context.handle(
+        _codeMeta,
+        code.isAcceptableOrUnknown(data['code']!, _codeMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_codeMeta);
+    }
+    if (data.containsKey('display_name')) {
+      context.handle(
+        _displayNameMeta,
+        displayName.isAcceptableOrUnknown(
+          data['display_name']!,
+          _displayNameMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_displayNameMeta);
+    }
+    if (data.containsKey('description')) {
+      context.handle(
+        _descriptionMeta,
+        description.isAcceptableOrUnknown(
+          data['description']!,
+          _descriptionMeta,
+        ),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  SystemTag map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return SystemTag(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}id'],
+      )!,
+      code: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}code'],
+      )!,
+      displayName: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}display_name'],
+      )!,
+      description: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}description'],
+      ),
+    );
+  }
+
+  @override
+  $SystemTagsTable createAlias(String alias) {
+    return $SystemTagsTable(attachedDatabase, alias);
+  }
+}
+
+class SystemTag extends DataClass implements Insertable<SystemTag> {
+  final int id;
+  final String code;
+  final String displayName;
+  final String? description;
+  const SystemTag({
+    required this.id,
+    required this.code,
+    required this.displayName,
+    this.description,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['code'] = Variable<String>(code);
+    map['display_name'] = Variable<String>(displayName);
+    if (!nullToAbsent || description != null) {
+      map['description'] = Variable<String>(description);
+    }
+    return map;
+  }
+
+  SystemTagsCompanion toCompanion(bool nullToAbsent) {
+    return SystemTagsCompanion(
+      id: Value(id),
+      code: Value(code),
+      displayName: Value(displayName),
+      description: description == null && nullToAbsent
+          ? const Value.absent()
+          : Value(description),
+    );
+  }
+
+  factory SystemTag.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return SystemTag(
+      id: serializer.fromJson<int>(json['id']),
+      code: serializer.fromJson<String>(json['code']),
+      displayName: serializer.fromJson<String>(json['displayName']),
+      description: serializer.fromJson<String?>(json['description']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'code': serializer.toJson<String>(code),
+      'displayName': serializer.toJson<String>(displayName),
+      'description': serializer.toJson<String?>(description),
+    };
+  }
+
+  SystemTag copyWith({
+    int? id,
+    String? code,
+    String? displayName,
+    Value<String?> description = const Value.absent(),
+  }) => SystemTag(
+    id: id ?? this.id,
+    code: code ?? this.code,
+    displayName: displayName ?? this.displayName,
+    description: description.present ? description.value : this.description,
+  );
+  SystemTag copyWithCompanion(SystemTagsCompanion data) {
+    return SystemTag(
+      id: data.id.present ? data.id.value : this.id,
+      code: data.code.present ? data.code.value : this.code,
+      displayName: data.displayName.present
+          ? data.displayName.value
+          : this.displayName,
+      description: data.description.present
+          ? data.description.value
+          : this.description,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('SystemTag(')
+          ..write('id: $id, ')
+          ..write('code: $code, ')
+          ..write('displayName: $displayName, ')
+          ..write('description: $description')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(id, code, displayName, description);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is SystemTag &&
+          other.id == this.id &&
+          other.code == this.code &&
+          other.displayName == this.displayName &&
+          other.description == this.description);
+}
+
+class SystemTagsCompanion extends UpdateCompanion<SystemTag> {
+  final Value<int> id;
+  final Value<String> code;
+  final Value<String> displayName;
+  final Value<String?> description;
+  const SystemTagsCompanion({
+    this.id = const Value.absent(),
+    this.code = const Value.absent(),
+    this.displayName = const Value.absent(),
+    this.description = const Value.absent(),
+  });
+  SystemTagsCompanion.insert({
+    this.id = const Value.absent(),
+    required String code,
+    required String displayName,
+    this.description = const Value.absent(),
+  }) : code = Value(code),
+       displayName = Value(displayName);
+  static Insertable<SystemTag> custom({
+    Expression<int>? id,
+    Expression<String>? code,
+    Expression<String>? displayName,
+    Expression<String>? description,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (code != null) 'code': code,
+      if (displayName != null) 'display_name': displayName,
+      if (description != null) 'description': description,
+    });
+  }
+
+  SystemTagsCompanion copyWith({
+    Value<int>? id,
+    Value<String>? code,
+    Value<String>? displayName,
+    Value<String?>? description,
+  }) {
+    return SystemTagsCompanion(
+      id: id ?? this.id,
+      code: code ?? this.code,
+      displayName: displayName ?? this.displayName,
+      description: description ?? this.description,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (code.present) {
+      map['code'] = Variable<String>(code.value);
+    }
+    if (displayName.present) {
+      map['display_name'] = Variable<String>(displayName.value);
+    }
+    if (description.present) {
+      map['description'] = Variable<String>(description.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('SystemTagsCompanion(')
+          ..write('id: $id, ')
+          ..write('code: $code, ')
+          ..write('displayName: $displayName, ')
+          ..write('description: $description')
+          ..write(')'))
+        .toString();
+  }
+}
+
 class $AccountsTable extends Accounts with TableInfo<$AccountsTable, Account> {
   @override
   final GeneratedDatabase attachedDatabase;
@@ -388,6 +706,20 @@ class $AccountsTable extends Accounts with TableInfo<$AccountsTable, Account> {
       'REFERENCES account_categories (id)',
     ),
   );
+  static const VerificationMeta _systemTagIdMeta = const VerificationMeta(
+    'systemTagId',
+  );
+  @override
+  late final GeneratedColumn<int> systemTagId = GeneratedColumn<int>(
+    'system_tag_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES system_tags (id)',
+    ),
+  );
   static const VerificationMeta _isActiveMeta = const VerificationMeta(
     'isActive',
   );
@@ -440,6 +772,7 @@ class $AccountsTable extends Accounts with TableInfo<$AccountsTable, Account> {
     name,
     description,
     categoryId,
+    systemTagId,
     isActive,
     isLocked,
     isArchived,
@@ -492,6 +825,15 @@ class $AccountsTable extends Accounts with TableInfo<$AccountsTable, Account> {
     } else if (isInserting) {
       context.missing(_categoryIdMeta);
     }
+    if (data.containsKey('system_tag_id')) {
+      context.handle(
+        _systemTagIdMeta,
+        systemTagId.isAcceptableOrUnknown(
+          data['system_tag_id']!,
+          _systemTagIdMeta,
+        ),
+      );
+    }
     if (data.containsKey('is_active')) {
       context.handle(
         _isActiveMeta,
@@ -539,6 +881,10 @@ class $AccountsTable extends Accounts with TableInfo<$AccountsTable, Account> {
         DriftSqlType.int,
         data['${effectivePrefix}category_id'],
       )!,
+      systemTagId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}system_tag_id'],
+      ),
       isActive: attachedDatabase.typeMapping.read(
         DriftSqlType.bool,
         data['${effectivePrefix}is_active'],
@@ -566,6 +912,7 @@ class Account extends DataClass implements Insertable<Account> {
   final String name;
   final String? description;
   final int categoryId;
+  final int? systemTagId;
   final bool isActive;
   final bool isLocked;
   final bool isArchived;
@@ -575,6 +922,7 @@ class Account extends DataClass implements Insertable<Account> {
     required this.name,
     this.description,
     required this.categoryId,
+    this.systemTagId,
     required this.isActive,
     required this.isLocked,
     required this.isArchived,
@@ -589,6 +937,9 @@ class Account extends DataClass implements Insertable<Account> {
       map['description'] = Variable<String>(description);
     }
     map['category_id'] = Variable<int>(categoryId);
+    if (!nullToAbsent || systemTagId != null) {
+      map['system_tag_id'] = Variable<int>(systemTagId);
+    }
     map['is_active'] = Variable<bool>(isActive);
     map['is_locked'] = Variable<bool>(isLocked);
     map['is_archived'] = Variable<bool>(isArchived);
@@ -604,6 +955,9 @@ class Account extends DataClass implements Insertable<Account> {
           ? const Value.absent()
           : Value(description),
       categoryId: Value(categoryId),
+      systemTagId: systemTagId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(systemTagId),
       isActive: Value(isActive),
       isLocked: Value(isLocked),
       isArchived: Value(isArchived),
@@ -621,6 +975,7 @@ class Account extends DataClass implements Insertable<Account> {
       name: serializer.fromJson<String>(json['name']),
       description: serializer.fromJson<String?>(json['description']),
       categoryId: serializer.fromJson<int>(json['categoryId']),
+      systemTagId: serializer.fromJson<int?>(json['systemTagId']),
       isActive: serializer.fromJson<bool>(json['isActive']),
       isLocked: serializer.fromJson<bool>(json['isLocked']),
       isArchived: serializer.fromJson<bool>(json['isArchived']),
@@ -635,6 +990,7 @@ class Account extends DataClass implements Insertable<Account> {
       'name': serializer.toJson<String>(name),
       'description': serializer.toJson<String?>(description),
       'categoryId': serializer.toJson<int>(categoryId),
+      'systemTagId': serializer.toJson<int?>(systemTagId),
       'isActive': serializer.toJson<bool>(isActive),
       'isLocked': serializer.toJson<bool>(isLocked),
       'isArchived': serializer.toJson<bool>(isArchived),
@@ -647,6 +1003,7 @@ class Account extends DataClass implements Insertable<Account> {
     String? name,
     Value<String?> description = const Value.absent(),
     int? categoryId,
+    Value<int?> systemTagId = const Value.absent(),
     bool? isActive,
     bool? isLocked,
     bool? isArchived,
@@ -656,6 +1013,7 @@ class Account extends DataClass implements Insertable<Account> {
     name: name ?? this.name,
     description: description.present ? description.value : this.description,
     categoryId: categoryId ?? this.categoryId,
+    systemTagId: systemTagId.present ? systemTagId.value : this.systemTagId,
     isActive: isActive ?? this.isActive,
     isLocked: isLocked ?? this.isLocked,
     isArchived: isArchived ?? this.isArchived,
@@ -671,6 +1029,9 @@ class Account extends DataClass implements Insertable<Account> {
       categoryId: data.categoryId.present
           ? data.categoryId.value
           : this.categoryId,
+      systemTagId: data.systemTagId.present
+          ? data.systemTagId.value
+          : this.systemTagId,
       isActive: data.isActive.present ? data.isActive.value : this.isActive,
       isLocked: data.isLocked.present ? data.isLocked.value : this.isLocked,
       isArchived: data.isArchived.present
@@ -687,6 +1048,7 @@ class Account extends DataClass implements Insertable<Account> {
           ..write('name: $name, ')
           ..write('description: $description, ')
           ..write('categoryId: $categoryId, ')
+          ..write('systemTagId: $systemTagId, ')
           ..write('isActive: $isActive, ')
           ..write('isLocked: $isLocked, ')
           ..write('isArchived: $isArchived')
@@ -701,6 +1063,7 @@ class Account extends DataClass implements Insertable<Account> {
     name,
     description,
     categoryId,
+    systemTagId,
     isActive,
     isLocked,
     isArchived,
@@ -714,6 +1077,7 @@ class Account extends DataClass implements Insertable<Account> {
           other.name == this.name &&
           other.description == this.description &&
           other.categoryId == this.categoryId &&
+          other.systemTagId == this.systemTagId &&
           other.isActive == this.isActive &&
           other.isLocked == this.isLocked &&
           other.isArchived == this.isArchived);
@@ -725,6 +1089,7 @@ class AccountsCompanion extends UpdateCompanion<Account> {
   final Value<String> name;
   final Value<String?> description;
   final Value<int> categoryId;
+  final Value<int?> systemTagId;
   final Value<bool> isActive;
   final Value<bool> isLocked;
   final Value<bool> isArchived;
@@ -734,6 +1099,7 @@ class AccountsCompanion extends UpdateCompanion<Account> {
     this.name = const Value.absent(),
     this.description = const Value.absent(),
     this.categoryId = const Value.absent(),
+    this.systemTagId = const Value.absent(),
     this.isActive = const Value.absent(),
     this.isLocked = const Value.absent(),
     this.isArchived = const Value.absent(),
@@ -744,6 +1110,7 @@ class AccountsCompanion extends UpdateCompanion<Account> {
     required String name,
     this.description = const Value.absent(),
     required int categoryId,
+    this.systemTagId = const Value.absent(),
     this.isActive = const Value.absent(),
     this.isLocked = const Value.absent(),
     this.isArchived = const Value.absent(),
@@ -756,6 +1123,7 @@ class AccountsCompanion extends UpdateCompanion<Account> {
     Expression<String>? name,
     Expression<String>? description,
     Expression<int>? categoryId,
+    Expression<int>? systemTagId,
     Expression<bool>? isActive,
     Expression<bool>? isLocked,
     Expression<bool>? isArchived,
@@ -766,6 +1134,7 @@ class AccountsCompanion extends UpdateCompanion<Account> {
       if (name != null) 'name': name,
       if (description != null) 'description': description,
       if (categoryId != null) 'category_id': categoryId,
+      if (systemTagId != null) 'system_tag_id': systemTagId,
       if (isActive != null) 'is_active': isActive,
       if (isLocked != null) 'is_locked': isLocked,
       if (isArchived != null) 'is_archived': isArchived,
@@ -778,6 +1147,7 @@ class AccountsCompanion extends UpdateCompanion<Account> {
     Value<String>? name,
     Value<String?>? description,
     Value<int>? categoryId,
+    Value<int?>? systemTagId,
     Value<bool>? isActive,
     Value<bool>? isLocked,
     Value<bool>? isArchived,
@@ -788,6 +1158,7 @@ class AccountsCompanion extends UpdateCompanion<Account> {
       name: name ?? this.name,
       description: description ?? this.description,
       categoryId: categoryId ?? this.categoryId,
+      systemTagId: systemTagId ?? this.systemTagId,
       isActive: isActive ?? this.isActive,
       isLocked: isLocked ?? this.isLocked,
       isArchived: isArchived ?? this.isArchived,
@@ -812,6 +1183,9 @@ class AccountsCompanion extends UpdateCompanion<Account> {
     if (categoryId.present) {
       map['category_id'] = Variable<int>(categoryId.value);
     }
+    if (systemTagId.present) {
+      map['system_tag_id'] = Variable<int>(systemTagId.value);
+    }
     if (isActive.present) {
       map['is_active'] = Variable<bool>(isActive.value);
     }
@@ -832,6 +1206,7 @@ class AccountsCompanion extends UpdateCompanion<Account> {
           ..write('name: $name, ')
           ..write('description: $description, ')
           ..write('categoryId: $categoryId, ')
+          ..write('systemTagId: $systemTagId, ')
           ..write('isActive: $isActive, ')
           ..write('isLocked: $isLocked, ')
           ..write('isArchived: $isArchived')
@@ -2196,6 +2571,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
   late final $AccountCategoriesTable accountCategories =
       $AccountCategoriesTable(this);
+  late final $SystemTagsTable systemTags = $SystemTagsTable(this);
   late final $AccountsTable accounts = $AccountsTable(this);
   late final $JournalsTable journals = $JournalsTable(this);
   late final $TransactionsTable transactions = $TransactionsTable(this);
@@ -2213,6 +2589,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   @override
   List<DatabaseSchemaEntity> get allSchemaEntities => [
     accountCategories,
+    systemTags,
     accounts,
     journals,
     transactions,
@@ -2630,6 +3007,289 @@ typedef $$AccountCategoriesTableProcessedTableManager =
       AccountCategory,
       PrefetchHooks Function({bool parent, bool accountsRefs})
     >;
+typedef $$SystemTagsTableCreateCompanionBuilder =
+    SystemTagsCompanion Function({
+      Value<int> id,
+      required String code,
+      required String displayName,
+      Value<String?> description,
+    });
+typedef $$SystemTagsTableUpdateCompanionBuilder =
+    SystemTagsCompanion Function({
+      Value<int> id,
+      Value<String> code,
+      Value<String> displayName,
+      Value<String?> description,
+    });
+
+final class $$SystemTagsTableReferences
+    extends BaseReferences<_$AppDatabase, $SystemTagsTable, SystemTag> {
+  $$SystemTagsTableReferences(super.$_db, super.$_table, super.$_typedResult);
+
+  static MultiTypedResultKey<$AccountsTable, List<Account>> _accountsRefsTable(
+    _$AppDatabase db,
+  ) => MultiTypedResultKey.fromTable(
+    db.accounts,
+    aliasName: $_aliasNameGenerator(db.systemTags.id, db.accounts.systemTagId),
+  );
+
+  $$AccountsTableProcessedTableManager get accountsRefs {
+    final manager = $$AccountsTableTableManager(
+      $_db,
+      $_db.accounts,
+    ).filter((f) => f.systemTagId.id.sqlEquals($_itemColumn<int>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(_accountsRefsTable($_db));
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
+}
+
+class $$SystemTagsTableFilterComposer
+    extends Composer<_$AppDatabase, $SystemTagsTable> {
+  $$SystemTagsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get code => $composableBuilder(
+    column: $table.code,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get displayName => $composableBuilder(
+    column: $table.displayName,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get description => $composableBuilder(
+    column: $table.description,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  Expression<bool> accountsRefs(
+    Expression<bool> Function($$AccountsTableFilterComposer f) f,
+  ) {
+    final $$AccountsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.accounts,
+      getReferencedColumn: (t) => t.systemTagId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$AccountsTableFilterComposer(
+            $db: $db,
+            $table: $db.accounts,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+}
+
+class $$SystemTagsTableOrderingComposer
+    extends Composer<_$AppDatabase, $SystemTagsTable> {
+  $$SystemTagsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get code => $composableBuilder(
+    column: $table.code,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get displayName => $composableBuilder(
+    column: $table.displayName,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get description => $composableBuilder(
+    column: $table.description,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$SystemTagsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $SystemTagsTable> {
+  $$SystemTagsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get code =>
+      $composableBuilder(column: $table.code, builder: (column) => column);
+
+  GeneratedColumn<String> get displayName => $composableBuilder(
+    column: $table.displayName,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get description => $composableBuilder(
+    column: $table.description,
+    builder: (column) => column,
+  );
+
+  Expression<T> accountsRefs<T extends Object>(
+    Expression<T> Function($$AccountsTableAnnotationComposer a) f,
+  ) {
+    final $$AccountsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.accounts,
+      getReferencedColumn: (t) => t.systemTagId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$AccountsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.accounts,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+}
+
+class $$SystemTagsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $SystemTagsTable,
+          SystemTag,
+          $$SystemTagsTableFilterComposer,
+          $$SystemTagsTableOrderingComposer,
+          $$SystemTagsTableAnnotationComposer,
+          $$SystemTagsTableCreateCompanionBuilder,
+          $$SystemTagsTableUpdateCompanionBuilder,
+          (SystemTag, $$SystemTagsTableReferences),
+          SystemTag,
+          PrefetchHooks Function({bool accountsRefs})
+        > {
+  $$SystemTagsTableTableManager(_$AppDatabase db, $SystemTagsTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$SystemTagsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$SystemTagsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$SystemTagsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<String> code = const Value.absent(),
+                Value<String> displayName = const Value.absent(),
+                Value<String?> description = const Value.absent(),
+              }) => SystemTagsCompanion(
+                id: id,
+                code: code,
+                displayName: displayName,
+                description: description,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                required String code,
+                required String displayName,
+                Value<String?> description = const Value.absent(),
+              }) => SystemTagsCompanion.insert(
+                id: id,
+                code: code,
+                displayName: displayName,
+                description: description,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable(table),
+                  $$SystemTagsTableReferences(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: ({accountsRefs = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [if (accountsRefs) db.accounts],
+              addJoins: null,
+              getPrefetchedDataCallback: (items) async {
+                return [
+                  if (accountsRefs)
+                    await $_getPrefetchedData<
+                      SystemTag,
+                      $SystemTagsTable,
+                      Account
+                    >(
+                      currentTable: table,
+                      referencedTable: $$SystemTagsTableReferences
+                          ._accountsRefsTable(db),
+                      managerFromTypedResult: (p0) =>
+                          $$SystemTagsTableReferences(
+                            db,
+                            table,
+                            p0,
+                          ).accountsRefs,
+                      referencedItemsForCurrentItem: (item, referencedItems) =>
+                          referencedItems.where(
+                            (e) => e.systemTagId == item.id,
+                          ),
+                      typedResults: items,
+                    ),
+                ];
+              },
+            );
+          },
+        ),
+      );
+}
+
+typedef $$SystemTagsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $SystemTagsTable,
+      SystemTag,
+      $$SystemTagsTableFilterComposer,
+      $$SystemTagsTableOrderingComposer,
+      $$SystemTagsTableAnnotationComposer,
+      $$SystemTagsTableCreateCompanionBuilder,
+      $$SystemTagsTableUpdateCompanionBuilder,
+      (SystemTag, $$SystemTagsTableReferences),
+      SystemTag,
+      PrefetchHooks Function({bool accountsRefs})
+    >;
 typedef $$AccountsTableCreateCompanionBuilder =
     AccountsCompanion Function({
       Value<int> id,
@@ -2637,6 +3297,7 @@ typedef $$AccountsTableCreateCompanionBuilder =
       required String name,
       Value<String?> description,
       required int categoryId,
+      Value<int?> systemTagId,
       Value<bool> isActive,
       Value<bool> isLocked,
       Value<bool> isArchived,
@@ -2648,6 +3309,7 @@ typedef $$AccountsTableUpdateCompanionBuilder =
       Value<String> name,
       Value<String?> description,
       Value<int> categoryId,
+      Value<int?> systemTagId,
       Value<bool> isActive,
       Value<bool> isLocked,
       Value<bool> isArchived,
@@ -2670,6 +3332,25 @@ final class $$AccountsTableReferences
       $_db.accountCategories,
     ).filter((f) => f.id.sqlEquals($_column));
     final item = $_typedResult.readTableOrNull(_categoryIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+
+  static $SystemTagsTable _systemTagIdTable(_$AppDatabase db) =>
+      db.systemTags.createAlias(
+        $_aliasNameGenerator(db.accounts.systemTagId, db.systemTags.id),
+      );
+
+  $$SystemTagsTableProcessedTableManager? get systemTagId {
+    final $_column = $_itemColumn<int>('system_tag_id');
+    if ($_column == null) return null;
+    final manager = $$SystemTagsTableTableManager(
+      $_db,
+      $_db.systemTags,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_systemTagIdTable($_db));
     if (item == null) return manager;
     return ProcessedTableManager(
       manager.$state.copyWith(prefetchedData: [item]),
@@ -2753,6 +3434,29 @@ class $$AccountsTableFilterComposer
           }) => $$AccountCategoriesTableFilterComposer(
             $db: $db,
             $table: $db.accountCategories,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$SystemTagsTableFilterComposer get systemTagId {
+    final $$SystemTagsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.systemTagId,
+      referencedTable: $db.systemTags,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$SystemTagsTableFilterComposer(
+            $db: $db,
+            $table: $db.systemTags,
             $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
             joinBuilder: joinBuilder,
             $removeJoinBuilderFromRootComposer:
@@ -2854,6 +3558,29 @@ class $$AccountsTableOrderingComposer
     );
     return composer;
   }
+
+  $$SystemTagsTableOrderingComposer get systemTagId {
+    final $$SystemTagsTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.systemTagId,
+      referencedTable: $db.systemTags,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$SystemTagsTableOrderingComposer(
+            $db: $db,
+            $table: $db.systemTags,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
 }
 
 class $$AccountsTableAnnotationComposer
@@ -2914,6 +3641,29 @@ class $$AccountsTableAnnotationComposer
     return composer;
   }
 
+  $$SystemTagsTableAnnotationComposer get systemTagId {
+    final $$SystemTagsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.systemTagId,
+      referencedTable: $db.systemTags,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$SystemTagsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.systemTags,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
   Expression<T> transactionsRefs<T extends Object>(
     Expression<T> Function($$TransactionsTableAnnotationComposer a) f,
   ) {
@@ -2953,7 +3703,11 @@ class $$AccountsTableTableManager
           $$AccountsTableUpdateCompanionBuilder,
           (Account, $$AccountsTableReferences),
           Account,
-          PrefetchHooks Function({bool categoryId, bool transactionsRefs})
+          PrefetchHooks Function({
+            bool categoryId,
+            bool systemTagId,
+            bool transactionsRefs,
+          })
         > {
   $$AccountsTableTableManager(_$AppDatabase db, $AccountsTable table)
     : super(
@@ -2973,6 +3727,7 @@ class $$AccountsTableTableManager
                 Value<String> name = const Value.absent(),
                 Value<String?> description = const Value.absent(),
                 Value<int> categoryId = const Value.absent(),
+                Value<int?> systemTagId = const Value.absent(),
                 Value<bool> isActive = const Value.absent(),
                 Value<bool> isLocked = const Value.absent(),
                 Value<bool> isArchived = const Value.absent(),
@@ -2982,6 +3737,7 @@ class $$AccountsTableTableManager
                 name: name,
                 description: description,
                 categoryId: categoryId,
+                systemTagId: systemTagId,
                 isActive: isActive,
                 isLocked: isLocked,
                 isArchived: isArchived,
@@ -2993,6 +3749,7 @@ class $$AccountsTableTableManager
                 required String name,
                 Value<String?> description = const Value.absent(),
                 required int categoryId,
+                Value<int?> systemTagId = const Value.absent(),
                 Value<bool> isActive = const Value.absent(),
                 Value<bool> isLocked = const Value.absent(),
                 Value<bool> isArchived = const Value.absent(),
@@ -3002,6 +3759,7 @@ class $$AccountsTableTableManager
                 name: name,
                 description: description,
                 categoryId: categoryId,
+                systemTagId: systemTagId,
                 isActive: isActive,
                 isLocked: isLocked,
                 isArchived: isArchived,
@@ -3015,7 +3773,11 @@ class $$AccountsTableTableManager
               )
               .toList(),
           prefetchHooksCallback:
-              ({categoryId = false, transactionsRefs = false}) {
+              ({
+                categoryId = false,
+                systemTagId = false,
+                transactionsRefs = false,
+              }) {
                 return PrefetchHooks(
                   db: db,
                   explicitlyWatchedTables: [
@@ -3046,6 +3808,19 @@ class $$AccountsTableTableManager
                                         ._categoryIdTable(db),
                                     referencedColumn: $$AccountsTableReferences
                                         ._categoryIdTable(db)
+                                        .id,
+                                  )
+                                  as T;
+                        }
+                        if (systemTagId) {
+                          state =
+                              state.withJoin(
+                                    currentTable: table,
+                                    currentColumn: table.systemTagId,
+                                    referencedTable: $$AccountsTableReferences
+                                        ._systemTagIdTable(db),
+                                    referencedColumn: $$AccountsTableReferences
+                                        ._systemTagIdTable(db)
                                         .id,
                                   )
                                   as T;
@@ -3096,7 +3871,11 @@ typedef $$AccountsTableProcessedTableManager =
       $$AccountsTableUpdateCompanionBuilder,
       (Account, $$AccountsTableReferences),
       Account,
-      PrefetchHooks Function({bool categoryId, bool transactionsRefs})
+      PrefetchHooks Function({
+        bool categoryId,
+        bool systemTagId,
+        bool transactionsRefs,
+      })
     >;
 typedef $$JournalsTableCreateCompanionBuilder =
     JournalsCompanion Function({
@@ -4093,6 +4872,8 @@ class $AppDatabaseManager {
   $AppDatabaseManager(this._db);
   $$AccountCategoriesTableTableManager get accountCategories =>
       $$AccountCategoriesTableTableManager(_db, _db.accountCategories);
+  $$SystemTagsTableTableManager get systemTags =>
+      $$SystemTagsTableTableManager(_db, _db.systemTags);
   $$AccountsTableTableManager get accounts =>
       $$AccountsTableTableManager(_db, _db.accounts);
   $$JournalsTableTableManager get journals =>

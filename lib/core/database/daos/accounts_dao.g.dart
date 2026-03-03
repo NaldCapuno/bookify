@@ -6,6 +6,7 @@ part of 'accounts_dao.dart';
 mixin _$AccountsDaoMixin on DatabaseAccessor<AppDatabase> {
   $AccountCategoriesTable get accountCategories =>
       attachedDatabase.accountCategories;
+  $SystemTagsTable get systemTags => attachedDatabase.systemTags;
   $AccountsTable get accounts => attachedDatabase.accounts;
   AccountsDaoManager get managers => AccountsDaoManager(this);
 }
@@ -18,6 +19,8 @@ class AccountsDaoManager {
         _db.attachedDatabase,
         _db.accountCategories,
       );
+  $$SystemTagsTableTableManager get systemTags =>
+      $$SystemTagsTableTableManager(_db.attachedDatabase, _db.systemTags);
   $$AccountsTableTableManager get accounts =>
       $$AccountsTableTableManager(_db.attachedDatabase, _db.accounts);
 }
