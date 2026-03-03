@@ -64,9 +64,7 @@ class CashFlowStatementCard extends StatelessWidget {
         data.financingEquity.isNotEmpty;
 
     if (!hasActivity) {
-      return const EmptyReportPlaceholder(
-        message: "No cash flow activity recorded for this period.",
-      );
+      return const EmptyReportPlaceholder(message: "No transaction recorded.");
     }
 
     return Column(
