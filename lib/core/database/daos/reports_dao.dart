@@ -191,7 +191,7 @@ class ReportsDao extends DatabaseAccessor<AppDatabase> with _$ReportsDaoMixin {
     );
 
     // 2. Fetch the Balance Sheet exactly 1 day before the period started
-    final beginningDate = startDate.subtract(const Duration(days: 1));
+    final beginningDate = startDate.subtract(const Duration(seconds: 1));
     final beginningBalanceSheet = await getBalanceSheet(date: beginningDate);
 
     // 3. Fetch the Balance Sheet at the end of the period

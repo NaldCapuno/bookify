@@ -16,7 +16,7 @@ class CashFlowStatementScreen extends StatefulWidget {
 }
 
 class _CashFlowStatementScreenState extends State<CashFlowStatementScreen> {
-  ReportPeriod _currentPeriod = ReportPeriod.monthly; // Default to monthly
+  ReportPeriod _currentPeriod = ReportPeriod.yearly;
 
   late DateTime _startDate;
   late DateTime _endDate;
