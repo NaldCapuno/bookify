@@ -22,15 +22,16 @@ class LabeledInput extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           label,
-          style: const TextStyle(
-            fontSize: 14,
+          style: theme.textTheme.bodyMedium!.copyWith(
             fontWeight: FontWeight.w500,
-            color: Color(0xFF374151), // text-gray-700
+            color: colorScheme.onSurface,
           ),
         ),
         const SizedBox(height: 8),
@@ -40,28 +41,18 @@ class LabeledInput extends StatelessWidget {
           keyboardType: keyboardType,
           decoration: InputDecoration(
             hintText: hint,
-            hintStyle: const TextStyle(
-              color: Color(0xFF9CA3AF),
-            ), // text-gray-400
-            prefixIcon: Icon(icon, color: const Color(0xFF9CA3AF), size: 20),
+            hintStyle: TextStyle(color: colorScheme.onSurfaceVariant),
+            prefixIcon: Icon(icon, color: colorScheme.onSurfaceVariant, size: 20),
             filled: true,
-            fillColor: Colors.white,
-            contentPadding: const EdgeInsets.symmetric(
-              vertical: 0,
-              horizontal: 10,
-            ),
+            fillColor: colorScheme.surface,
+            contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 10),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(8),
-              borderSide: const BorderSide(
-                color: Color(0xFFD1D5DB),
-              ), // border-gray-300
+              borderSide: BorderSide(color: colorScheme.outlineVariant),
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(8),
-              borderSide: const BorderSide(
-                color: Color(0xFF111827),
-                width: 1.5,
-              ), // ring-gray-900
+              borderSide: BorderSide(color: colorScheme.primary, width: 1.5),
             ),
           ),
         ),
@@ -85,27 +76,29 @@ class PrimaryButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
     return SizedBox(
       width: double.infinity,
-      height: 48, // h-12
+      height: 48,
       child: ElevatedButton(
         onPressed: isLoading ? null : onPressed,
         style: ElevatedButton.styleFrom(
-          backgroundColor: const Color(0xFF111827), // bg-gray-900
-          foregroundColor: Colors.white,
+          backgroundColor: colorScheme.primary,
+          foregroundColor: colorScheme.onPrimary,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
           elevation: 0,
         ),
         child: isLoading
-            ? const SizedBox(
+            ? SizedBox(
                 height: 20,
                 width: 20,
                 child: CircularProgressIndicator(
-                  color: Colors.white,
+                  color: colorScheme.onPrimary,
                   strokeWidth: 2,
                 ),
               )
-            : Text(text, style: const TextStyle(fontWeight: FontWeight.w500)),
+            : Text(text, style: TextStyle(fontWeight: FontWeight.w500, color: colorScheme.onPrimary)),
       ),
     );
   }
@@ -124,26 +117,27 @@ class GoogleSignInButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
     return OutlinedButton(
       onPressed: isLoading ? null : onPressed,
       style: OutlinedButton.styleFrom(
         padding: const EdgeInsets.symmetric(vertical: 12),
-        side: const BorderSide(color: Color(0xFFD1D5DB)), // border-gray-300
+        side: BorderSide(color: colorScheme.outlineVariant),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-        backgroundColor: Colors.white,
-        foregroundColor: Colors.black,
+        backgroundColor: colorScheme.surface,
+        foregroundColor: colorScheme.onSurface,
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           SvgPicture.string(_googleSvgString, width: 18, height: 18),
           const SizedBox(width: 12),
-          const Text(
+          Text(
             'Continue with Google',
-            style: TextStyle(
-              fontSize: 14,
+            style: theme.textTheme.bodyMedium!.copyWith(
               fontWeight: FontWeight.w500,
-              color: Color(0xFF374151),
+              color: colorScheme.onSurface,
             ),
           ),
         ],
@@ -158,22 +152,21 @@ class OrDivider extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
     return Row(
       children: [
-        const Expanded(
-          child: Divider(color: Color(0xFFE5E7EB)),
-        ), // border-gray-200
+        Expanded(child: Divider(color: colorScheme.outlineVariant)),
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16.0),
           child: Text(
             'OR',
-            style: const TextStyle(
-              fontSize: 14,
-              color: Color(0xFF6B7280), // text-gray-500
+            style: theme.textTheme.bodyMedium!.copyWith(
+              color: colorScheme.onSurfaceVariant,
             ),
           ),
         ),
-        const Expanded(child: Divider(color: Color(0xFFE5E7EB))),
+        Expanded(child: Divider(color: colorScheme.outlineVariant)),
       ],
     );
   }

@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:bookkeeping/core/widgets/reports_color.dart';
 
 class SectionHeader extends StatelessWidget {
   final String title;
@@ -8,12 +7,11 @@ class SectionHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Text(
       title,
-      style: const TextStyle(
-        fontSize: 16,
-        fontWeight: FontWeight.bold,
-        color: AppColors.accentBlue,
+      style: theme.textTheme.titleSmall!.copyWith(
+        color: theme.colorScheme.tertiary,
       ),
     );
   }

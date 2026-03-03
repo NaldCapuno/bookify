@@ -16,20 +16,20 @@ class AccountDetailsSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
     final bool isDebit = normalBalance == NormalBalance.debit;
     final String balanceTag = isDebit ? 'DR' : 'CR';
-    final Color tagColor = isDebit
-        ? Colors.blue.shade700
-        : Colors.orange.shade700;
+    final Color tagColor = isDebit ? colorScheme.tertiary : Colors.orange;
     final bool isArchived = account.isArchived;
 
     return Stack(
       children: [
         Container(
           padding: const EdgeInsets.all(24),
-          decoration: const BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+          decoration: BoxDecoration(
+            color: colorScheme.surface,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -42,7 +42,7 @@ class AccountDetailsSheet extends StatelessWidget {
                   height: 4,
                   margin: const EdgeInsets.only(bottom: 20),
                   decoration: BoxDecoration(
-                    color: Colors.grey[300],
+                    color: colorScheme.outlineVariant,
                     borderRadius: BorderRadius.circular(10),
                   ),
                 ),
@@ -58,19 +58,19 @@ class AccountDetailsSheet extends StatelessWidget {
                     ),
                     decoration: BoxDecoration(
                       color: isArchived
-                          ? Colors.grey.shade100
-                          : tagColor.withValues(alpha: 0.1),
+                          ? colorScheme.surfaceContainerHighest
+                          : tagColor.withValues(alpha: 0.2),
                       borderRadius: BorderRadius.circular(6),
                       border: Border.all(
                         color: isArchived
-                            ? Colors.grey.shade300
+                            ? colorScheme.outlineVariant
                             : tagColor.withValues(alpha: 0.3),
                       ),
                     ),
                     child: Text(
                       balanceTag,
-                      style: TextStyle(
-                        color: isArchived ? Colors.grey : tagColor,
+                      style: theme.textTheme.labelMedium!.copyWith(
+                        color: isArchived ? colorScheme.onSurfaceVariant : tagColor,
                         fontSize: 12,
                         fontWeight: FontWeight.bold,
                       ),
@@ -81,17 +81,15 @@ class AccountDetailsSheet extends StatelessWidget {
                   Expanded(
                     child: Text(
                       account.name,
-                      style: TextStyle(
-                        fontSize: 22,
-                        fontWeight: FontWeight.bold,
-                        color: isArchived ? Colors.grey : Colors.black,
+                      style: theme.textTheme.headlineMedium!.copyWith(
+                        color: isArchived ? colorScheme.onSurfaceVariant : colorScheme.onSurface,
                       ),
                     ),
                   ),
                   if (account.isLocked)
-                    const Icon(
+                    Icon(
                       Icons.lock_outline,
-                      color: Colors.grey,
+                      color: colorScheme.onSurfaceVariant,
                       size: 20,
                     ),
                 ],
@@ -109,6 +107,7 @@ class AccountDetailsSheet extends StatelessWidget {
               const Divider(height: 32),
 
               _buildDetailRow(
+                context,
                 Icons.description_outlined,
                 'Description',
                 account.description ?? 'No description provided.',
@@ -123,14 +122,14 @@ class AccountDetailsSheet extends StatelessWidget {
                       onPressed: () => Navigator.pop(context),
                       style: OutlinedButton.styleFrom(
                         padding: const EdgeInsets.symmetric(vertical: 14),
-                        side: BorderSide(color: Colors.grey.shade300),
+                        side: BorderSide(color: colorScheme.outlineVariant),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
                         ),
                       ),
-                      child: const Text(
+                      child: Text(
                         'Close',
-                        style: TextStyle(color: Colors.black87),
+                        style: TextStyle(color: colorScheme.onSurface),
                       ),
                     ),
                   ),
@@ -145,16 +144,16 @@ class AccountDetailsSheet extends StatelessWidget {
                                   ? Icons.unarchive_outlined
                                   : Icons.archive_outlined,
                               size: 18,
-                              color: Colors.white,
+                              color: colorScheme.onPrimary,
                             ),
                             label: Text(
                               isArchived ? 'Unarchive' : 'Archive',
-                              style: const TextStyle(color: Colors.white),
+                              style: TextStyle(color: colorScheme.onPrimary),
                             ),
                             style: ElevatedButton.styleFrom(
                               backgroundColor: isArchived
-                                  ? Colors.blue.shade700
-                                  : Colors.orange.shade700,
+                                  ? colorScheme.tertiary
+                                  : Colors.orange,
                               padding: const EdgeInsets.symmetric(vertical: 14),
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(12),
@@ -163,17 +162,17 @@ class AccountDetailsSheet extends StatelessWidget {
                           )
                         : ElevatedButton.icon(
                             onPressed: () => _handleDelete(context),
-                            icon: const Icon(
+                            icon: Icon(
                               Icons.delete_forever_outlined,
                               size: 18,
-                              color: Colors.white,
+                              color: colorScheme.onError,
                             ),
-                            label: const Text(
+                            label: Text(
                               'Delete',
-                              style: TextStyle(color: Colors.white),
+                              style: TextStyle(color: colorScheme.onError),
                             ),
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.red.shade700,
+                              backgroundColor: colorScheme.error,
                               padding: const EdgeInsets.symmetric(vertical: 14),
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(12),
@@ -202,15 +201,15 @@ class AccountDetailsSheet extends StatelessWidget {
                   ),
                   decoration: BoxDecoration(
                     border: Border.all(
-                      color: Colors.orange.withValues(alpha: 0.5),
+                      color: colorScheme.onSurfaceVariant,
                       width: 2,
                     ),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Text(
                     'ARCHIVED',
-                    style: TextStyle(
-                      color: Colors.orange.withValues(alpha: 0.5),
+                    style: theme.textTheme.titleMedium!.copyWith(
+                      color: colorScheme.onSurfaceVariant,
                       fontWeight: FontWeight.bold,
                       fontSize: 18,
                       letterSpacing: 2.0,
@@ -225,11 +224,14 @@ class AccountDetailsSheet extends StatelessWidget {
   }
 
   Widget _buildDetailRow(
+    BuildContext context,
     IconData icon,
     String label,
     String value,
     bool isArchived,
   ) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -238,14 +240,13 @@ class AccountDetailsSheet extends StatelessWidget {
             Icon(
               icon,
               size: 16,
-              color: isArchived ? Colors.grey.shade300 : Colors.grey,
+              color: colorScheme.onSurfaceVariant,
             ),
             const SizedBox(width: 8),
             Text(
               label,
-              style: TextStyle(
-                color: isArchived ? Colors.grey.shade300 : Colors.grey,
-                fontSize: 12,
+              style: theme.textTheme.bodySmall!.copyWith(
+                color: colorScheme.onSurfaceVariant,
                 fontWeight: FontWeight.bold,
               ),
             ),
@@ -254,9 +255,8 @@ class AccountDetailsSheet extends StatelessWidget {
         const SizedBox(height: 4),
         Text(
           value,
-          style: TextStyle(
-            fontSize: 15,
-            color: isArchived ? Colors.grey.shade400 : Colors.black87,
+          style: theme.textTheme.bodyLarge!.copyWith(
+            color: isArchived ? colorScheme.onSurfaceVariant : colorScheme.onSurface,
           ),
         ),
       ],

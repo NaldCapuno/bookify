@@ -146,14 +146,10 @@ class _AddJournalEntryFormState extends State<AddJournalEntryForm> {
       firstDate: DateTime(2000), // How far back they can scroll
       lastDate: DateTime(2100), // How far forward they can scroll
       builder: (context, child) {
-        // Optional: Customize the calendar colors here if you want it to match your dark slate theme
+        final theme = Theme.of(context);
         return Theme(
-          data: Theme.of(context).copyWith(
-            colorScheme: const ColorScheme.light(
-              primary: Colors.blueGrey, // Header background color
-              onPrimary: Colors.white, // Header text color
-              onSurface: Colors.black, // Body text color
-            ),
+          data: theme.copyWith(
+            colorScheme: theme.colorScheme,
           ),
           child: child!,
         );
@@ -199,7 +195,7 @@ class _AddJournalEntryFormState extends State<AddJournalEntryForm> {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: Colors.white,
+      backgroundColor: Theme.of(context).colorScheme.surface,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
@@ -220,6 +216,7 @@ class _AddJournalEntryFormState extends State<AddJournalEntryForm> {
             });
 
             final groupedData = _groupAccounts(filteredAccounts);
+            final colorScheme = Theme.of(context).colorScheme;
 
             return Padding(
               padding: EdgeInsets.only(
@@ -232,12 +229,9 @@ class _AddJournalEntryFormState extends State<AddJournalEntryForm> {
                 height: MediaQuery.of(context).size.height * 0.85,
                 child: Column(
                   children: [
-                    const Text(
+                    Text(
                       "Select Account",
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                      ),
+                      style: Theme.of(context).textTheme.titleMedium,
                     ),
                     const SizedBox(height: 16),
 
@@ -288,13 +282,13 @@ class _AddJournalEntryFormState extends State<AddJournalEntryForm> {
                                     vertical: 8,
                                     horizontal: 12,
                                   ),
-                                  color: Colors.grey.shade100,
+                                  color: colorScheme.surfaceContainerHighest,
                                   child: Text(
                                     categoryName.toUpperCase(),
                                     style: TextStyle(
                                       fontSize: 13,
                                       fontWeight: FontWeight.bold,
-                                      color: Colors.blueGrey.shade700,
+                                      color: colorScheme.onSurfaceVariant,
                                       letterSpacing: 1.2,
                                     ),
                                   ),
@@ -314,11 +308,11 @@ class _AddJournalEntryFormState extends State<AddJournalEntryForm> {
                                       ? 'Debit Account'
                                       : 'Credit Account';
                                   final badgeColor = isDebit
-                                      ? Colors.blue.shade700
-                                      : Colors.orange.shade700;
+                                      ? colorScheme.primary
+                                      : colorScheme.tertiary;
                                   final badgeBg = isDebit
-                                      ? Colors.blue.shade50
-                                      : Colors.orange.shade50;
+                                      ? colorScheme.primaryContainer
+                                      : colorScheme.tertiaryContainer;
 
                                   return Container(
                                     // 6. ATTACH THE KEY IF IT IS THE SELECTED ID!
@@ -331,7 +325,7 @@ class _AddJournalEntryFormState extends State<AddJournalEntryForm> {
                                     ),
                                     decoration: BoxDecoration(
                                       color: isSelectedAccount
-                                          ? Colors.grey.shade200
+                                          ? colorScheme.surfaceContainerHighest
                                           : Colors.transparent,
                                       borderRadius: BorderRadius.circular(12),
                                     ),
@@ -343,9 +337,7 @@ class _AddJournalEntryFormState extends State<AddJournalEntryForm> {
                                           fontWeight: isSelectedAccount
                                               ? FontWeight.bold
                                               : FontWeight.w500,
-                                          color: isSelectedAccount
-                                              ? Colors.black87
-                                              : Colors.grey.shade800,
+                                          color: colorScheme.onSurface,
                                         ),
                                       ),
                                       trailing: Container(
@@ -521,6 +513,7 @@ class _AddJournalEntryFormState extends State<AddJournalEntryForm> {
 
     bool canSave =
         isBalanced && hasDescription && validLinesCount >= 2 && !hasDuplicates;
+    final colorScheme = Theme.of(context).colorScheme;
 
     return Container(
       padding: EdgeInsets.only(
@@ -529,22 +522,22 @@ class _AddJournalEntryFormState extends State<AddJournalEntryForm> {
         right: 20,
         bottom: MediaQuery.of(context).viewInsets.bottom + 40,
       ),
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+      decoration: BoxDecoration(
+        color: colorScheme.surface,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
       ),
       child: SingleChildScrollView(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Center(
+            Center(
               child: Text(
                 "New Journal Entry",
                 style: TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.bold,
-                  color: Colors.black87,
+                  color: colorScheme.onSurface,
                 ),
               ),
             ),
@@ -602,8 +595,8 @@ class _AddJournalEntryFormState extends State<AddJournalEntryForm> {
                     // ALWAYS ENABLED NOW. The function handles the rejection.
                     onPressed: _saveEntry,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.black87,
-                      foregroundColor: Colors.white,
+                      backgroundColor: colorScheme.primary,
+                      foregroundColor: colorScheme.onPrimary,
                       padding: const EdgeInsets.symmetric(vertical: 16),
                     ),
                     child: const Text("Save Entry"),
@@ -664,14 +657,19 @@ class _AddJournalEntryFormState extends State<AddJournalEntryForm> {
               setState(() => lines.add(_createNewRow()));
             },
             icon: const Icon(Icons.add_circle_outline, size: 20),
-            label: const Text(
+            label: Text(
               "Add Another Account",
-              style: TextStyle(fontWeight: FontWeight.w600),
+              style: Theme.of(context).textTheme.bodyMedium!.copyWith(
+                fontWeight: FontWeight.w600,
+              ),
             ),
             style: OutlinedButton.styleFrom(
-              backgroundColor: Colors.white, // Makes it pop like a button
-              foregroundColor: Colors.blueGrey.shade700,
-              side: BorderSide(color: Colors.blueGrey.shade200, width: 1.5),
+              backgroundColor: Theme.of(context).colorScheme.surface,
+              foregroundColor: Theme.of(context).colorScheme.onSurface,
+              side: BorderSide(
+                color: Theme.of(context).colorScheme.outlineVariant,
+                width: 1.5,
+              ),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
               ),
@@ -699,17 +697,18 @@ class _AddJournalEntryFormState extends State<AddJournalEntryForm> {
     // 1. Check for errors in this specific row
     bool showAccountError = _hasAttemptedSave && selectedAccountId == null;
     bool showAmountError = _hasAttemptedSave && lines[index].amount <= 0;
+    final colorScheme = Theme.of(context).colorScheme;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12.0),
       padding: const EdgeInsets.all(12.0),
       decoration: BoxDecoration(
-        color: Colors.white,
-        border: Border.all(color: Colors.grey.shade300),
+        color: colorScheme.surface,
+        border: Border.all(color: colorScheme.outlineVariant),
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: Colors.grey.withValues(alpha: 0.05),
+            color: colorScheme.onSurface.withValues(alpha: 0.05),
             blurRadius: 4,
             offset: const Offset(0, 2),
           ),
@@ -733,13 +732,13 @@ class _AddJournalEntryFormState extends State<AddJournalEntryForm> {
                     decoration: BoxDecoration(
                       // Turn box Red if account is missing
                       color: showAccountError
-                          ? Colors.red.shade50
-                          : Colors.grey.shade50,
+                          ? colorScheme.errorContainer
+                          : colorScheme.surfaceContainerHighest,
                       borderRadius: BorderRadius.circular(8),
                       border: Border.all(
                         color: showAccountError
-                            ? Colors.red.shade300
-                            : Colors.grey.shade200,
+                            ? colorScheme.error
+                            : colorScheme.outlineVariant,
                         width: showAccountError ? 1.5 : 1.0,
                       ),
                     ),
@@ -759,10 +758,8 @@ class _AddJournalEntryFormState extends State<AddJournalEntryForm> {
                                   : FontWeight.normal,
                               // Turn text Red if account is missing
                               color: showAccountError
-                                  ? Colors.red.shade700
-                                  : (selectedAccountId != null
-                                        ? Colors.black87
-                                        : Colors.grey.shade600),
+                                  ? colorScheme.error
+                                  : colorScheme.onSurface,
                             ),
                             overflow: TextOverflow.ellipsis,
                           ),
@@ -770,8 +767,8 @@ class _AddJournalEntryFormState extends State<AddJournalEntryForm> {
                         Icon(
                           Icons.arrow_drop_down_circle_outlined,
                           color: showAccountError
-                              ? Colors.red.shade300
-                              : Colors.blueGrey.shade300,
+                              ? colorScheme.error
+                              : colorScheme.onSurfaceVariant,
                           size: 20,
                         ),
                       ],
@@ -781,7 +778,7 @@ class _AddJournalEntryFormState extends State<AddJournalEntryForm> {
               ),
               const SizedBox(width: 8),
               IconButton(
-                icon: Icon(Icons.delete_outline, color: Colors.red.shade300),
+                icon: Icon(Icons.delete_outline, color: colorScheme.error),
                 onPressed: lines.length > 2
                     ? () => setState(() {
                         lines.removeAt(index);
@@ -804,30 +801,30 @@ class _AddJournalEntryFormState extends State<AddJournalEntryForm> {
                   keyboardType: const TextInputType.numberWithOptions(
                     decimal: true,
                   ),
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
-                    color: Colors.black87,
+                    color: colorScheme.onSurface,
                   ),
                   decoration: InputDecoration(
                     labelText: "Amount *",
                     labelStyle: TextStyle(
                       // Turn label Red if amount is missing
                       color: showAmountError
-                          ? Colors.red.shade700
-                          : Colors.grey.shade500,
+                          ? colorScheme.error
+                          : colorScheme.onSurfaceVariant,
                       fontSize: 13,
                     ),
                     prefixText: '₱ ',
-                    prefixStyle: const TextStyle(
-                      color: Colors.black87,
+                    prefixStyle: TextStyle(
+                      color: colorScheme.onSurface,
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
                     ),
                     filled: true,
                     fillColor: showAmountError
-                        ? Colors.red.shade50
-                        : Colors.grey.shade50,
+                        ? colorScheme.errorContainer
+                        : colorScheme.surfaceContainerHighest,
                     contentPadding: const EdgeInsets.symmetric(
                       horizontal: 12,
                       vertical: 8,
@@ -836,13 +833,16 @@ class _AddJournalEntryFormState extends State<AddJournalEntryForm> {
                     enabledBorder: UnderlineInputBorder(
                       borderSide: BorderSide(
                         color: showAmountError
-                            ? Colors.red.shade400
-                            : Colors.grey.shade200,
+                            ? colorScheme.error
+                            : colorScheme.outlineVariant,
                         width: showAmountError ? 1.5 : 1.0,
                       ),
                     ),
-                    focusedBorder: const UnderlineInputBorder(
-                      borderSide: BorderSide(color: Colors.black87, width: 2),
+                    focusedBorder: UnderlineInputBorder(
+                      borderSide: BorderSide(
+                        color: colorScheme.primary,
+                        width: 2,
+                      ),
                     ),
                     isDense: true,
                   ),
@@ -861,7 +861,7 @@ class _AddJournalEntryFormState extends State<AddJournalEntryForm> {
                 height: 48, // Matches the text field height perfectly
                 padding: const EdgeInsets.all(4),
                 decoration: BoxDecoration(
-                  color: Colors.grey.shade200,
+                  color: colorScheme.surfaceContainerHighest,
                   borderRadius: BorderRadius.circular(24), // Fully rounded pill
                 ),
                 child: Stack(
@@ -878,11 +878,11 @@ class _AddJournalEntryFormState extends State<AddJournalEntryForm> {
                         widthFactor: 0.5, // Always takes exactly half the width
                         child: Container(
                           decoration: BoxDecoration(
-                            color: Colors.white,
+                            color: colorScheme.surface,
                             borderRadius: BorderRadius.circular(20),
                             boxShadow: [
                               BoxShadow(
-                                color: Colors.black.withValues(alpha: 0.08),
+                                color: colorScheme.onSurface.withValues(alpha: 0.08),
                                 blurRadius: 4,
                                 offset: const Offset(0, 2),
                               ),
@@ -915,8 +915,8 @@ class _AddJournalEntryFormState extends State<AddJournalEntryForm> {
                                       ? FontWeight.bold
                                       : FontWeight.w500,
                                   color: lines[index].isDebit
-                                      ? Colors.blue.shade700
-                                      : Colors.grey.shade500,
+                                      ? colorScheme.primary
+                                      : colorScheme.onSurfaceVariant,
                                 ),
                                 child: const Text("Debit"),
                               ),
@@ -942,8 +942,8 @@ class _AddJournalEntryFormState extends State<AddJournalEntryForm> {
                                       ? FontWeight.bold
                                       : FontWeight.w500,
                                   color: !lines[index].isDebit
-                                      ? Colors.orange.shade700
-                                      : Colors.grey.shade500,
+                                      ? colorScheme.tertiary
+                                      : colorScheme.onSurfaceVariant,
                                 ),
                                 child: const Text("Credit"),
                               ),
@@ -1045,6 +1045,7 @@ class _AddJournalEntryFormState extends State<AddJournalEntryForm> {
   // }
 
   Widget _buildTableFooter() {
+    final colorScheme = Theme.of(context).colorScheme;
     bool isBalanced = (totalDebit - totalCredit).abs() < 0.01 && totalDebit > 0;
     double difference = (totalDebit - totalCredit).abs();
     bool hasAmounts = totalDebit > 0 || totalCredit > 0;
@@ -1059,16 +1060,16 @@ class _AddJournalEntryFormState extends State<AddJournalEntryForm> {
 
     // Determine box color (Red if out of balance OR if duplicates are found)
     Color boxColor = !hasAmounts && !hasDuplicates
-        ? Colors.grey.shade50
+        ? colorScheme.surfaceContainerHighest
         : (hasDuplicates || !isBalanced
-              ? Colors.red.shade50
-              : Colors.green.shade50);
+              ? colorScheme.errorContainer
+              : colorScheme.primaryContainer);
 
     Color borderColor = !hasAmounts && !hasDuplicates
-        ? Colors.grey.shade200
+        ? colorScheme.outlineVariant
         : (hasDuplicates || !isBalanced
-              ? Colors.red.shade200
-              : Colors.green.shade200);
+              ? colorScheme.error
+              : colorScheme.primary);
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -1085,15 +1086,16 @@ class _AddJournalEntryFormState extends State<AddJournalEntryForm> {
               Text(
                 "Total Debit",
                 style: TextStyle(
-                  color: Colors.grey.shade700,
+                  color: colorScheme.onSurfaceVariant,
                   fontWeight: FontWeight.w500,
                 ),
               ),
               Text(
                 "₱ ${NumberFormat('#,##0.00').format(totalDebit)}",
-                style: const TextStyle(
+                style: TextStyle(
                   fontWeight: FontWeight.bold,
                   fontSize: 16,
+                  color: colorScheme.onSurface,
                 ),
               ),
             ],
@@ -1105,15 +1107,16 @@ class _AddJournalEntryFormState extends State<AddJournalEntryForm> {
               Text(
                 "Total Credit",
                 style: TextStyle(
-                  color: Colors.grey.shade700,
+                  color: colorScheme.onSurfaceVariant,
                   fontWeight: FontWeight.w500,
                 ),
               ),
               Text(
                 "₱ ${NumberFormat('#,##0.00').format(totalCredit)}",
-                style: const TextStyle(
+                style: TextStyle(
                   fontWeight: FontWeight.bold,
                   fontSize: 16,
+                  color: colorScheme.onSurface,
                 ),
               ),
             ],
@@ -1133,13 +1136,13 @@ class _AddJournalEntryFormState extends State<AddJournalEntryForm> {
                   Icon(
                     Icons.warning_amber_rounded,
                     size: 16,
-                    color: Colors.red.shade700,
+                    color: colorScheme.error,
                   ),
                   const SizedBox(width: 6),
                   Text(
                     "Duplicate accounts detected",
                     style: TextStyle(
-                      color: Colors.red.shade700,
+                      color: colorScheme.error,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
@@ -1154,8 +1157,8 @@ class _AddJournalEntryFormState extends State<AddJournalEntryForm> {
                     isBalanced ? "Balanced" : "Out of Balance",
                     style: TextStyle(
                       color: isBalanced
-                          ? Colors.green.shade700
-                          : Colors.red.shade700,
+                          ? colorScheme.primary
+                          : colorScheme.error,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
@@ -1163,7 +1166,7 @@ class _AddJournalEntryFormState extends State<AddJournalEntryForm> {
                     Text(
                       "Difference: ₱ ${NumberFormat('#,##0.00').format(difference)}",
                       style: TextStyle(
-                        color: Colors.red.shade700,
+                        color: colorScheme.error,
                         fontSize: 13,
                         fontWeight: FontWeight.w500,
                       ),

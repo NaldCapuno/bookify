@@ -1,6 +1,7 @@
 import 'package:bookkeeping/core/services/user_service.dart';
 import 'package:flutter/material.dart';
 import 'package:bookkeeping/core/widgets/appbar.dart';
+import 'package:bookkeeping/core/widgets/app_confirmation_sheet.dart';
 import 'package:bookkeeping/core/database/app_database.dart';
 import 'package:bookkeeping/core/database/daos/users_dao.dart';
 import 'package:bookkeeping/core/database/tables/user_table.dart';
@@ -58,9 +59,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         _contactNumberController.text = user.contactNumber ?? '';
 
         _selectedBusinessType = user.businessType;
-        if (user.businessType != null) {
-          _businessTypeController.text = user.businessType!.displayName;
-        }
+        _businessTypeController.text = user.businessType.displayName;
 
         _isLoading = false;
       });
@@ -85,7 +84,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
           title: 'Save Changes?',
           message: 'Are you sure you want to update your profile information?',
           confirmLabel: 'Save',
-          confirmColor: Color(0xFF1A1C1E),
           icon: Icons.save_outlined,
         );
       },
@@ -167,13 +165,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   height: 4,
                   margin: const EdgeInsets.only(bottom: 20),
                   decoration: BoxDecoration(
-                    color: Colors.grey[300],
+                    color: Theme.of(context).colorScheme.outlineVariant,
                     borderRadius: BorderRadius.circular(10),
                   ),
                 ),
-                const Text(
+                Text(
                   'Select Business Type',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  style: Theme.of(context).textTheme.titleMedium,
                 ),
                 const SizedBox(height: 16),
                 Flexible(
@@ -185,16 +183,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         return ListTile(
                           title: Text(
                             type.displayName,
-                            style: TextStyle(
+                            style: Theme.of(context).textTheme.bodyLarge!.copyWith(
                               fontWeight: isSelected
                                   ? FontWeight.bold
                                   : FontWeight.normal,
                             ),
                           ),
                           trailing: isSelected
-                              ? const Icon(
+                              ? Icon(
                                   Icons.check_circle,
-                                  color: Color(0xFF1A1C1E),
+                                  color: Theme.of(context).colorScheme.primary,
                                 )
                               : null,
                           onTap: () => Navigator.pop(context, type),
@@ -254,11 +252,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   Container(
                     padding: const EdgeInsets.all(20),
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: Theme.of(context).colorScheme.surface,
                       borderRadius: BorderRadius.circular(20),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.03),
+                          color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.05),
                           blurRadius: 10,
                           offset: const Offset(0, 4),
                         ),
@@ -323,15 +321,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Widget _buildProfileHeader() {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
     return Row(
       children: [
         CircleAvatar(
           radius: 35,
-          backgroundColor: const Color(0xFF232D3F),
+          backgroundColor: colorScheme.secondary,
           child: Text(
             _getInitials(_headerUsername),
-            style: const TextStyle(
-              color: Colors.white,
+            style: TextStyle(
+              color: colorScheme.onSecondary,
               fontSize: 24,
               fontWeight: FontWeight.bold,
             ),
@@ -343,11 +343,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
           children: [
             Text(
               _headerUsername,
-              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              style: theme.textTheme.titleMedium,
             ),
             Text(
               _headerEmail,
-              style: const TextStyle(color: Colors.grey, fontSize: 14),
+              style: theme.textTheme.bodySmall!.copyWith(
+                color: colorScheme.onSurfaceVariant,
+              ),
             ),
           ],
         ),
@@ -356,28 +358,29 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Widget _buildFieldLabel(String label) {
+    final theme = Theme.of(context);
     return Padding(
       padding: const EdgeInsets.only(bottom: 8.0, top: 16.0),
-      child: Text(label, style: const TextStyle(fontWeight: FontWeight.bold)),
+      child: Text(label, style: theme.textTheme.titleSmall),
     );
   }
 
-  // --- UPDATED: Added onTap parameter ---
   Widget _buildTextField(
     String hint, {
     bool isDropdown = false,
     TextEditingController? controller,
     VoidCallback? onTap,
   }) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
     return TextField(
       controller: controller,
-      readOnly:
-          isDropdown, // Makes it uneditable if it's meant to trigger a bottom sheet
+      readOnly: isDropdown,
       onTap: onTap,
       decoration: InputDecoration(
         hintText: hint,
         filled: true,
-        fillColor: const Color(0xFFF2F4F7),
+        fillColor: colorScheme.surfaceContainerHighest,
         suffixIcon: isDropdown ? const Icon(Icons.keyboard_arrow_down) : null,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
@@ -388,107 +391,22 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Widget _buildSaveButton() {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
     return SizedBox(
       width: double.infinity,
       height: 50,
       child: ElevatedButton.icon(
-        onPressed:
-            _handleSaveWithConfirmation, // Wires to the confirmation sheet
+        onPressed: _handleSaveWithConfirmation,
         icon: const Icon(Icons.save_outlined),
         label: const Text('Save Changes'),
         style: ElevatedButton.styleFrom(
-          backgroundColor: const Color(0xFF1A1C1E),
-          foregroundColor: Colors.white,
+          backgroundColor: colorScheme.primary,
+          foregroundColor: colorScheme.onPrimary,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(25),
           ),
         ),
-      ),
-    );
-  }
-}
-
-// ==========================================
-// APP CONFIRMATION SHEET WIDGET
-// ==========================================
-class AppConfirmationSheet extends StatelessWidget {
-  final String title;
-  final String message;
-  final String confirmLabel;
-  final Color confirmColor;
-  final IconData icon;
-
-  const AppConfirmationSheet({
-    super.key,
-    required this.title,
-    required this.message,
-    required this.confirmLabel,
-    required this.confirmColor,
-    required this.icon,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.all(24.0),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          // Drag Handle
-          Container(
-            width: 40,
-            height: 4,
-            margin: const EdgeInsets.only(bottom: 20),
-            decoration: BoxDecoration(
-              color: Colors.grey[300],
-              borderRadius: BorderRadius.circular(10),
-            ),
-          ),
-          Icon(icon, color: confirmColor, size: 50),
-          const SizedBox(height: 16),
-          Text(
-            title,
-            style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 8),
-          Text(
-            message,
-            textAlign: TextAlign.center,
-            style: const TextStyle(color: Colors.grey, fontSize: 14),
-          ),
-          const SizedBox(height: 24),
-          Row(
-            children: [
-              Expanded(
-                child: TextButton(
-                  onPressed: () => Navigator.pop(context, false),
-                  child: const Text(
-                    'Cancel',
-                    style: TextStyle(color: Colors.grey),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: ElevatedButton(
-                  onPressed: () => Navigator.pop(context, true),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: confirmColor,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                  ),
-                  child: Text(
-                    confirmLabel,
-                    style: const TextStyle(color: Colors.white),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ],
       ),
     );
   }

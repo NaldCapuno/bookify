@@ -93,9 +93,9 @@ class _LedgerScreenState extends State<LedgerScreen> {
           stream: appDb.ledgerDao.watchLedgerEntries(),
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {
-              return const Center(
+              return Center(
                 child: CircularProgressIndicator(
-                  color: Colors.black,
+                  color: Theme.of(context).colorScheme.primary,
                   strokeWidth: 2,
                 ),
               );

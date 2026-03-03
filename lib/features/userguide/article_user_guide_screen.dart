@@ -5,12 +5,11 @@ import 'package:bookkeeping/core/widgets/appbar.dart';
 class ArticleUserGuideScreen extends StatelessWidget {
   const ArticleUserGuideScreen({super.key});
 
-  static const Color _headingColor = Color(0xFF1A1C1E);
-  static const Color _bodyColor = Color(0xFF3D4043);
-
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     return Scaffold(
+      backgroundColor: colorScheme.surface,
       appBar: CustomAppBar(
         title: 'Article User Guide',
         showBackButton: true,
@@ -20,14 +19,16 @@ class ArticleUserGuideScreen extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
         children: [
           _Section(
+            colorScheme: colorScheme,
             icon: Icons.info_outline,
-            title: 'Welcome to Bookify',
+            title: 'Welcome to TsekBooks',
             body:
                 'This app helps you keep a simple record of your business money: what came in, what went out, '
                 'and what you own or owe. You don\'t need to know bookkeeping—this guide explains everything in plain language.',
             indentFirstLine: true,
           ),
           _Section(
+            colorScheme: colorScheme,
             icon: Icons.home_outlined,
             title: 'Getting started',
             body:
@@ -38,6 +39,7 @@ class ArticleUserGuideScreen extends StatelessWidget {
             indentFirstLine: true,
           ),
           _Section(
+            colorScheme: colorScheme,
             icon: Icons.book_outlined,
             title: 'The Journal',
             body:
@@ -49,6 +51,7 @@ class ArticleUserGuideScreen extends StatelessWidget {
             indentFirstLine: true,
           ),
           _Section(
+            colorScheme: colorScheme,
             icon: Icons.description_outlined,
             title: 'The Ledger',
             body:
@@ -59,6 +62,7 @@ class ArticleUserGuideScreen extends StatelessWidget {
             indentFirstLine: true,
           ),
           _Section(
+            colorScheme: colorScheme,
             icon: Icons.account_tree_outlined,
             title: 'Accounts',
             body:
@@ -69,6 +73,7 @@ class ArticleUserGuideScreen extends StatelessWidget {
             indentFirstLine: true,
           ),
           _Section(
+            colorScheme: colorScheme,
             icon: Icons.analytics_outlined,
             title: 'Reports',
             body:
@@ -79,6 +84,7 @@ class ArticleUserGuideScreen extends StatelessWidget {
             indentFirstLine: true,
           ),
           _Section(
+            colorScheme: colorScheme,
             icon: Icons.menu_book_outlined,
             title: 'Key terms',
             body:
@@ -91,6 +97,7 @@ class ArticleUserGuideScreen extends StatelessWidget {
             indentFirstLine: false,
           ),
           _Section(
+            colorScheme: colorScheme,
             icon: Icons.lightbulb_outline,
             title: 'Tips',
             body:
@@ -102,6 +109,7 @@ class ArticleUserGuideScreen extends StatelessWidget {
             indentFirstLine: false,
           ),
           _Section(
+            colorScheme: colorScheme,
             icon: Icons.report_problem_outlined,
             title: 'Troubleshooting',
             body:
@@ -121,25 +129,27 @@ class ArticleUserGuideScreen extends StatelessWidget {
 
 class _Section extends StatelessWidget {
   const _Section({
+    required this.colorScheme,
     required this.icon,
     required this.title,
     required this.body,
     this.indentFirstLine = true,
   });
 
+  final ColorScheme colorScheme;
   final IconData icon;
   final String title;
   final String body;
   final bool indentFirstLine;
 
-  static const TextStyle _bodyStyle = TextStyle(
-    fontSize: 15,
-    height: 1.5,
-    color: ArticleUserGuideScreen._bodyColor,
-  );
-
   @override
   Widget build(BuildContext context) {
+    final bodyStyle = TextStyle(
+      fontSize: 15,
+      height: 1.5,
+      color: colorScheme.onSurface,
+    );
+
     return Padding(
       padding: const EdgeInsets.only(bottom: 24),
       child: Column(
@@ -152,23 +162,19 @@ class _Section extends StatelessWidget {
                 width: 32,
                 height: 32,
                 decoration: BoxDecoration(
-                  color: const Color(0xFF232D3F).withOpacity(0.08),
+                  color: colorScheme.primary,
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: Icon(
-                  icon,
-                  size: 20,
-                  color: const Color(0xFF232D3F),
-                ),
+                child: Icon(icon, size: 20, color: colorScheme.onPrimary),
               ),
               const SizedBox(width: 12),
               Expanded(
                 child: Text(
                   title,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
-                    color: ArticleUserGuideScreen._headingColor,
+                    color: colorScheme.onSurface,
                   ),
                 ),
               ),
@@ -178,24 +184,18 @@ class _Section extends StatelessWidget {
           indentFirstLine
               ? Text.rich(
                   TextSpan(
-                    style: _bodyStyle,
+                    style: bodyStyle,
                     children: [
                       WidgetSpan(
                         alignment: PlaceholderAlignment.baseline,
                         baseline: TextBaseline.alphabetic,
-                        child: SizedBox(
-                          width: 24,
-                          height: 18,
-                        ),
+                        child: SizedBox(width: 24, height: 18),
                       ),
                       TextSpan(text: body),
                     ],
                   ),
                 )
-              : Text(
-                  body,
-                  style: _bodyStyle,
-                ),
+              : Text(body, style: bodyStyle),
         ],
       ),
     );

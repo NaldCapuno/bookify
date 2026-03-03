@@ -21,19 +21,26 @@ class CategoryDetailScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: colorScheme.surface,
       appBar: CustomAppBar(title: categoryName, showBackButton: true),
       body: StreamBuilder<List<LedgerEntry>>(
         stream: appDb.ledgerDao.watchLedgerEntries(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(
-              child: CircularProgressIndicator(color: Colors.black),
+            return Center(
+              child: CircularProgressIndicator(color: colorScheme.primary),
             );
           }
           if (snapshot.hasError) {
-            return Center(child: Text('Error: ${snapshot.error}'));
+            return Center(
+              child: Text(
+                'Error: ${snapshot.error}',
+                style: theme.textTheme.bodyLarge,
+              ),
+            );
           }
 
           final allEntries = snapshot.data ?? [];
@@ -47,13 +54,16 @@ class CategoryDetailScreen extends StatelessWidget {
               .toList();
 
           if (entries.isEmpty) {
-            return const Center(
+            return Center(
               child: Padding(
-                padding: EdgeInsets.all(24),
+                padding: const EdgeInsets.all(24),
                 child: Text(
                   'No accounts with transactions in this category',
                   textAlign: TextAlign.center,
-                  style: TextStyle(color: Colors.grey, fontSize: 14),
+                  style: theme.textTheme.bodyMedium!.copyWith(
+                    color: colorScheme.onSurfaceVariant,
+                    fontSize: 14,
+                  ),
                 ),
               ),
             );
@@ -63,7 +73,7 @@ class CategoryDetailScreen extends StatelessWidget {
             padding: const EdgeInsets.all(16),
             itemCount: entries.length,
             itemBuilder: (context, index) {
-              return _buildAccountTable(entries[index]);
+              return _buildAccountTable(context, entries[index]);
             },
           );
         },
@@ -71,16 +81,18 @@ class CategoryDetailScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildAccountTable(LedgerEntry entry) {
+  Widget _buildAccountTable(BuildContext context, LedgerEntry entry) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
     final dateFormat = DateFormat('MM/dd/yy');
 
     return Card(
       margin: const EdgeInsets.only(bottom: 16),
       elevation: 2,
-      shadowColor: Colors.black26,
+      shadowColor: colorScheme.shadow,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
-        side: const BorderSide(color: Colors.black12, width: 1),
+        side: BorderSide(color: colorScheme.outlineVariant, width: 1),
       ),
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -89,19 +101,19 @@ class CategoryDetailScreen extends StatelessWidget {
           children: [
             Text(
               '${entry.account.code} - ${entry.account.name}',
-              style: const TextStyle(
+              style: theme.textTheme.titleSmall!.copyWith(
                 fontWeight: FontWeight.w900,
                 fontSize: 16,
               ),
             ),
             const SizedBox(height: 12),
-            const Row(
+            Row(
               children: [
                 Expanded(
                   flex: 1,
                   child: Text(
                     'DATE',
-                    style: TextStyle(
+                    style: theme.textTheme.bodySmall!.copyWith(
                       fontWeight: FontWeight.bold,
                       fontSize: 11,
                     ),
@@ -111,7 +123,7 @@ class CategoryDetailScreen extends StatelessWidget {
                   flex: 2,
                   child: Text(
                     'DESCRIPTION',
-                    style: TextStyle(
+                    style: theme.textTheme.bodySmall!.copyWith(
                       fontWeight: FontWeight.bold,
                       fontSize: 11,
                     ),
@@ -122,7 +134,7 @@ class CategoryDetailScreen extends StatelessWidget {
                   child: Text(
                     'DEBIT',
                     textAlign: TextAlign.right,
-                    style: TextStyle(
+                    style: theme.textTheme.bodySmall!.copyWith(
                       fontWeight: FontWeight.bold,
                       fontSize: 11,
                     ),
@@ -133,7 +145,7 @@ class CategoryDetailScreen extends StatelessWidget {
                   child: Text(
                     'CREDIT',
                     textAlign: TextAlign.right,
-                    style: TextStyle(
+                    style: theme.textTheme.bodySmall!.copyWith(
                       fontWeight: FontWeight.bold,
                       fontSize: 11,
                     ),
@@ -141,19 +153,19 @@ class CategoryDetailScreen extends StatelessWidget {
                 ),
               ],
             ),
-            const Divider(color: Colors.black, thickness: 1),
+            Divider(color: colorScheme.outline, thickness: 1),
             StreamBuilder<List<TypedResult>>(
               stream: appDb.ledgerDao.watchTransactionsForAccount(entry.account.id),
               builder: (context, txSnapshot) {
                 if (txSnapshot.connectionState == ConnectionState.waiting) {
-                  return const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 16),
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 16),
                     child: Center(
                       child: SizedBox(
                         width: 20,
                         height: 20,
                         child: CircularProgressIndicator(
-                          color: Colors.black,
+                          color: Theme.of(context).colorScheme.primary,
                           strokeWidth: 2,
                         ),
                       ),
@@ -186,14 +198,14 @@ class CategoryDetailScreen extends StatelessWidget {
                               flex: 1,
                               child: Text(
                                 dateFormat.format(journal.date),
-                                style: const TextStyle(fontSize: 13),
+                                style: theme.textTheme.bodyMedium!.copyWith(fontSize: 13),
                               ),
                             ),
                             Expanded(
                               flex: 2,
                               child: Text(
                                 journal.description,
-                                style: const TextStyle(fontSize: 13),
+                                style: theme.textTheme.bodyMedium!.copyWith(fontSize: 13),
                                 maxLines: 2,
                                 overflow: TextOverflow.ellipsis,
                               ),
@@ -201,6 +213,7 @@ class CategoryDetailScreen extends StatelessWidget {
                             Expanded(
                               flex: 1,
                               child: _buildAmountCell(
+                                context,
                                 tx.debit > 0
                                     ? _amountFormat.format(tx.debit)
                                     : '—',
@@ -210,6 +223,7 @@ class CategoryDetailScreen extends StatelessWidget {
                             Expanded(
                               flex: 1,
                               child: _buildAmountCell(
+                                context,
                                 tx.credit > 0
                                     ? _amountFormat.format(tx.credit)
                                     : '—',
@@ -220,7 +234,7 @@ class CategoryDetailScreen extends StatelessWidget {
                         ),
                       );
                     }),
-                    const Divider(color: Colors.black26, height: 24),
+                    Divider(color: colorScheme.outline, height: 24),
                     // TOTAL row commented out for now; only BALANCE is shown.
                     // Row(
                     //   children: [
@@ -258,11 +272,11 @@ class CategoryDetailScreen extends StatelessWidget {
                     const SizedBox(height: 8),
                     Row(
                       children: [
-                        const Expanded(
+                        Expanded(
                           flex: 1,
                           child: Text(
                             'BALANCE',
-                            style: TextStyle(
+                            style: theme.textTheme.bodySmall!.copyWith(
                               fontWeight: FontWeight.w900,
                               fontSize: 12,
                             ),
@@ -272,6 +286,7 @@ class CategoryDetailScreen extends StatelessWidget {
                         Expanded(
                           flex: 2,
                           child: _buildAmountCell(
+                            context,
                             _amountFormat.format(
                               _balanceForAccount(
                                 entry.category.normalBalance,
@@ -310,15 +325,17 @@ class CategoryDetailScreen extends StatelessWidget {
 
   /// Renders debit/credit cell: "—" centered, numbers right-aligned and scale down if too long.
   static Widget _buildAmountCell(
+    BuildContext context,
     String value, {
     required bool hasAmount,
     double fontSize = 13,
     bool bold = false,
   }) {
+    final theme = Theme.of(context);
     final text = Text(
       value,
       textAlign: hasAmount ? TextAlign.right : TextAlign.center,
-      style: TextStyle(
+      style: theme.textTheme.bodyMedium!.copyWith(
         fontSize: fontSize,
         fontWeight: bold ? FontWeight.bold : FontWeight.normal,
       ),

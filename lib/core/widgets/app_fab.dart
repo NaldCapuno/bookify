@@ -11,15 +11,16 @@ class AppFloatingActionButton extends StatelessWidget {
     required this.label,
     required this.onPressed,
     this.icon = Icons.add,
-    this.backgroundColor = const Color(0xFF1A1C1E),
+    this.backgroundColor,
   });
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     return FloatingActionButton.extended(
       onPressed: onPressed,
-      backgroundColor: backgroundColor,
-      foregroundColor: Colors.white,
+      backgroundColor: backgroundColor ?? colorScheme.primary,
+      foregroundColor: colorScheme.onPrimary,
       elevation: 2,
       // Using a heroTag is important if you use this on multiple
       // screens to avoid transition errors
@@ -27,7 +28,7 @@ class AppFloatingActionButton extends StatelessWidget {
       icon: Icon(icon),
       label: Text(
         label,
-        style: const TextStyle(fontWeight: FontWeight.bold, letterSpacing: 0.5),
+        style: Theme.of(context).textTheme.labelLarge!.copyWith(letterSpacing: 0.5),
       ),
     );
   }

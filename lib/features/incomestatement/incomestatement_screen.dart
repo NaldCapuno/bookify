@@ -47,12 +47,13 @@ class _IncomeStatementScreenState extends State<IncomeStatementScreen> {
   Widget build(BuildContext context) {
     final dateFormat = DateFormat('MMMM dd, yyyy');
 
+    final theme = Theme.of(context);
     return Scaffold(
       appBar: const CustomAppBar(
         title: "Income Statement",
         showBackButton: true,
       ),
-      backgroundColor: Colors.white,
+      backgroundColor: theme.colorScheme.surface,
       body: SafeArea(
         child: FutureBuilder<IncomeStatement>(
           future: _statementFuture,
@@ -78,34 +79,30 @@ class _IncomeStatementScreenState extends State<IncomeStatementScreen> {
 
                   // --- REPORT HEADER ---
                   Text(
-                    // Pulls business name from the Users table via the model
                     reportData?.businessName ?? "Business Name",
-                    style: const TextStyle(
-                      fontSize: 22,
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xFF001F3F),
+                    style: theme.textTheme.headlineMedium!.copyWith(
+                      color: theme.colorScheme.onSurface,
                     ),
                   ),
                   const SizedBox(height: 6),
-                  const Text(
+                  Text(
                     "INCOME STATEMENT",
-                    style: TextStyle(
-                      fontSize: 12,
+                    style: theme.textTheme.bodySmall!.copyWith(
                       fontWeight: FontWeight.w600,
-                      color: Color(0xFF6C757D),
                       letterSpacing: 1.2,
+                      color: theme.colorScheme.onSurfaceVariant,
                     ),
                   ),
                   const SizedBox(height: 8),
                   Text(
                     "For the Period: ${dateFormat.format(_startDate)} - ${dateFormat.format(_endDate)}",
-                    style: const TextStyle(
+                    style: theme.textTheme.bodyMedium!.copyWith(
                       fontSize: 13,
-                      color: Color(0xFF6C757D),
+                      color: theme.colorScheme.onSurfaceVariant,
                     ),
                   ),
                   const SizedBox(height: 20),
-                  const Divider(color: Color(0xFFE0E0E0)),
+                  Divider(color: theme.colorScheme.outlineVariant),
 
                   // --- DYNAMIC CONTENT ---
                   if (snapshot.connectionState == ConnectionState.waiting)

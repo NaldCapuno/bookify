@@ -104,15 +104,11 @@ class _FaqScreenState extends State<FaqScreen> {
       body: ListView(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         children: [
-          const Padding(
-            padding: EdgeInsets.symmetric(vertical: 8),
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 8),
             child: Text(
               'Frequently Asked Questions',
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-                color: Color(0xFF1A1C1E),
-              ),
+              style: Theme.of(context).textTheme.titleLarge,
             ),
           ),
           const SizedBox(height: 8),
@@ -122,7 +118,7 @@ class _FaqScreenState extends State<FaqScreen> {
             return Padding(
               padding: const EdgeInsets.only(bottom: 8),
               child: Material(
-                color: Colors.white,
+                color: Theme.of(context).colorScheme.surface,
                 borderRadius: BorderRadius.circular(12),
                 elevation: 1,
                 child: InkWell(
@@ -145,10 +141,10 @@ class _FaqScreenState extends State<FaqScreen> {
                           padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
                           child: Text(
                             faq.answer,
-                            style: TextStyle(
+                            style: Theme.of(context).textTheme.bodyMedium!.copyWith(
                               fontSize: 14,
                               height: 1.45,
-                              color: Colors.grey[800],
+                              color: Theme.of(context).colorScheme.onSurface,
                             ),
                           ),
                         ),
@@ -173,16 +169,14 @@ class _FaqScreenState extends State<FaqScreen> {
           Expanded(
             child: Text(
               question,
-              style: const TextStyle(
-                fontSize: 15,
+              style: Theme.of(context).textTheme.bodyLarge!.copyWith(
                 fontWeight: FontWeight.w600,
-                color: Color(0xFF1A1C1E),
               ),
             ),
           ),
           Icon(
             isExpanded ? Icons.expand_less : Icons.expand_more,
-            color: Colors.grey[600],
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
             size: 24,
           ),
         ],

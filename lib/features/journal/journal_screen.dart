@@ -106,7 +106,7 @@ class _JournalScreenState extends State<JournalScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.transparent,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -121,7 +121,12 @@ class _JournalScreenState extends State<JournalScreen> {
                 }
 
                 if (snapshot.hasError) {
-                  return Center(child: Text('Error: ${snapshot.error}'));
+                  return Center(
+                    child: Text(
+                      'Error: ${snapshot.error}',
+                      style: Theme.of(context).textTheme.bodyLarge,
+                    ),
+                  );
                 }
 
                 final rawList = snapshot.data ?? [];
@@ -134,7 +139,9 @@ class _JournalScreenState extends State<JournalScreen> {
                       _selectedFilter == 'All'
                           ? 'No journal entries yet.'
                           : 'No entries for this $_selectedFilter period.',
-                      style: const TextStyle(color: Colors.grey),
+                      style: Theme.of(context).textTheme.bodyLarge!.copyWith(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
                     ),
                   );
                 }
@@ -187,11 +194,11 @@ class _JournalScreenState extends State<JournalScreen> {
   }
 
   Widget _buildFilterChips() {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
     return SingleChildScrollView(
       key: _filterKey,
       scrollDirection: Axis.horizontal,
-      // IMPROVED PADDING: Added top padding to push it away from the screen edge,
-      // and bottom padding to give space before the cards begin.
       padding: const EdgeInsets.only(
         left: 16.0,
         right: 16.0,
@@ -212,10 +219,10 @@ class _JournalScreenState extends State<JournalScreen> {
                   setState(() => _selectedFilter = filter);
                 }
               },
-              selectedColor: const Color(0xFF1A1C1E),
-              backgroundColor: Colors.white,
-              labelStyle: TextStyle(
-                color: isSelected ? Colors.white : Colors.grey.shade700,
+              selectedColor: colorScheme.primary,
+              backgroundColor: colorScheme.surface,
+              labelStyle: theme.textTheme.bodyMedium!.copyWith(
+                color: isSelected ? colorScheme.onPrimary : colorScheme.onSurfaceVariant,
                 fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
                 fontSize: 13,
               ),
@@ -223,8 +230,8 @@ class _JournalScreenState extends State<JournalScreen> {
                 borderRadius: BorderRadius.circular(20),
                 side: BorderSide(
                   color: isSelected
-                      ? const Color(0xFF1A1C1E)
-                      : Colors.grey.shade300,
+                      ? colorScheme.primary
+                      : colorScheme.outlineVariant,
                 ),
               ),
               showCheckmark: false,
@@ -283,7 +290,9 @@ class _JournalEntryCardState extends State<JournalEntryCard> {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      builder: (context) {
+      builder: (ctx) {
+        final theme = Theme.of(ctx);
+        final colorScheme = theme.colorScheme;
         return Padding(
           padding: const EdgeInsets.all(24.0),
           child: Column(
@@ -294,49 +303,52 @@ class _JournalEntryCardState extends State<JournalEntryCard> {
                 height: 4,
                 margin: const EdgeInsets.only(bottom: 20),
                 decoration: BoxDecoration(
-                  color: Colors.grey[300],
+                  color: colorScheme.outlineVariant,
                   borderRadius: BorderRadius.circular(10),
                 ),
               ),
-              const Icon(Icons.error_outline, color: Colors.red, size: 50),
+              Icon(Icons.error_outline, color: colorScheme.error, size: 50),
               const SizedBox(height: 16),
-              const Text(
+              Text(
                 'Void Transaction?',
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                style: theme.textTheme.titleLarge,
               ),
               const SizedBox(height: 8),
-              const Text(
+              Text(
                 'This entry will be marked as voided. You will still be able to view the details, but it cannot be un-voided.',
                 textAlign: TextAlign.center,
-                style: TextStyle(color: Colors.grey, fontSize: 14),
+                style: theme.textTheme.bodyMedium!.copyWith(
+                  color: colorScheme.onSurfaceVariant,
+                  fontSize: 14,
+                ),
               ),
               const SizedBox(height: 24),
               Row(
                 children: [
                   Expanded(
                     child: TextButton(
-                      onPressed: () => Navigator.pop(context, false),
-                      child: const Text(
+                      onPressed: () => Navigator.pop(ctx, false),
+                      child: Text(
                         'Cancel',
-                        style: TextStyle(color: Colors.grey),
+                        style: theme.textTheme.bodySmall!.copyWith(
+                          color: colorScheme.onSurfaceVariant,
+                        ),
                       ),
                     ),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
                     child: ElevatedButton(
-                      onPressed: () => Navigator.pop(context, true),
+                      onPressed: () => Navigator.pop(ctx, true),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.red.shade700,
+                        backgroundColor: colorScheme.error,
+                        foregroundColor: colorScheme.onError,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
                         ),
                         padding: const EdgeInsets.symmetric(vertical: 14),
                       ),
-                      child: const Text(
-                        'Void Entry',
-                        style: TextStyle(color: Colors.white),
-                      ),
+                      child: const Text('Void Entry'),
                     ),
                   ),
                 ],
@@ -352,6 +364,8 @@ class _JournalEntryCardState extends State<JournalEntryCard> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
     // SORTING LOGIC: Separate debits and credits, then combine them (Debits top, Credits bottom)
     final debits = widget.details
         .where((d) => d.transactionLine.debit > 0)
@@ -373,18 +387,18 @@ class _JournalEntryCardState extends State<JournalEntryCard> {
                   ? DismissDirection.none
                   : DismissDirection.endToStart,
               background: Container(
-                color: Colors.red.shade50,
+                color: colorScheme.error.withValues(alpha: 0.2),
                 alignment: Alignment.centerRight,
                 padding: const EdgeInsets.symmetric(horizontal: 24.0),
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(Icons.block, color: Colors.red.shade400, size: 28),
+                    Icon(Icons.block, color: colorScheme.error, size: 28),
                     const SizedBox(height: 4),
                     Text(
                       'VOID',
-                      style: TextStyle(
-                        color: Colors.red.shade400,
+                      style: theme.textTheme.labelMedium!.copyWith(
+                        color: colorScheme.error,
                         fontWeight: FontWeight.bold,
                         fontSize: 12,
                       ),
@@ -403,13 +417,15 @@ class _JournalEntryCardState extends State<JournalEntryCard> {
                 return false;
               },
               child: Material(
-                color: _isVoided ? Colors.grey.shade50 : Colors.white,
+                color: _isVoided
+                    ? colorScheme.surfaceContainerHighest
+                    : colorScheme.surface,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(16),
                   side: BorderSide(
                     color: _isVoided
-                        ? Colors.grey.shade300
-                        : Colors.grey.shade200,
+                        ? colorScheme.outlineVariant
+                        : colorScheme.outline.withValues(alpha: 0.5),
                   ),
                 ),
                 child: Padding(
@@ -425,13 +441,13 @@ class _JournalEntryCardState extends State<JournalEntryCard> {
                             Icon(
                               Icons.calendar_today_outlined,
                               size: 14,
-                              color: Colors.grey.shade600,
+                              color: colorScheme.onSurfaceVariant,
                             ),
                             const SizedBox(width: 8),
                             Text(
                               widget.date,
-                              style: TextStyle(
-                                color: Colors.grey.shade600,
+                              style: theme.textTheme.bodyMedium!.copyWith(
+                                color: colorScheme.onSurfaceVariant,
                                 fontSize: 13,
                               ),
                             ),
@@ -440,10 +456,10 @@ class _JournalEntryCardState extends State<JournalEntryCard> {
                         const SizedBox(height: 6),
                         Text(
                           widget.title,
-                          style: TextStyle(
+                          style: theme.textTheme.titleSmall!.copyWith(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
-                            color: const Color(0xFF1A1C1E),
+                            color: colorScheme.onSurface,
                             decoration: _isVoided
                                 ? TextDecoration.lineThrough
                                 : null,
@@ -462,7 +478,7 @@ class _JournalEntryCardState extends State<JournalEntryCard> {
                                 "ACCOUNT",
                                 style: TextStyle(
                                   fontSize: 10,
-                                  color: Colors.grey.shade500,
+                                  color: colorScheme.onSurfaceVariant,
                                   fontWeight: FontWeight.bold,
                                   letterSpacing: 0.5,
                                 ),
@@ -478,9 +494,9 @@ class _JournalEntryCardState extends State<JournalEntryCard> {
                                 child: Text(
                                   "DEBIT",
                                   textAlign: TextAlign.right,
-                                  style: TextStyle(
+                                  style: theme.textTheme.bodySmall!.copyWith(
                                     fontSize: 10,
-                                    color: Colors.grey.shade500,
+                                    color: colorScheme.onSurfaceVariant,
                                     fontWeight: FontWeight.bold,
                                     letterSpacing: 0.5,
                                   ),
@@ -497,9 +513,9 @@ class _JournalEntryCardState extends State<JournalEntryCard> {
                                 child: Text(
                                   "CREDIT",
                                   textAlign: TextAlign.right,
-                                  style: TextStyle(
+                                  style: theme.textTheme.bodySmall!.copyWith(
                                     fontSize: 10,
-                                    color: Colors.grey.shade500,
+                                    color: colorScheme.onSurfaceVariant,
                                     fontWeight: FontWeight.bold,
                                     letterSpacing: 0.5,
                                   ),
@@ -528,11 +544,11 @@ class _JournalEntryCardState extends State<JournalEntryCard> {
                               bottom: 6.0,
                             ),
                             decoration: BoxDecoration(
-                              color: Colors.grey.shade50,
+                              color: colorScheme.surfaceContainerHighest,
                               borderRadius: BorderRadius.circular(6),
-                              border: const Border(
+                              border: Border(
                                 left: BorderSide(
-                                  color: Colors.black87,
+                                  color: colorScheme.primary,
                                   width: 3.5,
                                 ),
                               ),
@@ -547,10 +563,10 @@ class _JournalEntryCardState extends State<JournalEntryCard> {
                                     padding: const EdgeInsets.only(right: 8.0),
                                     child: Text(
                                       detail.account.name,
-                                      style: TextStyle(
+                                      style: theme.textTheme.bodyMedium!.copyWith(
                                         fontSize: 13,
                                         fontWeight: FontWeight.w500,
-                                        color: Colors.black87,
+                                        color: colorScheme.onSurface,
                                         decoration: _isVoided
                                             ? TextDecoration.lineThrough
                                             : null,
@@ -572,12 +588,11 @@ class _JournalEntryCardState extends State<JournalEntryCard> {
                                       child: Text(
                                         isDebit ? formattedAmount : '',
                                         textAlign: TextAlign.right,
-                                        maxLines:
-                                            1, // Ensures it absolutely never wraps
-                                        style: const TextStyle(
+                                        maxLines: 1,
+                                        style: theme.textTheme.bodyMedium!.copyWith(
                                           fontSize: 13,
                                           fontWeight: FontWeight.w500,
-                                          color: Colors.black87,
+                                          color: colorScheme.onSurface,
                                         ),
                                       ),
                                     ),
@@ -596,12 +611,11 @@ class _JournalEntryCardState extends State<JournalEntryCard> {
                                       child: Text(
                                         !isDebit ? formattedAmount : '',
                                         textAlign: TextAlign.right,
-                                        maxLines:
-                                            1, // Ensures it absolutely never wraps
-                                        style: const TextStyle(
+                                        maxLines: 1,
+                                        style: theme.textTheme.bodyMedium!.copyWith(
                                           fontSize: 13,
                                           fontWeight: FontWeight.w500,
-                                          color: Colors.black87,
+                                          color: colorScheme.onSurface,
                                         ),
                                       ),
                                     ),
@@ -631,11 +645,11 @@ class _JournalEntryCardState extends State<JournalEntryCard> {
       child: IgnorePointer(
         child: Transform.rotate(
           angle: -0.15,
-          child: Container(
+            child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
             decoration: BoxDecoration(
               border: Border.all(
-                color: Colors.red.withValues(alpha: 0.4),
+                color: Theme.of(context).colorScheme.error.withValues(alpha: 0.5),
                 width: 2,
               ),
               borderRadius: BorderRadius.circular(4),
@@ -643,7 +657,7 @@ class _JournalEntryCardState extends State<JournalEntryCard> {
             child: Text(
               'VOIDED',
               style: TextStyle(
-                color: Colors.red.withValues(alpha: 0.4),
+                color: Theme.of(context).colorScheme.error.withValues(alpha: 0.5),
                 fontWeight: FontWeight.bold,
                 letterSpacing: 1.2,
               ),

@@ -18,14 +18,12 @@ class UserGuideScreen extends StatelessWidget {
       body: ListView(
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
         children: [
-          const Padding(
-            padding: EdgeInsets.only(bottom: 8),
+          Padding(
+            padding: const EdgeInsets.only(bottom: 8),
             child: Text(
               'Choose how you\'d like to learn',
-              style: TextStyle(
-                fontSize: 18,
+              style: Theme.of(context).textTheme.titleMedium!.copyWith(
                 fontWeight: FontWeight.w600,
-                color: Color(0xFF1A1C1E),
               ),
             ),
           ),
@@ -74,8 +72,10 @@ class _OptionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
     return Material(
-      color: Colors.white,
+      color: colorScheme.surface,
       borderRadius: BorderRadius.circular(16),
       elevation: 1,
       child: InkWell(
@@ -89,10 +89,10 @@ class _OptionCard extends StatelessWidget {
                 width: 48,
                 height: 48,
                 decoration: BoxDecoration(
-                  color: const Color(0xFF232D3F).withOpacity(0.08),
+                  color: colorScheme.primary,
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: Icon(icon, color: const Color(0xFF232D3F), size: 26),
+                child: Icon(icon, color: colorScheme.onPrimary, size: 26),
               ),
               const SizedBox(width: 16),
               Expanded(
@@ -101,25 +101,20 @@ class _OptionCard extends StatelessWidget {
                   children: [
                     Text(
                       title,
-                      style: const TextStyle(
-                        fontSize: 17,
-                        fontWeight: FontWeight.bold,
-                        color: Color(0xFF1A1C1E),
-                      ),
+                      style: theme.textTheme.titleSmall!.copyWith(fontSize: 17),
                     ),
                     const SizedBox(height: 4),
                     Text(
                       subtitle,
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: Colors.grey[700],
+                      style: theme.textTheme.bodyMedium!.copyWith(
+                        color: colorScheme.onSurfaceVariant,
                         height: 1.3,
                       ),
                     ),
                   ],
                 ),
               ),
-              Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey[600]),
+              Icon(Icons.arrow_forward_ios, size: 16, color: colorScheme.onSurfaceVariant),
             ],
           ),
         ),

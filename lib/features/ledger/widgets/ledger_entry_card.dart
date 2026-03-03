@@ -22,22 +22,24 @@ class LedgerEntryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
     return GestureDetector(
       onTap: onTap,
       child: Container(
         margin: const EdgeInsets.only(bottom: 8),
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: colorScheme.surface,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Colors.black12),
+          border: Border.all(color: colorScheme.outlineVariant),
         ),
         child: Row(
           children: [
             Text(
               code,
-              style: const TextStyle(
-                color: Colors.grey,
+              style: theme.textTheme.bodyMedium!.copyWith(
+                color: colorScheme.onSurfaceVariant,
                 fontWeight: FontWeight.bold,
               ),
             ),
@@ -45,19 +47,19 @@ class LedgerEntryCard extends StatelessWidget {
             Expanded(
               child: Text(
                 name,
-                style: const TextStyle(
+                style: theme.textTheme.titleSmall!.copyWith(
                   fontWeight: FontWeight.bold,
                   fontSize: 16,
-                  color: Colors.black,
+                  color: colorScheme.onSurface,
                 ),
               ),
             ),
             Text(
               '₱$balance',
-              style: const TextStyle(
+              style: theme.textTheme.titleSmall!.copyWith(
                 fontWeight: FontWeight.w900,
                 fontSize: 16,
-                color: Colors.black,
+                color: colorScheme.onSurface,
               ),
             ),
           ],
