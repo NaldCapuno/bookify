@@ -119,29 +119,38 @@ class JournalEntryDao extends DatabaseAccessor<AppDatabase>
     required List<TransactionsCompanion> lines,
   }) async {
     await transaction(() async {
-      // 1. Insert the main Journal record
+      String finalRefNo;
+      if (referenceNo == null || referenceNo.isEmpty) {
+        final countExp = journals.id.count();
+        final query = selectOnly(journals)..addColumns([countExp]);
+        final result = await query.getSingle();
+        final totalJournals = result.read(countExp) ?? 0;
+
+        // ✅ UPDATED: Added 'JRN-' prefix and changed padding to 5
+        finalRefNo = 'JRN-${(totalJournals + 1).toString().padLeft(5, '0')}';
+      } else {
+        finalRefNo = referenceNo;
+      }
+
       final journalId = await into(journals).insert(
         JournalsCompanion.insert(
           date: date,
           description: description,
-          referenceNo: Value(referenceNo),
+          referenceNo: Value(finalRefNo),
         ),
       );
 
-      // 2. Insert all the transaction lines
       for (var line in lines) {
         await into(
           transactions,
         ).insert(line.copyWith(journalId: Value(journalId)));
       }
 
-      // 3. Extract the unique account IDs involved in this transaction
       final accountIds = lines
           .map((line) => line.accountId.value)
           .toSet()
           .toList();
 
-      // 4. Lock the accounts (only if they aren't already locked)
       await (update(accounts)
             ..where((a) => a.id.isIn(accountIds) & a.isLocked.equals(false)))
           .write(const AccountsCompanion(isLocked: Value(true)));
@@ -164,5 +173,12 @@ class JournalEntryDao extends DatabaseAccessor<AppDatabase>
     await (update(journals)..where((j) => j.id.equals(journalId))).write(
       const JournalsCompanion(isVoid: Value(true)),
     );
+  }
+
+  Future<int> getJournalCount() async {
+    final countExp = journals.id.count();
+    final query = selectOnly(journals)..addColumns([countExp]);
+    final result = await query.getSingle();
+    return result.read(countExp) ?? 0;
   }
 }

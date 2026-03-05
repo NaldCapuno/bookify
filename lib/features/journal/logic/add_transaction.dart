@@ -5,7 +5,6 @@ import 'package:bookkeeping/core/widgets/app_toast.dart';
 import 'package:flutter/material.dart';
 import 'package:drift/drift.dart' as drift;
 import 'package:intl/intl.dart';
-import 'package:grouped_list/grouped_list.dart';
 
 class JournalLine {
   int? accountId;
@@ -45,10 +44,9 @@ class _AddJournalEntryFormState extends State<AddJournalEntryForm> {
   List<JournalLine> lines = [];
   bool _hasAttemptedSave = false;
 
-  final TextEditingController _refNoController = TextEditingController();
   final TextEditingController _descController = TextEditingController();
-
   final TextEditingController _dateController = TextEditingController();
+
   DateTime _selectedDate = DateTime.now();
   final FocusNode _descFocus = FocusNode();
 
@@ -59,7 +57,6 @@ class _AddJournalEntryFormState extends State<AddJournalEntryForm> {
   JournalLine _createNewRow({bool isDefaultDebit = true}) {
     final line = JournalLine(isDebit: isDefaultDebit);
 
-    // Only one focus node to listen to now!
     line.amountFocus.addListener(() {
       if (!line.amountFocus.hasFocus) {
         _formatAmount(line.amountController, (val) {
@@ -79,16 +76,13 @@ class _AddJournalEntryFormState extends State<AddJournalEntryForm> {
   ) {
     if (controller.text.isEmpty) return;
 
-    // 1. Strip out any existing commas so Dart can parse it as a double
     String cleanText = controller.text.replaceAll(',', '');
     double? parsedValue = double.tryParse(cleanText);
 
     if (parsedValue != null && parsedValue > 0) {
-      // 2. Format with commas and exactly 2 decimal places
       controller.text = NumberFormat('#,##0.00').format(parsedValue);
       updateValue(parsedValue);
     } else {
-      // Clear the box if they typed garbage
       controller.text = '';
       updateValue(0.0);
     }
@@ -98,13 +92,12 @@ class _AddJournalEntryFormState extends State<AddJournalEntryForm> {
   void initState() {
     super.initState();
     _dateController.text = DateFormat('MM/dd/yyyy').format(_selectedDate);
+
     _loadAccounts();
     _descController.addListener(() {
       setState(() {});
     });
 
-    // SMART DEFAULTS: Row 1 is Debit, Row 2 is Credit.
-    // This perfectly satisfies your client's mental model automatically!
     lines = [
       _createNewRow(isDefaultDebit: true),
       _createNewRow(isDefaultDebit: false),
@@ -113,10 +106,9 @@ class _AddJournalEntryFormState extends State<AddJournalEntryForm> {
 
   @override
   void dispose() {
-    _refNoController.dispose();
     _descController.dispose();
     _dateController.dispose();
-    // Dispose of all line controllers
+    _descFocus.dispose();
     for (var line in lines) {
       line.dispose();
     }
@@ -138,18 +130,22 @@ class _AddJournalEntryFormState extends State<AddJournalEntryForm> {
     }
   }
 
-  // NEW: Modern Date Picker Logic
   Future<void> _pickDate() async {
     final DateTime? picked = await showDatePicker(
       context: context,
       initialDate: _selectedDate,
-      firstDate: DateTime(2000), // How far back they can scroll
-      lastDate: DateTime(2100), // How far forward they can scroll
+      firstDate: DateTime(2000),
+      lastDate: DateTime(2100),
       builder: (context, child) {
-        final theme = Theme.of(context);
+        // Force a neutral/monochrome theme on the date picker
         return Theme(
-          data: theme.copyWith(
-            colorScheme: theme.colorScheme,
+          data: ThemeData.light().copyWith(
+            colorScheme: const ColorScheme.light(
+              primary: Colors.black, // Selection color
+              onPrimary: Colors.white, // Text inside selection
+              surface: Colors.white, // Background
+              onSurface: Colors.black, // Text color
+            ),
           ),
           child: child!,
         );
@@ -175,14 +171,10 @@ class _AddJournalEntryFormState extends State<AddJournalEntryForm> {
     List<AccountWithCategory> filteredAccounts = List.from(_availableAccounts);
     final TextEditingController searchController = TextEditingController();
 
-    // 1. Grab the currently selected account ID
     final selectedAccountId = lines[lineIndex].accountId;
-
-    // 2. Create a GlobalKey to uniquely track the selected item's physical location
     final GlobalKey selectedItemKey = GlobalKey();
 
-    // 3. Helper to group accounts manually (since we are replacing GroupedListView)
-    Map<String, List<AccountWithCategory>> _groupAccounts(
+    Map<String, List<AccountWithCategory>> groupAccounts(
       List<AccountWithCategory> accounts,
     ) {
       final Map<String, List<AccountWithCategory>> grouped = {};
@@ -202,21 +194,17 @@ class _AddJournalEntryFormState extends State<AddJournalEntryForm> {
       builder: (context) {
         return StatefulBuilder(
           builder: (BuildContext context, StateSetter setSheetState) {
-            // 4. INSTANT SNAP: The moment the UI builds, instantly jump to our GlobalKey!
             WidgetsBinding.instance.addPostFrameCallback((_) {
               if (selectedItemKey.currentContext != null) {
                 Scrollable.ensureVisible(
                   selectedItemKey.currentContext!,
-                  duration:
-                      Duration.zero, // Zero duration means it happens instantly
-                  alignment:
-                      0.3, // 0.3 puts it nicely in the upper-middle of the screen
+                  duration: Duration.zero,
+                  alignment: 0.3,
                 );
               }
             });
 
-            final groupedData = _groupAccounts(filteredAccounts);
-            final colorScheme = Theme.of(context).colorScheme;
+            final groupedData = groupAccounts(filteredAccounts);
 
             return Padding(
               padding: EdgeInsets.only(
@@ -231,7 +219,11 @@ class _AddJournalEntryFormState extends State<AddJournalEntryForm> {
                   children: [
                     Text(
                       "Select Account",
-                      style: Theme.of(context).textTheme.titleMedium,
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.black,
+                      ),
                     ),
                     const SizedBox(height: 16),
 
@@ -240,9 +232,15 @@ class _AddJournalEntryFormState extends State<AddJournalEntryForm> {
                       controller: searchController,
                       decoration: InputDecoration(
                         hintText: "Search accounts or categories...",
-                        prefixIcon: const Icon(Icons.search),
+                        prefixIcon: const Icon(
+                          Icons.search,
+                          color: Colors.grey,
+                        ),
+                        filled: true,
+                        fillColor: Colors.grey[100],
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide.none,
                         ),
                         contentPadding: const EdgeInsets.symmetric(vertical: 0),
                       ),
@@ -250,20 +248,18 @@ class _AddJournalEntryFormState extends State<AddJournalEntryForm> {
                         setSheetState(() {
                           final trimmedQuery = query.trim().toLowerCase();
                           filteredAccounts = _availableAccounts.where((a) {
-                            final matchAccount = a.account.name
-                                .toLowerCase()
-                                .contains(trimmedQuery);
-                            final matchCategory = a.category.name
-                                .toLowerCase()
-                                .contains(trimmedQuery);
-                            return matchAccount || matchCategory;
+                            return a.account.name.toLowerCase().contains(
+                                  trimmedQuery,
+                                ) ||
+                                a.category.name.toLowerCase().contains(
+                                  trimmedQuery,
+                                );
                           }).toList();
                         });
                       },
                     ),
                     const SizedBox(height: 12),
 
-                    // 5. MANUAL GROUPED LIST (Allows us to use our GlobalKey)
                     Expanded(
                       child: SingleChildScrollView(
                         child: Column(
@@ -282,13 +278,13 @@ class _AddJournalEntryFormState extends State<AddJournalEntryForm> {
                                     vertical: 8,
                                     horizontal: 12,
                                   ),
-                                  color: colorScheme.surfaceContainerHighest,
+                                  color: Colors.grey[100],
                                   child: Text(
                                     categoryName.toUpperCase(),
                                     style: TextStyle(
                                       fontSize: 13,
                                       fontWeight: FontWeight.bold,
-                                      color: colorScheme.onSurfaceVariant,
+                                      color: Colors.grey[700],
                                       letterSpacing: 1.2,
                                     ),
                                   ),
@@ -299,8 +295,6 @@ class _AddJournalEntryFormState extends State<AddJournalEntryForm> {
                                   final isDebit =
                                       element.category.normalBalance ==
                                       NormalBalance.debit;
-
-                                  // Find out if this specific item is the selected one
                                   final isSelectedAccount =
                                       selectedAccountId == element.account.id;
 
@@ -308,14 +302,13 @@ class _AddJournalEntryFormState extends State<AddJournalEntryForm> {
                                       ? 'Debit Account'
                                       : 'Credit Account';
                                   final badgeColor = isDebit
-                                      ? colorScheme.primary
-                                      : colorScheme.tertiary;
+                                      ? Colors.blue[700]!
+                                      : Colors.orange[700]!;
                                   final badgeBg = isDebit
-                                      ? colorScheme.primaryContainer
-                                      : colorScheme.tertiaryContainer;
+                                      ? Colors.blue[50]!
+                                      : Colors.orange[50]!;
 
                                   return Container(
-                                    // 6. ATTACH THE KEY IF IT IS THE SELECTED ID!
                                     key: isSelectedAccount
                                         ? selectedItemKey
                                         : null,
@@ -325,7 +318,7 @@ class _AddJournalEntryFormState extends State<AddJournalEntryForm> {
                                     ),
                                     decoration: BoxDecoration(
                                       color: isSelectedAccount
-                                          ? colorScheme.surfaceContainerHighest
+                                          ? Colors.grey[100]
                                           : Colors.transparent,
                                       borderRadius: BorderRadius.circular(12),
                                     ),
@@ -337,7 +330,7 @@ class _AddJournalEntryFormState extends State<AddJournalEntryForm> {
                                           fontWeight: isSelectedAccount
                                               ? FontWeight.bold
                                               : FontWeight.w500,
-                                          color: colorScheme.onSurface,
+                                          color: Colors.black,
                                         ),
                                       ),
                                       trailing: Container(
@@ -392,18 +385,16 @@ class _AddJournalEntryFormState extends State<AddJournalEntryForm> {
   Future<void> _saveEntry() async {
     setState(() => _hasAttemptedSave = true);
 
-    // 1. Check Description (Auto-scrolls to the top if empty)
     if (_descController.text.trim().isEmpty) {
       AppToast.show(
         context,
         message: 'Description is required.',
         isError: true,
       );
-      _descFocus.requestFocus(); 
+      _descFocus.requestFocus();
       return;
     }
 
-    // 2. Check for partially filled or completely empty required lines
     for (int i = 0; i < lines.length; i++) {
       bool hasAccount = lines[i].accountId != null;
       bool hasAmount = lines[i].amount > 0;
@@ -414,13 +405,11 @@ class _AddJournalEntryFormState extends State<AddJournalEntryForm> {
           message: 'Please complete the missing account details.',
           isError: true,
         );
-        lines[i].amountFocus
-            .requestFocus(); 
+        lines[i].amountFocus.requestFocus();
         return;
       }
     }
 
-    // 3. Filter the complete, valid lines
     final validLines = lines
         .where((line) => line.accountId != null && line.amount > 0)
         .toList();
@@ -434,7 +423,6 @@ class _AddJournalEntryFormState extends State<AddJournalEntryForm> {
       return;
     }
 
-    // 4. Duplicate Check
     final selectedIds = validLines.map((l) => l.accountId).toList();
     if (selectedIds.length != selectedIds.toSet().length) {
       AppToast.show(
@@ -445,7 +433,6 @@ class _AddJournalEntryFormState extends State<AddJournalEntryForm> {
       return;
     }
 
-    // 5. Balance Check
     bool isBalanced = (totalDebit - totalCredit).abs() < 0.01 && totalDebit > 0;
     if (!isBalanced) {
       AppToast.show(
@@ -456,7 +443,6 @@ class _AddJournalEntryFormState extends State<AddJournalEntryForm> {
       return;
     }
 
-    // 6. Save to Database
     final companionLines = validLines.map((line) {
       return TransactionsCompanion(
         accountId: drift.Value(line.accountId!),
@@ -469,9 +455,7 @@ class _AddJournalEntryFormState extends State<AddJournalEntryForm> {
       await appDb.journalEntryDao.insertFullJournalEntry(
         date: _selectedDate,
         description: _descController.text.trim(),
-        referenceNo: _refNoController.text.trim().isEmpty
-            ? null
-            : _refNoController.text.trim(),
+        referenceNo: null, // Null to trigger auto-generation in the DAO
         lines: companionLines,
       );
 
@@ -497,24 +481,6 @@ class _AddJournalEntryFormState extends State<AddJournalEntryForm> {
 
   @override
   Widget build(BuildContext context) {
-    int validLinesCount = lines
-        .where((l) => l.accountId != null && (l.debit > 0 || l.credit > 0))
-        .length;
-
-    final selectedAccounts = lines
-        .where((l) => l.accountId != null)
-        .map((l) => l.accountId)
-        .toList();
-    bool hasDuplicates =
-        selectedAccounts.length != selectedAccounts.toSet().length;
-
-    bool isBalanced = (totalDebit - totalCredit).abs() < 0.01 && totalDebit > 0;
-    bool hasDescription = _descController.text.trim().isNotEmpty;
-
-    bool canSave =
-        isBalanced && hasDescription && validLinesCount >= 2 && !hasDuplicates;
-    final colorScheme = Theme.of(context).colorScheme;
-
     return Container(
       padding: EdgeInsets.only(
         top: 40,
@@ -522,9 +488,9 @@ class _AddJournalEntryFormState extends State<AddJournalEntryForm> {
         right: 20,
         bottom: MediaQuery.of(context).viewInsets.bottom + 40,
       ),
-      decoration: BoxDecoration(
-        color: colorScheme.surface,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+      decoration: const BoxDecoration(
+        color: Colors.white, // Pure white background
+        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
       ),
       child: SingleChildScrollView(
         child: Column(
@@ -537,7 +503,7 @@ class _AddJournalEntryFormState extends State<AddJournalEntryForm> {
                 style: TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.bold,
-                  color: colorScheme.onSurface,
+                  color: Colors.black,
                 ),
               ),
             ),
@@ -546,7 +512,7 @@ class _AddJournalEntryFormState extends State<AddJournalEntryForm> {
             _buildModernField(
               label: "Date",
               hint: "Select Date",
-              icon: Icons.calendar_today,
+              icon: Icons.calendar_today_outlined,
               controller: _dateController,
               readOnly: true,
               onTap: _pickDate,
@@ -554,19 +520,11 @@ class _AddJournalEntryFormState extends State<AddJournalEntryForm> {
             const SizedBox(height: 16),
 
             _buildModernField(
-              label: "Reference No.",
-              hint: "Optional",
-              icon: Icons.tag,
-              controller: _refNoController,
-            ),
-            const SizedBox(height: 16),
-
-            _buildModernField(
               label: "Description *",
               hint: "Transaction description",
-              icon: Icons.edit_note,
+              icon: Icons.edit_note_outlined,
               controller: _descController,
-              focusNode: _descFocus, // NEW: Link the focus node!
+              focusNode: _descFocus,
               errorText:
                   (_hasAttemptedSave && _descController.text.trim().isEmpty)
                   ? 'Description is required'
@@ -584,22 +542,36 @@ class _AddJournalEntryFormState extends State<AddJournalEntryForm> {
                   child: OutlinedButton(
                     onPressed: () => Navigator.pop(context),
                     style: OutlinedButton.styleFrom(
+                      foregroundColor:
+                          Colors.grey[800], // Neutral gray/black text
+                      side: BorderSide(color: Colors.grey[400]!),
                       padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
                     ),
-                    child: const Text("Cancel"),
+                    child: const Text(
+                      "Cancel",
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
                   ),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
                   child: ElevatedButton(
-                    // ALWAYS ENABLED NOW. The function handles the rejection.
                     onPressed: _saveEntry,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: colorScheme.primary,
-                      foregroundColor: colorScheme.onPrimary,
+                      backgroundColor: Colors.black, // Solid Black
+                      foregroundColor: Colors.white, // Solid White
                       padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
                     ),
-                    child: const Text("Save Entry"),
+                    child: const Text(
+                      "Save Entry",
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
                   ),
                 ),
               ],
@@ -625,15 +597,33 @@ class _AddJournalEntryFormState extends State<AddJournalEntryForm> {
       focusNode: focusNode,
       readOnly: readOnly,
       onTap: onTap,
+      style: const TextStyle(color: Colors.black, fontSize: 16),
       decoration: InputDecoration(
         labelText: label,
+        labelStyle: TextStyle(
+          color: errorText != null ? Colors.red : Colors.grey[700],
+        ),
         hintText: hint,
-        prefixIcon: Icon(icon, size: 20),
-        errorText: errorText, // NEW: Shows the error if provided
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+        hintStyle: TextStyle(color: Colors.grey[400]),
+        prefixIcon: Icon(icon, size: 22, color: Colors.grey[700]),
+        errorText: errorText,
+        fillColor: Colors.white,
+        filled: true,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: Colors.grey[300]!),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: Colors.grey[300]!),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: Colors.black, width: 1.5),
+        ),
         contentPadding: const EdgeInsets.symmetric(
           horizontal: 16,
-          vertical: 12,
+          vertical: 16,
         ),
       ),
     );
@@ -642,34 +632,32 @@ class _AddJournalEntryFormState extends State<AddJournalEntryForm> {
   Widget _buildEntryTable() {
     return Column(
       children: [
-        // 1. The individual account cards
         ...List.generate(lines.length, (index) => _buildRowInput(index)),
 
         const SizedBox(height: 8),
 
-        // 2. The new standalone "Add Another Account" Button
         SizedBox(
           width: double.infinity,
           height: 48,
           child: OutlinedButton.icon(
             onPressed: () {
-              // Assuming you are using the _createNewRow() method we made earlier!
               setState(() => lines.add(_createNewRow()));
             },
-            icon: const Icon(Icons.add_circle_outline, size: 20),
+            icon: Icon(
+              Icons.add_circle_outline,
+              size: 20,
+              color: Colors.grey[800],
+            ),
             label: Text(
               "Add Another Account",
-              style: Theme.of(context).textTheme.bodyMedium!.copyWith(
-                fontWeight: FontWeight.w600,
+              style: TextStyle(
+                color: Colors.grey[800],
+                fontWeight: FontWeight.bold,
               ),
             ),
             style: OutlinedButton.styleFrom(
-              backgroundColor: Theme.of(context).colorScheme.surface,
-              foregroundColor: Theme.of(context).colorScheme.onSurface,
-              side: BorderSide(
-                color: Theme.of(context).colorScheme.outlineVariant,
-                width: 1.5,
-              ),
+              backgroundColor: Colors.white,
+              side: BorderSide(color: Colors.grey[300]!, width: 1.5),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
               ),
@@ -678,8 +666,6 @@ class _AddJournalEntryFormState extends State<AddJournalEntryForm> {
         ),
 
         const SizedBox(height: 16),
-
-        // 3. The cleaned-up totals footer
         _buildTableFooter(),
       ],
     );
@@ -694,7 +680,6 @@ class _AddJournalEntryFormState extends State<AddJournalEntryForm> {
               .name
         : "Select Account";
 
-    // 1. Check for errors in this specific row
     bool showAccountError = _hasAttemptedSave && selectedAccountId == null;
     bool showAmountError = _hasAttemptedSave && lines[index].amount <= 0;
     final colorScheme = Theme.of(context).colorScheme;
@@ -703,14 +688,14 @@ class _AddJournalEntryFormState extends State<AddJournalEntryForm> {
       margin: const EdgeInsets.only(bottom: 12.0),
       padding: const EdgeInsets.all(12.0),
       decoration: BoxDecoration(
-        color: colorScheme.surface,
-        border: Border.all(color: colorScheme.outlineVariant),
+        color: Colors.white,
+        border: Border.all(color: Colors.grey[200]!),
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: colorScheme.onSurface.withValues(alpha: 0.05),
-            blurRadius: 4,
-            offset: const Offset(0, 2),
+            color: Colors.black.withValues(alpha: 0.03),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
           ),
         ],
       ),
@@ -726,19 +711,16 @@ class _AddJournalEntryFormState extends State<AddJournalEntryForm> {
                   borderRadius: BorderRadius.circular(8),
                   child: Container(
                     padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 12,
+                      horizontal: 16,
+                      vertical: 14,
                     ),
                     decoration: BoxDecoration(
-                      // Turn box Red if account is missing
-                      color: showAccountError
-                          ? colorScheme.errorContainer
-                          : colorScheme.surfaceContainerHighest,
+                      color: Colors.white,
                       borderRadius: BorderRadius.circular(8),
                       border: Border.all(
                         color: showAccountError
-                            ? colorScheme.error
-                            : colorScheme.outlineVariant,
+                            ? Colors.red
+                            : Colors.grey[300]!,
                         width: showAccountError ? 1.5 : 1.0,
                       ),
                     ),
@@ -751,15 +733,10 @@ class _AddJournalEntryFormState extends State<AddJournalEntryForm> {
                                 ? "Account Required *"
                                 : accountName,
                             style: TextStyle(
-                              fontSize: 14,
-                              fontWeight:
-                                  selectedAccountId != null || showAccountError
-                                  ? FontWeight.w600
-                                  : FontWeight.normal,
-                              // Turn text Red if account is missing
+                              fontSize: 15,
                               color: showAccountError
-                                  ? colorScheme.error
-                                  : colorScheme.onSurface,
+                                  ? Colors.red
+                                  : Colors.black,
                             ),
                             overflow: TextOverflow.ellipsis,
                           ),
@@ -767,8 +744,8 @@ class _AddJournalEntryFormState extends State<AddJournalEntryForm> {
                         Icon(
                           Icons.arrow_drop_down_circle_outlined,
                           color: showAccountError
-                              ? colorScheme.error
-                              : colorScheme.onSurfaceVariant,
+                              ? Colors.red
+                              : Colors.grey[400],
                           size: 20,
                         ),
                       ],
@@ -778,7 +755,7 @@ class _AddJournalEntryFormState extends State<AddJournalEntryForm> {
               ),
               const SizedBox(width: 8),
               IconButton(
-                icon: Icon(Icons.delete_outline, color: colorScheme.error),
+                icon: Icon(Icons.delete_outline, color: Colors.red[400]),
                 onPressed: lines.length > 2
                     ? () => setState(() {
                         lines.removeAt(index);
@@ -790,10 +767,10 @@ class _AddJournalEntryFormState extends State<AddJournalEntryForm> {
           ),
           const SizedBox(height: 12),
 
-          // --- BOTTOM ROW: Single Amount Field + Premium Sliding Toggle ---
+          // --- BOTTOM ROW: Single Amount Field + Sliding Toggle ---
           Row(
             children: [
-              // 1. The Single Amount Input
+              // Amount Input
               Expanded(
                 child: TextFormField(
                   controller: lines[index].amountController,
@@ -804,45 +781,32 @@ class _AddJournalEntryFormState extends State<AddJournalEntryForm> {
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
-                    color: colorScheme.onSurface,
+                    color: Colors.black,
                   ),
                   decoration: InputDecoration(
                     labelText: "Amount *",
                     labelStyle: TextStyle(
-                      // Turn label Red if amount is missing
-                      color: showAmountError
-                          ? colorScheme.error
-                          : colorScheme.onSurfaceVariant,
+                      color: showAmountError ? Colors.red : Colors.grey[500],
                       fontSize: 13,
                     ),
                     prefixText: '₱ ',
-                    prefixStyle: TextStyle(
-                      color: colorScheme.onSurface,
+                    prefixStyle: const TextStyle(
+                      color: Colors.black,
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
                     ),
                     filled: true,
                     fillColor: showAmountError
-                        ? colorScheme.errorContainer
-                        : colorScheme.surfaceContainerHighest,
+                        ? Colors.red[50]
+                        : Colors.grey[100], // Minimalist light gray box
                     contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 12,
+                      horizontal: 16,
                       vertical: 8,
                     ),
-                    // Turn underline Red if amount is missing
-                    enabledBorder: UnderlineInputBorder(
-                      borderSide: BorderSide(
-                        color: showAmountError
-                            ? colorScheme.error
-                            : colorScheme.outlineVariant,
-                        width: showAmountError ? 1.5 : 1.0,
-                      ),
-                    ),
-                    focusedBorder: UnderlineInputBorder(
-                      borderSide: BorderSide(
-                        color: colorScheme.primary,
-                        width: 2,
-                      ),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: BorderSide
+                          .none, // Removes underline/borders for the modern look
                     ),
                     isDense: true,
                   ),
@@ -855,34 +819,32 @@ class _AddJournalEntryFormState extends State<AddJournalEntryForm> {
               ),
               const SizedBox(width: 12),
 
-              // 2. The Premium Sliding Toggle (AnimatedAlign + Stack)
+              // Premium Sliding Toggle
               Container(
-                width: 140, // Fixed width so it always looks consistent
-                height: 48, // Matches the text field height perfectly
+                width: 150,
+                height: 48,
                 padding: const EdgeInsets.all(4),
                 decoration: BoxDecoration(
-                  color: colorScheme.surfaceContainerHighest,
-                  borderRadius: BorderRadius.circular(24), // Fully rounded pill
+                  color: Colors.grey[200], // Gray background
+                  borderRadius: BorderRadius.circular(24),
                 ),
                 child: Stack(
                   children: [
-                    // THE SLIDING BACKGROUND PILL
                     AnimatedAlign(
                       alignment: lines[index].isDebit
                           ? Alignment.centerLeft
                           : Alignment.centerRight,
                       duration: const Duration(milliseconds: 250),
-                      curve:
-                          Curves.easeOutCubic, // Buttery smooth iOS-style curve
+                      curve: Curves.easeOutCubic,
                       child: FractionallySizedBox(
-                        widthFactor: 0.5, // Always takes exactly half the width
+                        widthFactor: 0.5,
                         child: Container(
                           decoration: BoxDecoration(
-                            color: colorScheme.surface,
+                            color: Colors.white, // White Pill
                             borderRadius: BorderRadius.circular(20),
                             boxShadow: [
                               BoxShadow(
-                                color: colorScheme.onSurface.withValues(alpha: 0.08),
+                                color: Colors.black.withValues(alpha: 0.05),
                                 blurRadius: 4,
                                 offset: const Offset(0, 2),
                               ),
@@ -891,15 +853,11 @@ class _AddJournalEntryFormState extends State<AddJournalEntryForm> {
                         ),
                       ),
                     ),
-
-                    // THE TEXT AND TAP ZONES
                     Row(
                       children: [
-                        // Debit Tap Zone
                         Expanded(
                           child: GestureDetector(
-                            behavior: HitTestBehavior
-                                .opaque, // Ensures the whole half is tappable
+                            behavior: HitTestBehavior.opaque,
                             onTap: () {
                               setState(() {
                                 lines[index].isDebit = true;
@@ -910,20 +868,19 @@ class _AddJournalEntryFormState extends State<AddJournalEntryForm> {
                               child: AnimatedDefaultTextStyle(
                                 duration: const Duration(milliseconds: 200),
                                 style: TextStyle(
-                                  fontSize: 13,
+                                  fontSize: 14,
                                   fontWeight: lines[index].isDebit
                                       ? FontWeight.bold
                                       : FontWeight.w500,
                                   color: lines[index].isDebit
-                                      ? colorScheme.primary
-                                      : colorScheme.onSurfaceVariant,
+                                      ? Colors.blue[600]
+                                      : Colors.grey[600], // Blue for Debit
                                 ),
                                 child: const Text("Debit"),
                               ),
                             ),
                           ),
                         ),
-                        // Credit Tap Zone
                         Expanded(
                           child: GestureDetector(
                             behavior: HitTestBehavior.opaque,
@@ -937,13 +894,13 @@ class _AddJournalEntryFormState extends State<AddJournalEntryForm> {
                               child: AnimatedDefaultTextStyle(
                                 duration: const Duration(milliseconds: 200),
                                 style: TextStyle(
-                                  fontSize: 13,
+                                  fontSize: 14,
                                   fontWeight: !lines[index].isDebit
                                       ? FontWeight.bold
                                       : FontWeight.w500,
                                   color: !lines[index].isDebit
-                                      ? colorScheme.tertiary
-                                      : colorScheme.onSurfaceVariant,
+                                      ? Colors.orange[700]
+                                      : Colors.grey[600], // Orange for Credit
                                 ),
                                 child: const Text("Credit"),
                               ),
@@ -962,95 +919,12 @@ class _AddJournalEntryFormState extends State<AddJournalEntryForm> {
     );
   }
 
-  // // Helper for the minimalist toggle switch
-  // Widget _buildToggleOption({
-  //   required String title,
-  //   required bool isSelected,
-  //   required VoidCallback onTap,
-  // }) {
-  //   return GestureDetector(
-  //     onTap: onTap,
-  //     child: AnimatedContainer(
-  //       duration: const Duration(milliseconds: 200),
-  //       curve: Curves.easeOutCubic,
-  //       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-  //       decoration: BoxDecoration(
-  //         color: isSelected ? Colors.white : Colors.transparent,
-  //         borderRadius: BorderRadius.circular(8),
-  //         boxShadow: isSelected
-  //             ? [
-  //                 BoxShadow(
-  //                   color: Colors.black.withValues(alpha:0.05),
-  //                   blurRadius: 4,
-  //                   offset: const Offset(0, 2),
-  //                 ),
-  //               ]
-  //             : [],
-  //       ),
-  //       child: Text(
-  //         title,
-  //         style: TextStyle(
-  //           fontSize: 13,
-  //           fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-  //           color: isSelected ? Colors.black87 : Colors.grey.shade500,
-  //         ),
-  //       ),
-  //     ),
-  //   );
-  // }
-
-  // Widget _buildAmountInput({
-  //   required String label,
-  //   required TextEditingController controller,
-  //   required FocusNode focusNode,
-  //   required Function(String) onChanged,
-  // }) {
-  //   return TextFormField(
-  //     controller: controller, // Linked here
-  //     focusNode: focusNode, // Linked here
-  //     keyboardType: const TextInputType.numberWithOptions(decimal: true),
-  //     textAlign: TextAlign.right,
-  //     style: const TextStyle(
-  //       fontSize: 16,
-  //       fontWeight: FontWeight.w600,
-  //       color: Colors.black87,
-  //     ),
-  //     decoration: InputDecoration(
-  //       labelText: label,
-  //       labelStyle: TextStyle(color: Colors.grey.shade600, fontSize: 13),
-  //       hintText: '0.00',
-  //       hintStyle: TextStyle(color: Colors.grey.shade400),
-  //       prefixText: '₱ ',
-  //       prefixStyle: const TextStyle(
-  //         color: Colors.black87,
-  //         fontSize: 16,
-  //         fontWeight: FontWeight.w600,
-  //       ),
-  //       filled: true,
-  //       fillColor: Colors.grey.shade50,
-  //       contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-  //       border: UnderlineInputBorder(
-  //         borderSide: BorderSide(color: Colors.grey.shade300),
-  //       ),
-  //       enabledBorder: UnderlineInputBorder(
-  //         borderSide: BorderSide(color: Colors.grey.shade300),
-  //       ),
-  //       focusedBorder: const UnderlineInputBorder(
-  //         borderSide: BorderSide(color: Colors.blueGrey, width: 2),
-  //       ),
-  //       isDense: true,
-  //     ),
-  //     onChanged: onChanged,
-  //   );
-  // }
-
   Widget _buildTableFooter() {
     final colorScheme = Theme.of(context).colorScheme;
     bool isBalanced = (totalDebit - totalCredit).abs() < 0.01 && totalDebit > 0;
     double difference = (totalDebit - totalCredit).abs();
     bool hasAmounts = totalDebit > 0 || totalCredit > 0;
 
-    // Check for duplicates here as well for the UI warning
     final selectedAccounts = lines
         .where((l) => l.accountId != null)
         .map((l) => l.accountId)
@@ -1058,18 +932,15 @@ class _AddJournalEntryFormState extends State<AddJournalEntryForm> {
     bool hasDuplicates =
         selectedAccounts.length != selectedAccounts.toSet().length;
 
-    // Determine box color (Red if out of balance OR if duplicates are found)
-    Color boxColor = !hasAmounts && !hasDuplicates
-        ? colorScheme.surfaceContainerHighest
-        : (hasDuplicates || !isBalanced
-              ? colorScheme.errorContainer
-              : colorScheme.primaryContainer);
+    Color boxColor = (!hasAmounts && !hasDuplicates)
+        ? Colors.grey[50]! // Very light gray default
+        : (hasDuplicates || !isBalanced ? Colors.red[50]! : Colors.green[50]!);
 
-    Color borderColor = !hasAmounts && !hasDuplicates
-        ? colorScheme.outlineVariant
+    Color borderColor = (!hasAmounts && !hasDuplicates)
+        ? Colors.grey[200]!
         : (hasDuplicates || !isBalanced
-              ? colorScheme.error
-              : colorScheme.primary);
+              ? Colors.red[200]!
+              : Colors.green[200]!);
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -1086,7 +957,7 @@ class _AddJournalEntryFormState extends State<AddJournalEntryForm> {
               Text(
                 "Total Debit",
                 style: TextStyle(
-                  color: colorScheme.onSurfaceVariant,
+                  color: Colors.grey[700],
                   fontWeight: FontWeight.w500,
                 ),
               ),
@@ -1095,7 +966,7 @@ class _AddJournalEntryFormState extends State<AddJournalEntryForm> {
                 style: TextStyle(
                   fontWeight: FontWeight.bold,
                   fontSize: 16,
-                  color: colorScheme.onSurface,
+                  color: Colors.black,
                 ),
               ),
             ],
@@ -1107,7 +978,7 @@ class _AddJournalEntryFormState extends State<AddJournalEntryForm> {
               Text(
                 "Total Credit",
                 style: TextStyle(
-                  color: colorScheme.onSurfaceVariant,
+                  color: Colors.grey[700],
                   fontWeight: FontWeight.w500,
                 ),
               ),
@@ -1116,39 +987,35 @@ class _AddJournalEntryFormState extends State<AddJournalEntryForm> {
                 style: TextStyle(
                   fontWeight: FontWeight.bold,
                   fontSize: 16,
-                  color: colorScheme.onSurface,
+                  color: Colors.black,
                 ),
               ),
             ],
           ),
 
-          // Show the Status, Difference, or Duplicate Warning
           if (hasAmounts || hasDuplicates) ...[
             const Padding(
               padding: EdgeInsets.symmetric(vertical: 12),
-              child: Divider(height: 1),
+              child: Divider(height: 1, color: Colors.black12),
             ),
-
-            // If duplicates exist, prioritize showing the Duplicate Error
             if (hasDuplicates)
               Row(
                 children: [
                   Icon(
                     Icons.warning_amber_rounded,
                     size: 16,
-                    color: colorScheme.error,
+                    color: Colors.red[700],
                   ),
                   const SizedBox(width: 6),
                   Text(
                     "Duplicate accounts detected",
                     style: TextStyle(
-                      color: colorScheme.error,
+                      color: Colors.red[700],
                       fontWeight: FontWeight.bold,
                     ),
                   ),
                 ],
               )
-            // Otherwise, show the normal balance status
             else
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -1156,9 +1023,7 @@ class _AddJournalEntryFormState extends State<AddJournalEntryForm> {
                   Text(
                     isBalanced ? "Balanced" : "Out of Balance",
                     style: TextStyle(
-                      color: isBalanced
-                          ? colorScheme.primary
-                          : colorScheme.error,
+                      color: isBalanced ? Colors.green[700] : Colors.red[700],
                       fontWeight: FontWeight.bold,
                     ),
                   ),
@@ -1166,9 +1031,9 @@ class _AddJournalEntryFormState extends State<AddJournalEntryForm> {
                     Text(
                       "Difference: ₱ ${NumberFormat('#,##0.00').format(difference)}",
                       style: TextStyle(
-                        color: colorScheme.error,
+                        color: Colors.red[700],
                         fontSize: 13,
-                        fontWeight: FontWeight.w500,
+                        fontWeight: FontWeight.bold,
                       ),
                     ),
                 ],

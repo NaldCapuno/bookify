@@ -66,6 +66,7 @@ class _JournalScreenState extends State<JournalScreen> {
     'Quarterly',
     'Yearly',
   ];
+
   void _openAddTransaction(BuildContext context) {
     showModalBottomSheet(
       context: context,
@@ -169,6 +170,8 @@ class _JournalScreenState extends State<JournalScreen> {
                       child: JournalEntryCard(
                         key: ValueKey(summary.journal.id),
                         id: summary.journal.id.toString(),
+                        // ✅ Pass the reference number to the card
+                        referenceNo: summary.journal.referenceNo ?? '',
                         date: dateString,
                         title: summary.journal.description,
                         accounts: summary.accountCount,
@@ -222,7 +225,9 @@ class _JournalScreenState extends State<JournalScreen> {
               selectedColor: colorScheme.primary,
               backgroundColor: colorScheme.surface,
               labelStyle: theme.textTheme.bodyMedium!.copyWith(
-                color: isSelected ? colorScheme.onPrimary : colorScheme.onSurfaceVariant,
+                color: isSelected
+                    ? colorScheme.onPrimary
+                    : colorScheme.onSurfaceVariant,
                 fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
                 fontSize: 13,
               ),
@@ -250,17 +255,18 @@ class _JournalScreenState extends State<JournalScreen> {
 
 class JournalEntryCard extends StatefulWidget {
   final String id;
+  final String referenceNo; // ✅ ADDED Reference Number
   final String date;
   final String title;
-  final int
-  accounts; // We keep this to match your existing parameters, even though we hide it in the UI
-  final String amount; // Same here
+  final int accounts;
+  final String amount;
   final bool isInitiallyVoided;
   final List<TransactionWithAccount> details;
 
   const JournalEntryCard({
     super.key,
     required this.id,
+    required this.referenceNo, // ✅ ADDED Reference Number
     required this.date,
     required this.title,
     required this.accounts,
@@ -309,10 +315,7 @@ class _JournalEntryCardState extends State<JournalEntryCard> {
               ),
               Icon(Icons.error_outline, color: colorScheme.error, size: 50),
               const SizedBox(height: 16),
-              Text(
-                'Void Transaction?',
-                style: theme.textTheme.titleLarge,
-              ),
+              Text('Void Transaction?', style: theme.textTheme.titleLarge),
               const SizedBox(height: 8),
               Text(
                 'This entry will be marked as voided. You will still be able to view the details, but it cannot be un-voided.',
@@ -435,22 +438,51 @@ class _JournalEntryCardState extends State<JournalEntryCard> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        // --- HEADER: Date and Description ---
+                        // --- HEADER: Date, Reference No, and Description ---
                         Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            Icon(
-                              Icons.calendar_today_outlined,
-                              size: 14,
-                              color: colorScheme.onSurfaceVariant,
+                            Row(
+                              children: [
+                                Icon(
+                                  Icons.calendar_today_outlined,
+                                  size: 14,
+                                  color: Colors.grey.shade600,
+                                ),
+                                const SizedBox(width: 8),
+                                Text(
+                                  widget.date,
+                                  style: TextStyle(
+                                    color: Colors.grey.shade600,
+                                    fontSize: 13,
+                                  ),
+                                ),
+                              ],
                             ),
-                            const SizedBox(width: 8),
-                            Text(
-                              widget.date,
-                              style: theme.textTheme.bodyMedium!.copyWith(
-                                color: colorScheme.onSurfaceVariant,
-                                fontSize: 13,
+
+                            // ✅ DISPLAY REFERENCE NUMBER HERE
+                            if (widget.referenceNo.isNotEmpty)
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 6,
+                                  vertical: 2,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: Colors.grey.shade100,
+                                  borderRadius: BorderRadius.circular(4),
+                                  border: Border.all(
+                                    color: Colors.grey.shade300,
+                                  ),
+                                ),
+                                child: Text(
+                                  '#${widget.referenceNo}',
+                                  style: TextStyle(
+                                    color: Colors.grey.shade700,
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
                               ),
-                            ),
                           ],
                         ),
                         const SizedBox(height: 6),
@@ -484,7 +516,6 @@ class _JournalEntryCardState extends State<JournalEntryCard> {
                                 ),
                               ),
                             ),
-                            // Symmetrical Header Padding
                             Expanded(
                               flex: 3,
                               child: Padding(
@@ -503,7 +534,6 @@ class _JournalEntryCardState extends State<JournalEntryCard> {
                                 ),
                               ),
                             ),
-                            // Symmetrical Header Padding
                             Expanded(
                               flex: 3,
                               child: Padding(
@@ -556,26 +586,25 @@ class _JournalEntryCardState extends State<JournalEntryCard> {
                             child: Row(
                               crossAxisAlignment: CrossAxisAlignment.center,
                               children: [
-                                // Account Name (Flex 4)
                                 Expanded(
                                   flex: 4,
                                   child: Padding(
                                     padding: const EdgeInsets.only(right: 8.0),
                                     child: Text(
                                       detail.account.name,
-                                      style: theme.textTheme.bodyMedium!.copyWith(
-                                        fontSize: 13,
-                                        fontWeight: FontWeight.w500,
-                                        color: colorScheme.onSurface,
-                                        decoration: _isVoided
-                                            ? TextDecoration.lineThrough
-                                            : null,
-                                        height: 1.3,
-                                      ),
+                                      style: theme.textTheme.bodyMedium!
+                                          .copyWith(
+                                            fontSize: 13,
+                                            fontWeight: FontWeight.w500,
+                                            color: colorScheme.onSurface,
+                                            decoration: _isVoided
+                                                ? TextDecoration.lineThrough
+                                                : null,
+                                            height: 1.3,
+                                          ),
                                     ),
                                   ),
                                 ),
-                                // Debit Column (Flex 3) - Symmetrical Padding + FittedBox
                                 Expanded(
                                   flex: 3,
                                   child: Padding(
@@ -589,7 +618,7 @@ class _JournalEntryCardState extends State<JournalEntryCard> {
                                         isDebit ? formattedAmount : '',
                                         textAlign: TextAlign.right,
                                         maxLines: 1,
-                                        style: theme.textTheme.bodyMedium!.copyWith(
+                                        style: const TextStyle(
                                           fontSize: 13,
                                           fontWeight: FontWeight.w500,
                                           color: colorScheme.onSurface,
@@ -598,7 +627,6 @@ class _JournalEntryCardState extends State<JournalEntryCard> {
                                     ),
                                   ),
                                 ),
-                                // Credit Column (Flex 3) - Symmetrical Padding + FittedBox
                                 Expanded(
                                   flex: 3,
                                   child: Padding(
@@ -612,7 +640,7 @@ class _JournalEntryCardState extends State<JournalEntryCard> {
                                         !isDebit ? formattedAmount : '',
                                         textAlign: TextAlign.right,
                                         maxLines: 1,
-                                        style: theme.textTheme.bodyMedium!.copyWith(
+                                        style: const TextStyle(
                                           fontSize: 13,
                                           fontWeight: FontWeight.w500,
                                           color: colorScheme.onSurface,
@@ -645,11 +673,13 @@ class _JournalEntryCardState extends State<JournalEntryCard> {
       child: IgnorePointer(
         child: Transform.rotate(
           angle: -0.15,
-            child: Container(
+          child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
             decoration: BoxDecoration(
               border: Border.all(
-                color: Theme.of(context).colorScheme.error.withValues(alpha: 0.5),
+                color: Theme.of(
+                  context,
+                ).colorScheme.error.withValues(alpha: 0.5),
                 width: 2,
               ),
               borderRadius: BorderRadius.circular(4),
@@ -657,7 +687,9 @@ class _JournalEntryCardState extends State<JournalEntryCard> {
             child: Text(
               'VOIDED',
               style: TextStyle(
-                color: Theme.of(context).colorScheme.error.withValues(alpha: 0.5),
+                color: Theme.of(
+                  context,
+                ).colorScheme.error.withValues(alpha: 0.5),
                 fontWeight: FontWeight.bold,
                 letterSpacing: 1.2,
               ),
