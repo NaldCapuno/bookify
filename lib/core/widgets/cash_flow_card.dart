@@ -1,7 +1,7 @@
-import 'package:bookkeeping/core/widgets/empty_placeholder.dart';
 import 'package:bookkeeping/core/widgets/financial_line_item.dart';
 import 'package:bookkeeping/features/incomestatement/financial_item.dart';
 import 'package:bookkeeping/features/cashflow/cash_flow_statement.dart';
+import 'package:bookkeeping/core/widgets/empty_placeholder.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
@@ -24,9 +24,37 @@ class CashFlowStatementCard extends StatelessWidget {
     return "NET CASH USED IN $category";
   }
 
+  // --- NEW: Smart Label Generator ---
+  String _formatActivityLabel(String accountName, double amount, String type) {
+    // 1. Investing Activities (Buying/Selling Assets)
+    if (type == 'investing') {
+      if (amount < 0) {
+        return "Purchase of $accountName"; // Money out = Purchase
+      } else {
+        return "Proceeds from sale of $accountName"; // Money in = Sale
+      }
+    }
+
+    // 2. Financing Activities (Loans/Equity)
+    if (type == 'financing') {
+      // Handle special Equity cases explicitly for clearer reading
+      if (accountName.toLowerCase().contains('drawing')) {
+        return "Owner's drawings";
+      }
+
+      if (amount > 0) {
+        return "Proceeds from $accountName"; // Money in = Borrowing/Capital
+      } else {
+        return "Payments on $accountName"; // Money out = Repayment
+      }
+    }
+
+    return accountName; // Fallback
+  }
+
   @override
   Widget build(BuildContext context) {
-    // GUARD CLAUSE: Check for any cash flow activity
+    // GUARD CLAUSE
     final bool hasActivity =
         data.netIncome != 0 ||
         data.operatingAssetChanges.isNotEmpty ||
@@ -36,14 +64,15 @@ class CashFlowStatementCard extends StatelessWidget {
         data.financingEquity.isNotEmpty;
 
     if (!hasActivity) {
-      return const EmptyReportPlaceholder(
-        message: "No cash flow activity recorded for this period.",
-      );
+      return const EmptyReportPlaceholder(message: "No transaction recorded.");
     }
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        // ==========================================
+        // 1. OPERATING ACTIVITIES
+        // ==========================================
         const Text(
           "CASH FLOWS FROM OPERATING ACTIVITIES",
           style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
@@ -66,6 +95,8 @@ class CashFlowStatementCard extends StatelessWidget {
             amount: _formatAccounting(data.depreciationExpense),
             indent: 32.0,
           ),
+
+        // Operating Assets
         if (data.operatingAssetChanges.isNotEmpty) ...[
           const Padding(
             padding: EdgeInsets.only(left: 16.0, top: 4.0, bottom: 4.0),
@@ -80,6 +111,8 @@ class CashFlowStatementCard extends StatelessWidget {
             isLastSection: data.operatingLiabilityChanges.isEmpty,
           ),
         ],
+
+        // Operating Liabilities
         if (data.operatingLiabilityChanges.isNotEmpty) ...[
           const Padding(
             padding: EdgeInsets.only(left: 16.0, top: 4.0, bottom: 4.0),
@@ -94,6 +127,7 @@ class CashFlowStatementCard extends StatelessWidget {
             isLastSection: true,
           ),
         ],
+
         Padding(
           padding: const EdgeInsets.only(top: 8.0),
           child: FinancialLineItem(
@@ -105,17 +139,32 @@ class CashFlowStatementCard extends StatelessWidget {
             isBold: true,
           ),
         ),
+
         const SizedBox(height: 24),
+
+        // ==========================================
+        // 2. INVESTING ACTIVITIES (Updated Labels)
+        // ==========================================
         const Text(
           "CASH FLOWS FROM INVESTING ACTIVITIES",
           style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
         ),
         const SizedBox(height: 8),
-        ..._buildItemRows(
-          data.investingActivities,
-          indent: 16.0,
-          isLastSection: true,
-        ),
+
+        ...data.investingActivities.map((item) {
+          // Apply custom label logic here
+          final label = _formatActivityLabel(
+            item.name,
+            item.amount,
+            'investing',
+          );
+          return _buildIndentedAccount(
+            label: label,
+            amount: _formatAccounting(item.amount),
+            indent: 16.0,
+          );
+        }),
+
         Padding(
           padding: const EdgeInsets.only(top: 8.0),
           child: FinancialLineItem(
@@ -127,22 +176,46 @@ class CashFlowStatementCard extends StatelessWidget {
             isBold: true,
           ),
         ),
+
         const SizedBox(height: 24),
+
+        // ==========================================
+        // 3. FINANCING ACTIVITIES (Updated Labels)
+        // ==========================================
         const Text(
           "CASH FLOWS FROM FINANCING ACTIVITIES",
           style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
         ),
         const SizedBox(height: 8),
-        ..._buildItemRows(
-          data.financingLiabilities,
-          indent: 16.0,
-          isLastSection: data.financingEquity.isEmpty,
-        ),
-        ..._buildItemRows(
-          data.financingEquity,
-          indent: 16.0,
-          isLastSection: true,
-        ),
+
+        // Financing Liabilities
+        ...data.financingLiabilities.map((item) {
+          final label = _formatActivityLabel(
+            item.name,
+            item.amount,
+            'financing',
+          );
+          return _buildIndentedAccount(
+            label: label,
+            amount: _formatAccounting(item.amount),
+            indent: 16.0,
+          );
+        }),
+
+        // Financing Equity
+        ...data.financingEquity.map((item) {
+          final label = _formatActivityLabel(
+            item.name,
+            item.amount,
+            'financing',
+          );
+          return _buildIndentedAccount(
+            label: label,
+            amount: _formatAccounting(item.amount),
+            indent: 16.0,
+          );
+        }),
+
         Padding(
           padding: const EdgeInsets.only(top: 8.0),
           child: FinancialLineItem(
@@ -155,7 +228,12 @@ class CashFlowStatementCard extends StatelessWidget {
             isLastInGroup: true,
           ),
         ),
+
         const SizedBox(height: 12),
+
+        // ==========================================
+        // SUMMARY
+        // ==========================================
         Padding(
           padding: const EdgeInsets.only(left: 32.0),
           child: FinancialLineItem(
@@ -164,12 +242,15 @@ class CashFlowStatementCard extends StatelessWidget {
             isBold: true,
           ),
         ),
+
         const SizedBox(height: 12),
+
         FinancialLineItem(
           label: "BEGINNING CASH BALANCE",
           amount: _formatAccounting(data.beginningCashBalance),
           isLastInGroup: true,
         ),
+
         FinancialLineItem(
           label: "ENDING CASH BALANCE",
           amount: _formatAccounting(data.endingCashBalance, showSymbol: true),
@@ -180,7 +261,8 @@ class CashFlowStatementCard extends StatelessWidget {
     );
   }
 
-  // Row and indentation helpers remain the same as previous versions
+  // --- HELPERS ---
+
   List<Widget> _buildItemRows(
     List<FinancialItem> items, {
     required double indent,

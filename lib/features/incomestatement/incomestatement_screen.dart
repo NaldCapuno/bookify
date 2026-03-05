@@ -15,7 +15,7 @@ class IncomeStatementScreen extends StatefulWidget {
 }
 
 class _IncomeStatementScreenState extends State<IncomeStatementScreen> {
-  ReportPeriod _currentPeriod = ReportPeriod.monthly;
+  ReportPeriod _currentPeriod = ReportPeriod.yearly;
   late DateTime _startDate;
   late DateTime _endDate;
   Future<IncomeStatement>? _statementFuture;

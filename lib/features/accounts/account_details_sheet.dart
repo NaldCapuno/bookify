@@ -1,8 +1,9 @@
-import 'package:flutter/material.dart';
 import 'package:bookkeeping/core/database/app_database.dart';
 import 'package:bookkeeping/core/database/tables/account_categories_table.dart';
 import 'package:bookkeeping/core/widgets/app_confirmation_sheet.dart';
 import 'package:bookkeeping/core/widgets/app_toast.dart';
+import 'package:bookkeeping/core/theme/app_theme.dart';
+import 'package:flutter/material.dart';
 
 class AccountDetailsSheet extends StatelessWidget {
   final Account account;
@@ -18,9 +19,15 @@ class AccountDetailsSheet extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
+
+    // Using the extension helper
+    final warningColor = context.warning;
+
     final bool isDebit = normalBalance == NormalBalance.debit;
     final String balanceTag = isDebit ? 'DR' : 'CR';
-    final Color tagColor = isDebit ? colorScheme.tertiary : Colors.orange;
+
+    // Use warningColor instead of hardcoded Colors.orange
+    final Color tagColor = isDebit ? colorScheme.tertiary : warningColor;
     final bool isArchived = account.isArchived;
 
     return Stack(
@@ -70,7 +77,9 @@ class AccountDetailsSheet extends StatelessWidget {
                     child: Text(
                       balanceTag,
                       style: theme.textTheme.labelMedium!.copyWith(
-                        color: isArchived ? colorScheme.onSurfaceVariant : tagColor,
+                        color: isArchived
+                            ? colorScheme.onSurfaceVariant
+                            : tagColor,
                         fontSize: 12,
                         fontWeight: FontWeight.bold,
                       ),
@@ -82,7 +91,9 @@ class AccountDetailsSheet extends StatelessWidget {
                     child: Text(
                       account.name,
                       style: theme.textTheme.headlineMedium!.copyWith(
-                        color: isArchived ? colorScheme.onSurfaceVariant : colorScheme.onSurface,
+                        color: isArchived
+                            ? colorScheme.onSurfaceVariant
+                            : colorScheme.onSurface,
                       ),
                     ),
                   ),
@@ -138,7 +149,8 @@ class AccountDetailsSheet extends StatelessWidget {
                   Expanded(
                     child: account.isLocked
                         ? ElevatedButton.icon(
-                            onPressed: () => _handleArchiveToggle(context),
+                            onPressed: () =>
+                                _handleArchiveToggle(context, warningColor),
                             icon: Icon(
                               isArchived
                                   ? Icons.unarchive_outlined
@@ -151,9 +163,10 @@ class AccountDetailsSheet extends StatelessWidget {
                               style: TextStyle(color: colorScheme.onPrimary),
                             ),
                             style: ElevatedButton.styleFrom(
+                              // Uses Tertiary for Unarchive, Warning for Archive
                               backgroundColor: isArchived
                                   ? colorScheme.tertiary
-                                  : Colors.orange,
+                                  : warningColor,
                               padding: const EdgeInsets.symmetric(vertical: 14),
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(12),
@@ -201,18 +214,18 @@ class AccountDetailsSheet extends StatelessWidget {
                   ),
                   decoration: BoxDecoration(
                     border: Border.all(
-                      color: colorScheme.onSurfaceVariant,
-                      width: 2,
+                      // Using theme-aware warning color here
+                      color: warningColor.withValues(alpha: 0.5),
+                      width: 1.5,
                     ),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Text(
                     'ARCHIVED',
                     style: theme.textTheme.titleMedium!.copyWith(
-                      color: colorScheme.onSurfaceVariant,
+                      color: warningColor.withValues(alpha: 0.5),
                       fontWeight: FontWeight.bold,
-                      fontSize: 18,
-                      letterSpacing: 2.0,
+                      letterSpacing: 1.2,
                     ),
                   ),
                 ),
@@ -237,11 +250,7 @@ class AccountDetailsSheet extends StatelessWidget {
       children: [
         Row(
           children: [
-            Icon(
-              icon,
-              size: 16,
-              color: colorScheme.onSurfaceVariant,
-            ),
+            Icon(icon, size: 16, color: colorScheme.onSurfaceVariant),
             const SizedBox(width: 8),
             Text(
               label,
@@ -256,16 +265,22 @@ class AccountDetailsSheet extends StatelessWidget {
         Text(
           value,
           style: theme.textTheme.bodyLarge!.copyWith(
-            color: isArchived ? colorScheme.onSurfaceVariant : colorScheme.onSurface,
+            color: isArchived
+                ? colorScheme.onSurfaceVariant
+                : colorScheme.onSurface,
           ),
         ),
       ],
     );
   }
 
-  Future<void> _handleArchiveToggle(BuildContext context) async {
+  Future<void> _handleArchiveToggle(
+    BuildContext context,
+    Color warningColor,
+  ) async {
     final newStatus = !account.isArchived;
 
+    // Optional: show a confirmation sheet first if you want to be extra safe
     await appDb.accountsDao.archiveAccount(account.id, newStatus);
 
     if (context.mounted) {
@@ -287,7 +302,7 @@ class AccountDetailsSheet extends StatelessWidget {
         message:
             'This will permanently remove ${account.name}. This action cannot be undone.',
         confirmLabel: 'Delete',
-        confirmColor: Colors.red.shade700,
+        confirmColor: Theme.of(context).colorScheme.error,
         icon: Icons.delete_forever_outlined,
       ),
     );
@@ -301,12 +316,10 @@ class AccountDetailsSheet extends StatelessWidget {
         }
       } catch (e) {
         if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text(
-                'Cannot delete: Account is in use by transactions.',
-              ),
-            ),
+          AppToast.show(
+            context,
+            message: 'Cannot delete: Account is in use.',
+            isError: true,
           );
         }
       }

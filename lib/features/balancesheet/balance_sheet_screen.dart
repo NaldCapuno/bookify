@@ -15,7 +15,7 @@ class BalanceSheetScreen extends StatefulWidget {
 }
 
 class _BalanceSheetScreenState extends State<BalanceSheetScreen> {
-  ReportPeriod _currentPeriod = ReportPeriod.daily;
+  ReportPeriod _currentPeriod = ReportPeriod.yearly;
 
   // Track range for the UI header
   late DateTime _startDate;
