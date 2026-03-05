@@ -147,6 +147,7 @@ class _AddJournalEntryFormState extends State<AddJournalEntryForm> {
     final TextEditingController searchController = TextEditingController();
     final selectedAccountId = lines[lineIndex].accountId;
     final GlobalKey selectedItemKey = GlobalKey();
+    final colorScheme = Theme.of(context).colorScheme;
 
     Map<String, List<AccountWithCategory>> groupAccounts(
       List<AccountWithCategory> accounts,
@@ -161,7 +162,7 @@ class _AddJournalEntryFormState extends State<AddJournalEntryForm> {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: Theme.of(context).colorScheme.surface,
+      backgroundColor: colorScheme.surface,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
@@ -179,7 +180,6 @@ class _AddJournalEntryFormState extends State<AddJournalEntryForm> {
             });
 
             final groupedData = groupAccounts(filteredAccounts);
-            final colorScheme = Theme.of(context).colorScheme;
 
             return Padding(
               padding: EdgeInsets.only(
