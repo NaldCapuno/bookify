@@ -9,21 +9,17 @@ import 'package:intl/intl.dart';
 class JournalLine {
   int? accountId;
   bool isDebit; // TRUE = Debit, FALSE = Credit
-  double amount; // Only ONE amount value now!
+  double amount;
 
   final TextEditingController amountController;
   final FocusNode amountFocus;
 
-  // These getters automatically format the data for your SQLite Database!
   double get debit => isDebit ? amount : 0.0;
   double get credit => !isDebit ? amount : 0.0;
 
-  JournalLine({
-    this.accountId,
-    this.isDebit = true, // Defaults to Debit
-    this.amount = 0.0,
-  }) : amountController = TextEditingController(),
-       amountFocus = FocusNode();
+  JournalLine({this.accountId, this.isDebit = true, this.amount = 0.0})
+    : amountController = TextEditingController(),
+      amountFocus = FocusNode();
 
   void dispose() {
     amountController.dispose();
@@ -44,6 +40,7 @@ class _AddJournalEntryFormState extends State<AddJournalEntryForm> {
   List<JournalLine> lines = [];
   bool _hasAttemptedSave = false;
 
+  final TextEditingController _refNoController = TextEditingController();
   final TextEditingController _descController = TextEditingController();
   final TextEditingController _dateController = TextEditingController();
 
@@ -53,10 +50,33 @@ class _AddJournalEntryFormState extends State<AddJournalEntryForm> {
   List<AccountWithCategory> _availableAccounts = [];
   bool _isLoadingAccounts = true;
 
-  // Creates a new line and attaches the "Format on Leave" listeners
+  @override
+  void initState() {
+    super.initState();
+    _dateController.text = DateFormat('MM/dd/yyyy').format(_selectedDate);
+    _loadAccounts();
+    _descController.addListener(() => setState(() {}));
+
+    // Default starting rows: One Debit, One Credit
+    lines = [
+      _createNewRow(isDefaultDebit: true),
+      _createNewRow(isDefaultDebit: false),
+    ];
+  }
+
+  @override
+  void dispose() {
+    _refNoController.dispose();
+    _descController.dispose();
+    _dateController.dispose();
+    for (var line in lines) {
+      line.dispose();
+    }
+    super.dispose();
+  }
+
   JournalLine _createNewRow({bool isDefaultDebit = true}) {
     final line = JournalLine(isDebit: isDefaultDebit);
-
     line.amountFocus.addListener(() {
       if (!line.amountFocus.hasFocus) {
         _formatAmount(line.amountController, (val) {
@@ -65,17 +85,14 @@ class _AddJournalEntryFormState extends State<AddJournalEntryForm> {
         });
       }
     });
-
     return line;
   }
 
-  // Parses the text, adds commas, and updates the UI
   void _formatAmount(
     TextEditingController controller,
     Function(double) updateValue,
   ) {
     if (controller.text.isEmpty) return;
-
     String cleanText = controller.text.replaceAll(',', '');
     double? parsedValue = double.tryParse(cleanText);
 
@@ -88,33 +105,6 @@ class _AddJournalEntryFormState extends State<AddJournalEntryForm> {
     }
   }
 
-  @override
-  void initState() {
-    super.initState();
-    _dateController.text = DateFormat('MM/dd/yyyy').format(_selectedDate);
-
-    _loadAccounts();
-    _descController.addListener(() {
-      setState(() {});
-    });
-
-    lines = [
-      _createNewRow(isDefaultDebit: true),
-      _createNewRow(isDefaultDebit: false),
-    ];
-  }
-
-  @override
-  void dispose() {
-    _descController.dispose();
-    _dateController.dispose();
-    _descFocus.dispose();
-    for (var line in lines) {
-      line.dispose();
-    }
-    super.dispose();
-  }
-
   Future<void> _loadAccounts() async {
     try {
       final accounts = await appDb.journalEntryDao.getAccountsWithCategories();
@@ -125,7 +115,6 @@ class _AddJournalEntryFormState extends State<AddJournalEntryForm> {
         });
       }
     } catch (e) {
-      debugPrint("Error loading accounts: $e");
       if (mounted) setState(() => _isLoadingAccounts = false);
     }
   }
@@ -136,20 +125,6 @@ class _AddJournalEntryFormState extends State<AddJournalEntryForm> {
       initialDate: _selectedDate,
       firstDate: DateTime(2000),
       lastDate: DateTime(2100),
-      builder: (context, child) {
-        // Force a neutral/monochrome theme on the date picker
-        return Theme(
-          data: ThemeData.light().copyWith(
-            colorScheme: const ColorScheme.light(
-              primary: Colors.black, // Selection color
-              onPrimary: Colors.white, // Text inside selection
-              surface: Colors.white, // Background
-              onSurface: Colors.black, // Text color
-            ),
-          ),
-          child: child!,
-        );
-      },
     );
 
     if (picked != null && picked != _selectedDate) {
@@ -170,7 +145,6 @@ class _AddJournalEntryFormState extends State<AddJournalEntryForm> {
   void _showAccountSearchSheet(int lineIndex) {
     List<AccountWithCategory> filteredAccounts = List.from(_availableAccounts);
     final TextEditingController searchController = TextEditingController();
-
     final selectedAccountId = lines[lineIndex].accountId;
     final GlobalKey selectedItemKey = GlobalKey();
 
@@ -205,6 +179,7 @@ class _AddJournalEntryFormState extends State<AddJournalEntryForm> {
             });
 
             final groupedData = groupAccounts(filteredAccounts);
+            final colorScheme = Theme.of(context).colorScheme;
 
             return Padding(
               padding: EdgeInsets.only(
@@ -219,30 +194,18 @@ class _AddJournalEntryFormState extends State<AddJournalEntryForm> {
                   children: [
                     Text(
                       "Select Account",
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.black,
-                      ),
+                      style: Theme.of(context).textTheme.titleMedium,
                     ),
                     const SizedBox(height: 16),
-
-                    // Search Bar
                     TextField(
                       controller: searchController,
                       decoration: InputDecoration(
                         hintText: "Search accounts or categories...",
-                        prefixIcon: const Icon(
-                          Icons.search,
-                          color: Colors.grey,
-                        ),
-                        filled: true,
-                        fillColor: Colors.grey[100],
+                        prefixIcon: const Icon(Icons.search),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
-                          borderSide: BorderSide.none,
                         ),
-                        contentPadding: const EdgeInsets.symmetric(vertical: 0),
+                        contentPadding: EdgeInsets.zero,
                       ),
                       onChanged: (query) {
                         setSheetState(() {
@@ -259,66 +222,45 @@ class _AddJournalEntryFormState extends State<AddJournalEntryForm> {
                       },
                     ),
                     const SizedBox(height: 12),
-
                     Expanded(
                       child: SingleChildScrollView(
                         child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: groupedData.entries.map((entry) {
-                            final categoryName = entry.key;
-                            final accounts = entry.value;
-
                             return Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                // Category Header
                                 Container(
                                   width: double.infinity,
                                   padding: const EdgeInsets.symmetric(
                                     vertical: 8,
                                     horizontal: 12,
                                   ),
-                                  color: Colors.grey[100],
+                                  color: colorScheme.surfaceContainerHighest,
                                   child: Text(
-                                    categoryName.toUpperCase(),
+                                    entry.key.toUpperCase(),
                                     style: TextStyle(
                                       fontSize: 13,
                                       fontWeight: FontWeight.bold,
-                                      color: Colors.grey[700],
+                                      color: colorScheme.onSurfaceVariant,
                                       letterSpacing: 1.2,
                                     ),
                                   ),
                                 ),
-
-                                // Accounts under this category
-                                ...accounts.map((element) {
+                                ...entry.value.map((element) {
+                                  final isSelected =
+                                      selectedAccountId == element.account.id;
                                   final isDebit =
                                       element.category.normalBalance ==
                                       NormalBalance.debit;
-                                  final isSelectedAccount =
-                                      selectedAccountId == element.account.id;
-
-                                  final badgeText = isDebit
-                                      ? 'Debit Account'
-                                      : 'Credit Account';
-                                  final badgeColor = isDebit
-                                      ? Colors.blue[700]!
-                                      : Colors.orange[700]!;
-                                  final badgeBg = isDebit
-                                      ? Colors.blue[50]!
-                                      : Colors.orange[50]!;
-
                                   return Container(
-                                    key: isSelectedAccount
-                                        ? selectedItemKey
-                                        : null,
+                                    key: isSelected ? selectedItemKey : null,
                                     margin: const EdgeInsets.symmetric(
-                                      horizontal: 8.0,
-                                      vertical: 2.0,
+                                      horizontal: 8,
+                                      vertical: 2,
                                     ),
                                     decoration: BoxDecoration(
-                                      color: isSelectedAccount
-                                          ? Colors.grey[100]
+                                      color: isSelected
+                                          ? colorScheme.surfaceContainerHighest
                                           : Colors.transparent,
                                       borderRadius: BorderRadius.circular(12),
                                     ),
@@ -327,10 +269,10 @@ class _AddJournalEntryFormState extends State<AddJournalEntryForm> {
                                         element.account.name,
                                         style: TextStyle(
                                           fontSize: 15,
-                                          fontWeight: isSelectedAccount
+                                          fontWeight: isSelected
                                               ? FontWeight.bold
                                               : FontWeight.w500,
-                                          color: Colors.black,
+                                          color: colorScheme.onSurface,
                                         ),
                                       ),
                                       trailing: Container(
@@ -339,18 +281,21 @@ class _AddJournalEntryFormState extends State<AddJournalEntryForm> {
                                           vertical: 6,
                                         ),
                                         decoration: BoxDecoration(
-                                          color: badgeBg,
+                                          color: isDebit
+                                              ? colorScheme.primaryContainer
+                                              : colorScheme.tertiaryContainer,
                                           borderRadius: BorderRadius.circular(
                                             20,
                                           ),
                                         ),
                                         child: Text(
-                                          badgeText,
+                                          isDebit ? 'Debit' : 'Credit',
                                           style: TextStyle(
                                             fontSize: 11,
                                             fontWeight: FontWeight.bold,
-                                            color: badgeColor,
-                                            letterSpacing: 0.3,
+                                            color: isDebit
+                                                ? colorScheme.primary
+                                                : colorScheme.tertiary,
                                           ),
                                         ),
                                       ),
@@ -386,101 +331,62 @@ class _AddJournalEntryFormState extends State<AddJournalEntryForm> {
     setState(() => _hasAttemptedSave = true);
 
     if (_descController.text.trim().isEmpty) {
-      AppToast.show(
-        context,
-        message: 'Description is required.',
-        isError: true,
-      );
       _descFocus.requestFocus();
       return;
     }
 
-    for (int i = 0; i < lines.length; i++) {
-      bool hasAccount = lines[i].accountId != null;
-      bool hasAmount = lines[i].amount > 0;
-
-      if (hasAccount != hasAmount || (!hasAccount && !hasAmount && i < 2)) {
-        AppToast.show(
-          context,
-          message: 'Please complete the missing account details.',
-          isError: true,
-        );
-        lines[i].amountFocus.requestFocus();
-        return;
-      }
-    }
-
     final validLines = lines
-        .where((line) => line.accountId != null && line.amount > 0)
+        .where((l) => l.accountId != null && l.amount > 0)
         .toList();
-
-    if (validLines.length < 2) {
-      AppToast.show(
-        context,
-        message: 'A journal entry must contain at least two accounts.',
-        isError: true,
-      );
-      return;
-    }
-
-    final selectedIds = validLines.map((l) => l.accountId).toList();
-    if (selectedIds.length != selectedIds.toSet().length) {
-      AppToast.show(
-        context,
-        message: 'Duplicate accounts detected. Each line must be unique.',
-        isError: true,
-      );
-      return;
-    }
-
     bool isBalanced = (totalDebit - totalCredit).abs() < 0.01 && totalDebit > 0;
-    if (!isBalanced) {
+
+    if (validLines.length < 2 || !isBalanced) {
       AppToast.show(
         context,
-        message: 'Total Debit and Credit must balance perfectly.',
+        message: 'Please ensure entry is balanced and unique.',
         isError: true,
       );
       return;
     }
-
-    final companionLines = validLines.map((line) {
-      return TransactionsCompanion(
-        accountId: drift.Value(line.accountId!),
-        debit: drift.Value(line.debit),
-        credit: drift.Value(line.credit),
-      );
-    }).toList();
 
     try {
+      final companionLines = validLines
+          .map(
+            (line) => TransactionsCompanion(
+              accountId: drift.Value(line.accountId!),
+              debit: drift.Value(line.debit),
+              credit: drift.Value(line.credit),
+            ),
+          )
+          .toList();
+
       await appDb.journalEntryDao.insertFullJournalEntry(
         date: _selectedDate,
         description: _descController.text.trim(),
-        referenceNo: null, // Null to trigger auto-generation in the DAO
+        referenceNo: _refNoController.text.trim().isEmpty
+            ? null
+            : _refNoController.text.trim(),
         lines: companionLines,
       );
 
       if (mounted) {
         AppToast.show(
           context,
-          message: 'Journal entry saved successfully!',
+          message: 'Saved successfully!',
           icon: Icons.check_circle_outline,
         );
         Navigator.pop(context, true);
       }
     } catch (e) {
-      debugPrint("Database Error: $e");
-      if (mounted) {
-        AppToast.show(
-          context,
-          message: 'Failed to save journal entry. Please try again.',
-          isError: true,
-        );
-      }
+      if (mounted)
+        AppToast.show(context, message: 'Error saving entry.', isError: true);
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
     return Container(
       padding: EdgeInsets.only(
         top: 40,
@@ -488,9 +394,9 @@ class _AddJournalEntryFormState extends State<AddJournalEntryForm> {
         right: 20,
         bottom: MediaQuery.of(context).viewInsets.bottom + 40,
       ),
-      decoration: const BoxDecoration(
-        color: Colors.white, // Pure white background
-        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+      decoration: BoxDecoration(
+        color: colorScheme.surface,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
       ),
       child: SingleChildScrollView(
         child: Column(
@@ -503,57 +409,50 @@ class _AddJournalEntryFormState extends State<AddJournalEntryForm> {
                 style: TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.bold,
-                  color: Colors.black,
+                  color: colorScheme.onSurface,
                 ),
               ),
             ),
             const SizedBox(height: 24),
-
             _buildModernField(
               label: "Date",
               hint: "Select Date",
-              icon: Icons.calendar_today_outlined,
+              icon: Icons.calendar_today,
               controller: _dateController,
               readOnly: true,
               onTap: _pickDate,
             ),
             const SizedBox(height: 16),
-
+            _buildModernField(
+              label: "Reference No.",
+              hint: "Optional",
+              icon: Icons.tag,
+              controller: _refNoController,
+            ),
+            const SizedBox(height: 16),
             _buildModernField(
               label: "Description *",
               hint: "Transaction description",
-              icon: Icons.edit_note_outlined,
+              icon: Icons.edit_note,
               controller: _descController,
               focusNode: _descFocus,
               errorText:
                   (_hasAttemptedSave && _descController.text.trim().isEmpty)
-                  ? 'Description is required'
+                  ? 'Required'
                   : null,
             ),
             const SizedBox(height: 24),
-
             _buildEntryTable(),
-
             const SizedBox(height: 24),
-
             Row(
               children: [
                 Expanded(
                   child: OutlinedButton(
                     onPressed: () => Navigator.pop(context),
                     style: OutlinedButton.styleFrom(
-                      foregroundColor:
-                          Colors.grey[800], // Neutral gray/black text
-                      side: BorderSide(color: Colors.grey[400]!),
                       padding: const EdgeInsets.symmetric(vertical: 16),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
                     ),
-                    child: const Text(
-                      "Cancel",
-                      style: TextStyle(fontWeight: FontWeight.bold),
-                    ),
+                    child: const Text("Cancel"),
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -561,17 +460,11 @@ class _AddJournalEntryFormState extends State<AddJournalEntryForm> {
                   child: ElevatedButton(
                     onPressed: _saveEntry,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.black, // Solid Black
-                      foregroundColor: Colors.white, // Solid White
+                      backgroundColor: colorScheme.primary,
+                      foregroundColor: colorScheme.onPrimary,
                       padding: const EdgeInsets.symmetric(vertical: 16),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
                     ),
-                    child: const Text(
-                      "Save Entry",
-                      style: TextStyle(fontWeight: FontWeight.bold),
-                    ),
+                    child: const Text("Save Entry"),
                   ),
                 ),
               ],
@@ -597,33 +490,15 @@ class _AddJournalEntryFormState extends State<AddJournalEntryForm> {
       focusNode: focusNode,
       readOnly: readOnly,
       onTap: onTap,
-      style: const TextStyle(color: Colors.black, fontSize: 16),
       decoration: InputDecoration(
         labelText: label,
-        labelStyle: TextStyle(
-          color: errorText != null ? Colors.red : Colors.grey[700],
-        ),
         hintText: hint,
-        hintStyle: TextStyle(color: Colors.grey[400]),
-        prefixIcon: Icon(icon, size: 22, color: Colors.grey[700]),
+        prefixIcon: Icon(icon, size: 20),
         errorText: errorText,
-        fillColor: Colors.white,
-        filled: true,
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: Colors.grey[300]!),
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: Colors.grey[300]!),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: Colors.black, width: 1.5),
-        ),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
         contentPadding: const EdgeInsets.symmetric(
           horizontal: 16,
-          vertical: 16,
+          vertical: 12,
         ),
       ),
     );
@@ -633,38 +508,24 @@ class _AddJournalEntryFormState extends State<AddJournalEntryForm> {
     return Column(
       children: [
         ...List.generate(lines.length, (index) => _buildRowInput(index)),
-
         const SizedBox(height: 8),
-
         SizedBox(
           width: double.infinity,
           height: 48,
           child: OutlinedButton.icon(
-            onPressed: () {
-              setState(() => lines.add(_createNewRow()));
-            },
-            icon: Icon(
-              Icons.add_circle_outline,
-              size: 20,
-              color: Colors.grey[800],
-            ),
-            label: Text(
+            onPressed: () => setState(() => lines.add(_createNewRow())),
+            icon: const Icon(Icons.add_circle_outline, size: 20),
+            label: const Text(
               "Add Another Account",
-              style: TextStyle(
-                color: Colors.grey[800],
-                fontWeight: FontWeight.bold,
-              ),
+              style: TextStyle(fontWeight: FontWeight.w600),
             ),
             style: OutlinedButton.styleFrom(
-              backgroundColor: Colors.white,
-              side: BorderSide(color: Colors.grey[300]!, width: 1.5),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
               ),
             ),
           ),
         ),
-
         const SizedBox(height: 16),
         _buildTableFooter(),
       ],
@@ -672,6 +533,7 @@ class _AddJournalEntryFormState extends State<AddJournalEntryForm> {
   }
 
   Widget _buildRowInput(int index) {
+    final colorScheme = Theme.of(context).colorScheme;
     final selectedAccountId = lines[index].accountId;
     final accountName = selectedAccountId != null
         ? _availableAccounts
@@ -682,95 +544,70 @@ class _AddJournalEntryFormState extends State<AddJournalEntryForm> {
 
     bool showAccountError = _hasAttemptedSave && selectedAccountId == null;
     bool showAmountError = _hasAttemptedSave && lines[index].amount <= 0;
-    final colorScheme = Theme.of(context).colorScheme;
 
     return Container(
-      margin: const EdgeInsets.only(bottom: 12.0),
-      padding: const EdgeInsets.all(12.0),
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Colors.white,
-        border: Border.all(color: Colors.grey[200]!),
+        color: colorScheme.surface,
+        border: Border.all(color: colorScheme.outlineVariant),
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.03),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
+            color: colorScheme.onSurface.withOpacity(0.05),
+            blurRadius: 4,
+            offset: const Offset(0, 2),
           ),
         ],
       ),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // --- TOP ROW: Account Selector ---
-          Row(
-            children: [
-              Expanded(
-                child: InkWell(
-                  onTap: () => _showAccountSearchSheet(index),
-                  borderRadius: BorderRadius.circular(8),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 14,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(
-                        color: showAccountError
-                            ? Colors.red
-                            : Colors.grey[300]!,
-                        width: showAccountError ? 1.5 : 1.0,
-                      ),
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Expanded(
-                          child: Text(
-                            showAccountError
-                                ? "Account Required *"
-                                : accountName,
-                            style: TextStyle(
-                              fontSize: 15,
-                              color: showAccountError
-                                  ? Colors.red
-                                  : Colors.black,
-                            ),
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                        Icon(
-                          Icons.arrow_drop_down_circle_outlined,
-                          color: showAccountError
-                              ? Colors.red
-                              : Colors.grey[400],
-                          size: 20,
-                        ),
-                      ],
-                    ),
-                  ),
+          InkWell(
+            onTap: () => _showAccountSearchSheet(index),
+            borderRadius: BorderRadius.circular(8),
+            child: Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: showAccountError
+                    ? colorScheme.errorContainer
+                    : colorScheme.surfaceContainerHighest,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(
+                  color: showAccountError
+                      ? colorScheme.error
+                      : colorScheme.outlineVariant,
+                  width: showAccountError ? 1.5 : 1.0,
                 ),
               ),
-              const SizedBox(width: 8),
-              IconButton(
-                icon: Icon(Icons.delete_outline, color: Colors.red[400]),
-                onPressed: lines.length > 2
-                    ? () => setState(() {
-                        lines.removeAt(index);
-                        _calculateTotals();
-                      })
-                    : null,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Expanded(
+                    child: Text(
+                      showAccountError ? "Account Required *" : accountName,
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: showAccountError
+                            ? colorScheme.error
+                            : colorScheme.onSurface,
+                      ),
+                    ),
+                  ),
+                  Icon(
+                    Icons.arrow_drop_down_circle_outlined,
+                    color: showAccountError
+                        ? colorScheme.error
+                        : colorScheme.onSurfaceVariant,
+                    size: 20,
+                  ),
+                ],
               ),
-            ],
+            ),
           ),
           const SizedBox(height: 12),
-
-          // --- BOTTOM ROW: Single Amount Field + Sliding Toggle ---
           Row(
             children: [
-              // Amount Input
               Expanded(
                 child: TextFormField(
                   controller: lines[index].amountController,
@@ -781,137 +618,52 @@ class _AddJournalEntryFormState extends State<AddJournalEntryForm> {
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
-                    color: Colors.black,
+                    color: colorScheme.onSurface,
                   ),
                   decoration: InputDecoration(
                     labelText: "Amount *",
                     labelStyle: TextStyle(
-                      color: showAmountError ? Colors.red : Colors.grey[500],
+                      color: showAmountError
+                          ? colorScheme.error
+                          : colorScheme.onSurfaceVariant,
                       fontSize: 13,
                     ),
                     prefixText: '₱ ',
-                    prefixStyle: const TextStyle(
-                      color: Colors.black,
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                    ),
                     filled: true,
                     fillColor: showAmountError
-                        ? Colors.red[50]
-                        : Colors.grey[100], // Minimalist light gray box
+                        ? colorScheme.errorContainer
+                        : colorScheme.surfaceContainerHighest,
                     contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 16,
+                      horizontal: 12,
                       vertical: 8,
                     ),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                      borderSide: BorderSide
-                          .none, // Removes underline/borders for the modern look
+                    enabledBorder: UnderlineInputBorder(
+                      borderSide: BorderSide(
+                        color: showAmountError
+                            ? colorScheme.error
+                            : colorScheme.outlineVariant,
+                        width: showAmountError ? 1.5 : 1.0,
+                      ),
                     ),
                     isDense: true,
                   ),
                   onChanged: (val) {
-                    String cleanVal = val.replaceAll(',', '');
-                    lines[index].amount = double.tryParse(cleanVal) ?? 0;
+                    lines[index].amount =
+                        double.tryParse(val.replaceAll(',', '')) ?? 0;
                     _calculateTotals();
                   },
                 ),
               ),
               const SizedBox(width: 12),
-
-              // Premium Sliding Toggle
-              Container(
-                width: 150,
-                height: 48,
-                padding: const EdgeInsets.all(4),
-                decoration: BoxDecoration(
-                  color: Colors.grey[200], // Gray background
-                  borderRadius: BorderRadius.circular(24),
+              _buildSlidingToggle(index),
+              if (lines.length > 2)
+                IconButton(
+                  icon: Icon(Icons.delete_outline, color: colorScheme.error),
+                  onPressed: () => setState(() {
+                    lines.removeAt(index);
+                    _calculateTotals();
+                  }),
                 ),
-                child: Stack(
-                  children: [
-                    AnimatedAlign(
-                      alignment: lines[index].isDebit
-                          ? Alignment.centerLeft
-                          : Alignment.centerRight,
-                      duration: const Duration(milliseconds: 250),
-                      curve: Curves.easeOutCubic,
-                      child: FractionallySizedBox(
-                        widthFactor: 0.5,
-                        child: Container(
-                          decoration: BoxDecoration(
-                            color: Colors.white, // White Pill
-                            borderRadius: BorderRadius.circular(20),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withValues(alpha: 0.05),
-                                blurRadius: 4,
-                                offset: const Offset(0, 2),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: GestureDetector(
-                            behavior: HitTestBehavior.opaque,
-                            onTap: () {
-                              setState(() {
-                                lines[index].isDebit = true;
-                                _calculateTotals();
-                              });
-                            },
-                            child: Center(
-                              child: AnimatedDefaultTextStyle(
-                                duration: const Duration(milliseconds: 200),
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  fontWeight: lines[index].isDebit
-                                      ? FontWeight.bold
-                                      : FontWeight.w500,
-                                  color: lines[index].isDebit
-                                      ? Colors.blue[600]
-                                      : Colors.grey[600], // Blue for Debit
-                                ),
-                                child: const Text("Debit"),
-                              ),
-                            ),
-                          ),
-                        ),
-                        Expanded(
-                          child: GestureDetector(
-                            behavior: HitTestBehavior.opaque,
-                            onTap: () {
-                              setState(() {
-                                lines[index].isDebit = false;
-                                _calculateTotals();
-                              });
-                            },
-                            child: Center(
-                              child: AnimatedDefaultTextStyle(
-                                duration: const Duration(milliseconds: 200),
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  fontWeight: !lines[index].isDebit
-                                      ? FontWeight.bold
-                                      : FontWeight.w500,
-                                  color: !lines[index].isDebit
-                                      ? Colors.orange[700]
-                                      : Colors.grey[600], // Orange for Credit
-                                ),
-                                child: const Text("Credit"),
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
             ],
           ),
         ],
@@ -919,128 +671,152 @@ class _AddJournalEntryFormState extends State<AddJournalEntryForm> {
     );
   }
 
+  Widget _buildSlidingToggle(int index) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return Container(
+      width: 140,
+      height: 48,
+      padding: const EdgeInsets.all(4),
+      decoration: BoxDecoration(
+        color: colorScheme.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(24),
+      ),
+      child: Stack(
+        children: [
+          AnimatedAlign(
+            alignment: lines[index].isDebit
+                ? Alignment.centerLeft
+                : Alignment.centerRight,
+            duration: const Duration(milliseconds: 250),
+            curve: Curves.easeOutCubic,
+            child: FractionallySizedBox(
+              widthFactor: 0.5,
+              child: Container(
+                decoration: BoxDecoration(
+                  color: colorScheme.surface,
+                  borderRadius: BorderRadius.circular(20),
+                  boxShadow: [
+                    BoxShadow(
+                      color: colorScheme.onSurface.withOpacity(0.08),
+                      blurRadius: 4,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          Row(
+            children: [
+              _toggleZone(index, "Debit", true),
+              _toggleZone(index, "Credit", false),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _toggleZone(int index, String label, bool isDebit) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final active = lines[index].isDebit == isDebit;
+    return Expanded(
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: () => setState(() {
+          lines[index].isDebit = isDebit;
+          _calculateTotals();
+        }),
+        child: Center(
+          child: Text(
+            label,
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: active ? FontWeight.bold : FontWeight.w500,
+              color: active
+                  ? (isDebit ? colorScheme.primary : colorScheme.tertiary)
+                  : colorScheme.onSurfaceVariant,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _buildTableFooter() {
     final colorScheme = Theme.of(context).colorScheme;
     bool isBalanced = (totalDebit - totalCredit).abs() < 0.01 && totalDebit > 0;
-    double difference = (totalDebit - totalCredit).abs();
+    double diff = (totalDebit - totalCredit).abs();
     bool hasAmounts = totalDebit > 0 || totalCredit > 0;
-
-    final selectedAccounts = lines
-        .where((l) => l.accountId != null)
-        .map((l) => l.accountId)
-        .toList();
-    bool hasDuplicates =
-        selectedAccounts.length != selectedAccounts.toSet().length;
-
-    Color boxColor = (!hasAmounts && !hasDuplicates)
-        ? Colors.grey[50]! // Very light gray default
-        : (hasDuplicates || !isBalanced ? Colors.red[50]! : Colors.green[50]!);
-
-    Color borderColor = (!hasAmounts && !hasDuplicates)
-        ? Colors.grey[200]!
-        : (hasDuplicates || !isBalanced
-              ? Colors.red[200]!
-              : Colors.green[200]!);
 
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: boxColor,
+        color: !hasAmounts
+            ? colorScheme.surfaceContainerHighest
+            : (isBalanced
+                  ? colorScheme.primaryContainer
+                  : colorScheme.errorContainer),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: borderColor),
+        border: Border.all(
+          color: !hasAmounts
+              ? colorScheme.outlineVariant
+              : (isBalanced ? colorScheme.primary : colorScheme.error),
+        ),
       ),
       child: Column(
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                "Total Debit",
-                style: TextStyle(
-                  color: Colors.grey[700],
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-              Text(
-                "₱ ${NumberFormat('#,##0.00').format(totalDebit)}",
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 16,
-                  color: Colors.black,
-                ),
-              ),
-            ],
-          ),
+          _footerRow("Total Debit", totalDebit),
           const SizedBox(height: 8),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                "Total Credit",
-                style: TextStyle(
-                  color: Colors.grey[700],
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-              Text(
-                "₱ ${NumberFormat('#,##0.00').format(totalCredit)}",
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 16,
-                  color: Colors.black,
-                ),
-              ),
-            ],
-          ),
-
-          if (hasAmounts || hasDuplicates) ...[
+          _footerRow("Total Credit", totalCredit),
+          if (hasAmounts) ...[
             const Padding(
               padding: EdgeInsets.symmetric(vertical: 12),
-              child: Divider(height: 1, color: Colors.black12),
+              child: Divider(height: 1),
             ),
-            if (hasDuplicates)
-              Row(
-                children: [
-                  Icon(
-                    Icons.warning_amber_rounded,
-                    size: 16,
-                    color: Colors.red[700],
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  isBalanced ? "Balanced" : "Out of Balance",
+                  style: TextStyle(
+                    color: isBalanced ? colorScheme.primary : colorScheme.error,
+                    fontWeight: FontWeight.bold,
                   ),
-                  const SizedBox(width: 6),
+                ),
+                if (!isBalanced)
                   Text(
-                    "Duplicate accounts detected",
+                    "Diff: ₱ ${NumberFormat('#,##0.00').format(diff)}",
                     style: TextStyle(
-                      color: Colors.red[700],
-                      fontWeight: FontWeight.bold,
+                      color: colorScheme.error,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w500,
                     ),
                   ),
-                ],
-              )
-            else
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    isBalanced ? "Balanced" : "Out of Balance",
-                    style: TextStyle(
-                      color: isBalanced ? Colors.green[700] : Colors.red[700],
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  if (!isBalanced)
-                    Text(
-                      "Difference: ₱ ${NumberFormat('#,##0.00').format(difference)}",
-                      style: TextStyle(
-                        color: Colors.red[700],
-                        fontSize: 13,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                ],
-              ),
+              ],
+            ),
           ],
         ],
       ),
+    );
+  }
+
+  Widget _footerRow(String label, double amount) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(
+          label,
+          style: TextStyle(
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+        Text(
+          "₱ ${NumberFormat('#,##0.00').format(amount)}",
+          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+        ),
+      ],
     );
   }
 }

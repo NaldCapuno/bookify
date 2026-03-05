@@ -618,7 +618,7 @@ class _JournalEntryCardState extends State<JournalEntryCard> {
                                         isDebit ? formattedAmount : '',
                                         textAlign: TextAlign.right,
                                         maxLines: 1,
-                                        style: const TextStyle(
+                                        style: TextStyle(
                                           fontSize: 13,
                                           fontWeight: FontWeight.w500,
                                           color: colorScheme.onSurface,
@@ -640,7 +640,7 @@ class _JournalEntryCardState extends State<JournalEntryCard> {
                                         !isDebit ? formattedAmount : '',
                                         textAlign: TextAlign.right,
                                         maxLines: 1,
-                                        style: const TextStyle(
+                                        style: TextStyle(
                                           fontSize: 13,
                                           fontWeight: FontWeight.w500,
                                           color: colorScheme.onSurface,
