@@ -1,3 +1,4 @@
+import 'package:bookkeeping/core/database/tables/accounts_table.dart';
 import 'package:flutter/material.dart';
 import 'package:sticky_headers/sticky_headers.dart';
 import 'package:bookkeeping/core/database/app_database.dart';
@@ -5,7 +6,6 @@ import 'package:bookkeeping/core/database/daos/accounts_dao.dart';
 import 'package:bookkeeping/core/widgets/app_fab.dart';
 import 'package:bookkeeping/core/widgets/app_confirmation_sheet.dart';
 import 'package:bookkeeping/features/accounts/account_details_sheet.dart';
-import 'package:bookkeeping/core/database/tables/account_categories_table.dart';
 import 'package:bookkeeping/core/widgets/app_toast.dart';
 import 'package:bookkeeping/core/services/walkthrough_service.dart';
 import 'add_account_form.dart';
@@ -148,7 +148,7 @@ class _AccountsScreenState extends State<AccountsScreen> {
 
                     // New Filter Logic
                     final isDebit =
-                        row.category.normalBalance == NormalBalance.debit;
+                        row.account.normalBalance == NormalBalance.debit;
                     bool matchesFilter = true;
                     if (_currentFilter == BalanceFilter.dr)
                       matchesFilter = isDebit;
@@ -239,7 +239,7 @@ class _AccountsScreenState extends State<AccountsScreen> {
     final bool isArchived = account.isArchived;
     final bool isLocked = account.isLocked;
 
-    final bool isDebit = row.category.normalBalance == NormalBalance.debit;
+    final bool isDebit = row.account.normalBalance == NormalBalance.debit;
     final String balanceTag = isDebit ? 'DR' : 'CR';
     final Color tagColor = isDebit ? colorScheme.tertiary : warningColor;
 
@@ -469,7 +469,7 @@ class _AccountsScreenState extends State<AccountsScreen> {
       isScrollControlled: true,
       builder: (context) => AccountDetailsSheet(
         account: row.account,
-        normalBalance: row.category.normalBalance,
+        normalBalance: row.account.normalBalance,
       ),
     );
   }

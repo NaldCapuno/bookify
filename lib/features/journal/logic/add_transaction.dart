@@ -3,6 +3,7 @@
 import 'package:bookkeeping/core/database/app_database.dart';
 import 'package:bookkeeping/core/database/daos/journal_entry_daos.dart';
 import 'package:bookkeeping/core/database/tables/account_categories_table.dart';
+import 'package:bookkeeping/core/database/tables/accounts_table.dart';
 import 'package:bookkeeping/core/widgets/app_toast.dart';
 import 'package:flutter/material.dart';
 import 'package:drift/drift.dart' as drift;
@@ -252,7 +253,7 @@ class _AddJournalEntryFormState extends State<AddJournalEntryForm> {
                                   final isSelected =
                                       selectedAccountId == element.account.id;
                                   final isDebit =
-                                      element.category.normalBalance ==
+                                      element.account.normalBalance ==
                                       NormalBalance.debit;
                                   return Container(
                                     key: isSelected ? selectedItemKey : null,

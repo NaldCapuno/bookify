@@ -64,7 +64,7 @@ class LedgerDao extends DatabaseAccessor<AppDatabase> with _$LedgerDaoMixin {
 
         // Balance calculation logic based on your NormalBalance enum
         double calculatedBalance;
-        if (categoryData.normalBalance == NormalBalance.debit) {
+        if (accountData.normalBalance == NormalBalance.debit) {
           calculatedBalance = totalDebit - totalCredit;
         } else {
           calculatedBalance = totalCredit - totalDebit;

@@ -1,4 +1,4 @@
-import 'package:bookkeeping/core/database/tables/account_categories_table.dart';
+import 'package:bookkeeping/core/database/tables/accounts_table.dart';
 import 'package:flutter/material.dart';
 import 'package:bookkeeping/core/database/app_database.dart';
 import 'package:drift/drift.dart' as drift;
@@ -47,34 +47,31 @@ class _AddAccountFormState extends State<AddAccountForm> {
   // --- Picker Logic ---
 
   void _showTypePicker() {
-    _showCustomPicker(
-      title: 'Select Account Type',
-      items: _types.map((t) => t.name).toList(),
-      onSelect: (name) {
-        final type = _types.firstWhere((t) => t.name == name);
+  _showCustomPicker(
+    title: 'Select Account Type',
+    items: _types.map((t) => t.name).toList(),
+    onSelect: (name) {
+      final type = _types.firstWhere((t) => t.name == name);
 
-        setState(() {
-          _selectedTypeId = type.id;
-          _typeController.text = type.name;
+      setState(() {
+        _selectedTypeId = type.id;
+        _typeController.text = type.name;
 
-          // AUTO-PICK (User can still change this later)
-          final balanceText =
-              type.normalBalance.name[0].toUpperCase() +
-              type.normalBalance.name.substring(1);
-          _balanceController.text = balanceText;
-          _isDebit = type.normalBalance == NormalBalance.debit;
+        // Guess default balance based on standard accounting rules
+        // ID 1=Asset, 2=Liability, 3=Equity, 4=Revenue, 5=Expense
+        final isDebitType = (type.id == 1 || type.id == 5);
+        _isDebit = isDebitType;
+        _balanceController.text = isDebitType ? 'Debit' : 'Credit';
 
-          _selectedCategoryId = null;
-          _categoryController.clear();
-          _filteredCategories = _allCategories
-              .where((c) => c.parent == type.id)
-              .toList();
-        });
+        _selectedCategoryId = null;
+        _categoryController.clear();
+        _filteredCategories = _allCategories.where((c) => c.parent == type.id).toList();
+      });
 
-        Future.delayed(Duration.zero, () => _showCategoryPicker());
-      },
-    );
-  }
+      Future.delayed(Duration.zero, () => _showCategoryPicker());
+    },
+  );
+}
 
   void _showCategoryPicker() {
     if (_selectedTypeId == null) return;
@@ -143,31 +140,28 @@ class _AddAccountFormState extends State<AddAccountForm> {
   // --- Submission Logic ---
 
   Future<void> _submitData() async {
-    if (_formKey.currentState!.validate() &&
-        _selectedCategoryId != null &&
-        _isDebit != null) {
-      setState(() => _isSaving = true);
+  if (_formKey.currentState!.validate() && _selectedCategoryId != null && _isDebit != null) {
+    setState(() => _isSaving = true);
 
-      // Note: Ensure your Accounts table has a column for 'normalBalanceIsDebit' or similar
-      final entity = AccountsCompanion.insert(
-        name: _nameController.text.trim(),
-        code: int.parse(_codeController.text.trim()),
-        categoryId: _selectedCategoryId!,
-        isLocked: const drift.Value(false),
-        // Add your balance field here if your DB supports it
-      );
+    final entity = AccountsCompanion.insert(
+      name: _nameController.text.trim(),
+      code: int.parse(_codeController.text.trim()),
+      description: drift.Value(_descriptionController.text.trim().isEmpty ? null : _descriptionController.text.trim()),
+      categoryId: _selectedCategoryId!,
+      // Bind the normal balance from the state to the account
+      normalBalance: _isDebit! ? NormalBalance.debit : NormalBalance.credit, 
+      isLocked: const drift.Value(false),
+    );
 
-      try {
-        await appDb.accountsDao.addAccount(entity);
-        if (mounted) Navigator.pop(context);
-      } catch (e) {
-        setState(() => _isSaving = false);
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Error: $e')));
-      }
+    try {
+      await appDb.accountsDao.addAccount(entity);
+      if (mounted) Navigator.pop(context);
+    } catch (e) {
+      setState(() => _isSaving = false);
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
     }
   }
+}
 
   @override
   Widget build(BuildContext context) {
