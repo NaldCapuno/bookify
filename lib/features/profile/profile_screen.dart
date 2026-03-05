@@ -183,11 +183,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         return ListTile(
                           title: Text(
                             type.displayName,
-                            style: Theme.of(context).textTheme.bodyLarge!.copyWith(
-                              fontWeight: isSelected
-                                  ? FontWeight.bold
-                                  : FontWeight.normal,
-                            ),
+                            style: Theme.of(context).textTheme.bodyLarge!
+                                .copyWith(
+                                  fontWeight: isSelected
+                                      ? FontWeight.bold
+                                      : FontWeight.normal,
+                                ),
                           ),
                           trailing: isSelected
                               ? Icon(
@@ -256,7 +257,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       borderRadius: BorderRadius.circular(20),
                       boxShadow: [
                         BoxShadow(
-                          color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.05),
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.onSurface.withValues(alpha: 0.05),
                           blurRadius: 10,
                           offset: const Offset(0, 4),
                         ),
@@ -341,10 +344,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              _headerUsername,
-              style: theme.textTheme.titleMedium,
-            ),
+            Text(_headerUsername, style: theme.textTheme.titleMedium),
             Text(
               _headerEmail,
               style: theme.textTheme.bodySmall!.copyWith(

@@ -1,3 +1,4 @@
+import 'package:bookkeeping/features/quick_action/quick_actions_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:bookkeeping/core/database/app_database.dart';
@@ -6,6 +7,7 @@ import 'package:bookkeeping/core/database/daos/journal_entry_daos.dart';
 import 'package:bookkeeping/core/services/user_service.dart';
 import 'package:bookkeeping/core/database/daos/users_dao.dart';
 import 'package:bookkeeping/core/services/walkthrough_service.dart';
+import 'package:bookkeeping/core/widgets/app_fab.dart';
 
 class DashboardScreen extends StatefulWidget {
   final Function(int) onFeatureTap;
@@ -81,26 +83,46 @@ class _DashboardScreenState extends State<DashboardScreen> {
     });
   }
 
+  // ... inside your Widget class ...
+
+  void _goToQuickActions(BuildContext context) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        fullscreenDialog:
+            true, // This makes it slide up like a sheet, but it's a screen
+        builder: (context) => const QuickActionScreen(),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return ListView(
-      padding: const EdgeInsets.all(20),
-      cacheExtent: 2000,
-      children: [
-        _buildWelcomeBanner(context, key: _bannerKey),
-        const SizedBox(height: 16),
-        _buildTotalCashSection(context, key: _cashCardKey),
-        const SizedBox(height: 24),
+    return Scaffold(
+      backgroundColor: Colors.transparent,
+      body: ListView(
+        padding: const EdgeInsets.all(20),
+        cacheExtent: 2000,
+        children: [
+          _buildWelcomeBanner(context, key: _bannerKey),
+          const SizedBox(height: 16),
+          _buildTotalCashSection(context, key: _cashCardKey),
+          const SizedBox(height: 24),
 
-        Text(
-          'Overview',
-          style: theme.textTheme.titleLarge,
-        ),
-        const SizedBox(height: 16),
+          const Text(
+            'Overview',
+            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 16),
 
-        _buildDynamicAnalyticsSections(),
-      ],
+          _buildDynamicAnalyticsSections(),
+        ],
+      ),
+      floatingActionButton: AppFloatingActionButton(
+        label: 'Quick Entry',
+        icon: Icons.bolt, // Lightning bolt signifies "Quick Action"
+        onPressed: () => _goToQuickActions(context),
+      ),
     );
   }
 
@@ -381,10 +403,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            'Profit & Loss',
-            style: theme.textTheme.titleSmall,
-          ),
+          Text('Profit & Loss', style: theme.textTheme.titleSmall),
           const SizedBox(height: 8),
           FittedBox(
             fit: BoxFit.scaleDown,
@@ -502,10 +521,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            'Total Sales',
-            style: theme.textTheme.titleSmall,
-          ),
+          Text('Total Sales', style: theme.textTheme.titleSmall),
           const SizedBox(height: 4),
           FittedBox(
             fit: BoxFit.scaleDown,
@@ -724,11 +740,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     color: colorScheme.tertiary.withValues(alpha: 0.15),
                     shape: BoxShape.circle,
                   ),
-                  child: Icon(
-                    Icons.add,
-                    color: colorScheme.tertiary,
-                    size: 18,
-                  ),
+                  child: Icon(Icons.add, color: colorScheme.tertiary, size: 18),
                 ),
                 const SizedBox(width: 14),
                 Expanded(
