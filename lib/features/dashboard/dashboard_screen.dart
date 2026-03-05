@@ -1,3 +1,4 @@
+import 'package:bookkeeping/features/quick_action/quick_actions_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:bookkeeping/core/database/app_database.dart';
@@ -7,7 +8,6 @@ import 'package:bookkeeping/core/services/user_service.dart';
 import 'package:bookkeeping/core/database/daos/users_dao.dart';
 import 'package:bookkeeping/core/services/walkthrough_service.dart';
 import 'package:bookkeeping/core/widgets/app_fab.dart';
-import 'package:bookkeeping/core/widgets/quick_actions_sheet.dart';
 
 class DashboardScreen extends StatefulWidget {
   final Function(int) onFeatureTap;
@@ -83,12 +83,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
     });
   }
 
-  void _openQuickActions(BuildContext context) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) => const QuickActionsSheet(),
+  // ... inside your Widget class ...
+
+  void _goToQuickActions(BuildContext context) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        fullscreenDialog:
+            true, // This makes it slide up like a sheet, but it's a screen
+        builder: (context) => const QuickActionScreen(),
+      ),
     );
   }
 
@@ -117,7 +121,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       floatingActionButton: AppFloatingActionButton(
         label: 'Quick Entry',
         icon: Icons.bolt, // Lightning bolt signifies "Quick Action"
-        onPressed: () => _openQuickActions(context),
+        onPressed: () => _goToQuickActions(context),
       ),
     );
   }
