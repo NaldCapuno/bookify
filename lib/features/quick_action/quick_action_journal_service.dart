@@ -80,6 +80,9 @@ class QuickActionAccounts {
   static const int supplies = 130;
   static const int equipment = 150;
   static const int furnitureAndFixtures = 160;
+  static const int land = 170;
+  static const int building = 171;
+  static const int vehicle = 172;
 
   static const int accountsPayable = 201;
   static const int longTermLoans = 230;
@@ -97,11 +100,13 @@ class QuickActionAccounts {
 
   static const int rentExpense = 612;
   static const int utilitiesExpense = 611;
+  static const int transportationExpense = 613;
   static const int suppliesExpense = 610;
   static const int salariesAndWagesExpense = 601;
   static const int salesTaxExpense = 510;
   static const int marketingExpense = 655;
   static const int bankFees = 621;
   static const int interestExpense = 701;
+  static const int miscellaneousExpense = 699;
 }
 

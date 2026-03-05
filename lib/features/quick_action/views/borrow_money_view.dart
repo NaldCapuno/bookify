@@ -117,47 +117,64 @@ class _BorrowMoneyViewState extends State<BorrowMoneyView> {
           style: TextStyle(color: Colors.black87, fontWeight: FontWeight.bold),
         ),
       ),
-      body: ListView(
-        padding: const EdgeInsets.all(20),
-        children: [
-          QuickActionAmountCard(
-            amountController: _amountController,
-            amountLabel: 'Amount',
-            balanceStream: _balanceStream,
-            balanceLabel: _balanceLabel,
-            onAmountChanged: () => setState(() {}),
-          ),
-          const SizedBox(height: 24),
-          const QuickActionSectionLabel('Debt Account'),
-          Row(
+      body: StreamBuilder<Map<int, double>>(
+        stream: appDb.ledgerDao.watchBalancesForAccountCodes({
+          QuickActionAccounts.cashOnHand,
+          QuickActionAccounts.cashInBank,
+        }),
+        builder: (context, snap) {
+          final balances = snap.data ??
+              {
+                QuickActionAccounts.cashOnHand: 0.0,
+                QuickActionAccounts.cashInBank: 0.0,
+              };
+
+          return ListView(
+            padding: const EdgeInsets.all(20),
             children: [
-              Expanded(
-                child: _DebtChip(
-                  label: 'Accounts Payable',
-                  isSelected: _debtType == 'ap',
-                  onTap: () => setState(() => _debtType = 'ap'),
-                ),
+              QuickActionAmountCard(
+                amountController: _amountController,
+                amountLabel: 'Amount',
+                onAmountChanged: () => setState(() {}),
               ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: _DebtChip(
-                  label: 'Long-term Loan',
-                  isSelected: _debtType == 'loan',
-                  onTap: () => setState(() => _debtType = 'loan'),
-                ),
+              const SizedBox(height: 24),
+              const QuickActionSectionLabel('Debt Account'),
+              Row(
+                children: [
+                  Expanded(
+                    child: _DebtChip(
+                      label: 'Payable (≤ 3 months)',
+                      isSelected: _debtType == 'ap',
+                      onTap: () => setState(() => _debtType = 'ap'),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: _DebtChip(
+                      label: 'Loan (> 3 months)',
+                      isSelected: _debtType == 'loan',
+                      onTap: () => setState(() => _debtType = 'loan'),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 20),
+              const QuickActionSectionLabel('Received to (Cash / Bank)'),
+              CashBankChips(
+                value: _receivedTo,
+                onChanged: (v) => setState(() => _receivedTo = v),
+                cashBalance: balances[QuickActionAccounts.cashOnHand],
+                bankBalance: balances[QuickActionAccounts.cashInBank],
+              ),
+              const SizedBox(height: 24),
+              QuickActionDetailsCard(
+                descriptionController: _descController,
+                dateText: _dateController.text,
+                onDateTap: _pickDate,
               ),
             ],
-          ),
-          const SizedBox(height: 20),
-          const QuickActionSectionLabel('Received to (Cash / Bank)'),
-          CashBankChips(value: _receivedTo, onChanged: (v) => setState(() => _receivedTo = v)),
-          const SizedBox(height: 24),
-          QuickActionDetailsCard(
-            descriptionController: _descController,
-            dateText: _dateController.text,
-            onDateTap: _pickDate,
-          ),
-        ],
+          );
+        },
       ),
       bottomNavigationBar: QuickActionSaveButton(
         onPressed: _save,

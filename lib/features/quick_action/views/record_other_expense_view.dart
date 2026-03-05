@@ -55,6 +55,8 @@ class _RecordOtherExpenseViewState extends State<RecordOtherExpenseView> {
     switch (type) {
       case 'interest':
         return QuickActionAccounts.interestExpense;
+      case 'misc':
+        return QuickActionAccounts.miscellaneousExpense;
       case 'bankFees':
       default:
         return QuickActionAccounts.bankFees;
@@ -168,6 +170,15 @@ class _RecordOtherExpenseViewState extends State<RecordOtherExpenseView> {
                   'interest',
                   _expenseType,
                   () => setState(() => _expenseType = 'interest'),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: _ExpenseChip(
+                  'Misc',
+                  'misc',
+                  _expenseType,
+                  () => setState(() => _expenseType = 'misc'),
                 ),
               ),
             ],

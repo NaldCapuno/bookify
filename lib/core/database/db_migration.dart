@@ -145,6 +145,24 @@ MigrationStrategy buildMigrationStrategy(AppDatabase db) {
             categoryId: 12,
             isLocked: const Value(true),
           ),
+          AccountsCompanion.insert(
+            code: 170,
+            name: 'Land',
+            categoryId: 12,
+            isLocked: const Value(true),
+          ),
+          AccountsCompanion.insert(
+            code: 171,
+            name: 'Building',
+            categoryId: 12,
+            isLocked: const Value(true),
+          ),
+          AccountsCompanion.insert(
+            code: 172,
+            name: 'Vehicle',
+            categoryId: 12,
+            isLocked: const Value(true),
+          ),
           // LIABILITIES
           AccountsCompanion.insert(
             code: 201,
@@ -229,6 +247,12 @@ MigrationStrategy buildMigrationStrategy(AppDatabase db) {
             isLocked: const Value(true),
           ),
           AccountsCompanion.insert(
+            code: 613,
+            name: 'Transportation Expense',
+            categoryId: 52,
+            isLocked: const Value(true),
+          ),
+          AccountsCompanion.insert(
             code: 610,
             name: 'Supplies Expense',
             categoryId: 52,
@@ -261,6 +285,12 @@ MigrationStrategy buildMigrationStrategy(AppDatabase db) {
           AccountsCompanion.insert(
             code: 701,
             name: 'Interest Expense',
+            categoryId: 53,
+            isLocked: const Value(true),
+          ),
+          AccountsCompanion.insert(
+            code: 699,
+            name: 'Miscellaneous Expense',
             categoryId: 53,
             isLocked: const Value(true),
           ),

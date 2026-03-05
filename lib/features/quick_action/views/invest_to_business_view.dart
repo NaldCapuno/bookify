@@ -96,17 +96,6 @@ class _InvestToBusinessViewState extends State<InvestToBusinessView> {
     }
   }
 
-  Stream<double> get _balanceStream =>
-      _cashLocation == 'cash'
-          ? appDb.ledgerDao.watchBalanceForAccountCode(QuickActionAccounts.cashOnHand)
-          : appDb.ledgerDao.watchBalanceForAccountCode(QuickActionAccounts.cashInBank);
-
-  String get _balanceLabel =>
-      _cashLocation == 'cash' ? 'Cash balance:' : 'Bank balance:';
-
-  double get _currentAmount =>
-      double.tryParse(_amountController.text.replaceAll(',', '').trim()) ?? 0;
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -120,26 +109,57 @@ class _InvestToBusinessViewState extends State<InvestToBusinessView> {
           style: TextStyle(color: Colors.black87, fontWeight: FontWeight.bold),
         ),
       ),
-      body: ListView(
-        padding: const EdgeInsets.all(20),
-        children: [
-          QuickActionAmountCard(
-            amountController: _amountController,
-            amountLabel: 'Amount',
-            balanceStream: _balanceStream,
-            balanceLabel: _balanceLabel,
-            onAmountChanged: () => setState(() {}),
-          ),
-          const SizedBox(height: 24),
-          const QuickActionSectionLabel('Invested as (Cash / Bank)'),
-          CashBankChips(value: _cashLocation, onChanged: (v) => setState(() => _cashLocation = v)),
-          const SizedBox(height: 24),
-          QuickActionDetailsCard(
-            descriptionController: _descController,
-            dateText: _dateController.text,
-            onDateTap: _pickDate,
-          ),
-        ],
+      body: StreamBuilder<Map<int, double>>(
+        stream: appDb.ledgerDao.watchBalancesForAccountCodes({
+          QuickActionAccounts.cashOnHand,
+          QuickActionAccounts.cashInBank,
+        }),
+        builder: (context, snap) {
+          final balances = snap.data ??
+              {
+                QuickActionAccounts.cashOnHand: 0.0,
+                QuickActionAccounts.cashInBank: 0.0,
+              };
+
+          final amount = parseAmount(_amountController);
+          final isCash = _cashLocation == 'cash';
+          final before = isCash
+              ? (balances[QuickActionAccounts.cashOnHand] ?? 0.0)
+              : (balances[QuickActionAccounts.cashInBank] ?? 0.0);
+          final after = before + amount;
+
+          return ListView(
+            padding: const EdgeInsets.all(20),
+            children: [
+              BeforeAfterBalanceHeader(
+                label: isCash ? 'Cash balance' : 'Bank balance',
+                before: before,
+                after: after,
+              ),
+              const SizedBox(height: 16),
+              QuickActionAmountCard(
+                amountController: _amountController,
+                amountLabel: 'Amount Invested',
+                onAmountChanged: () => setState(() {}),
+              ),
+              const SizedBox(height: 24),
+              const QuickActionSectionLabel('Invested as (Cash / Bank)'),
+              CashBankChips(
+                value: _cashLocation,
+                onChanged: (v) => setState(() => _cashLocation = v),
+                cashBalance: balances[QuickActionAccounts.cashOnHand],
+                bankBalance: balances[QuickActionAccounts.cashInBank],
+              ),
+              const SizedBox(height: 24),
+              QuickActionDetailsCard(
+                descriptionController: _descController,
+                dateText: _dateController.text,
+                onDateTap: _pickDate,
+              ),
+              const SizedBox(height: 90),
+            ],
+          );
+        },
       ),
       bottomNavigationBar: QuickActionSaveButton(
         onPressed: _save,

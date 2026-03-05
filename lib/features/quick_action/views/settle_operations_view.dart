@@ -17,7 +17,7 @@ class _SettleOperationsViewState extends State<SettleOperationsView> {
   final _amountController = TextEditingController();
   final _descController = TextEditingController();
   final _dateController = TextEditingController();
-  String _expenseType = 'salaries';
+  String _expenseType = 'rent';
   String _paymentMethod = 'cash';
   DateTime _selectedDate = DateTime.now();
   bool _isSaving = false;
@@ -57,9 +57,9 @@ class _SettleOperationsViewState extends State<SettleOperationsView> {
         return QuickActionAccounts.rentExpense;
       case 'utilities':
         return QuickActionAccounts.utilitiesExpense;
-      case 'salaries':
+      case 'transportation':
       default:
-        return QuickActionAccounts.salariesAndWagesExpense;
+        return QuickActionAccounts.transportationExpense;
     }
   }
 
@@ -155,11 +155,11 @@ class _SettleOperationsViewState extends State<SettleOperationsView> {
           const QuickActionSectionLabel('Expense Type'),
           Row(
             children: [
-              Expanded(child: _ExpenseChip('Salaries & Wages', 'salaries', _expenseType, () => setState(() => _expenseType = 'salaries'))),
-              const SizedBox(width: 6),
               Expanded(child: _ExpenseChip('Rent', 'rent', _expenseType, () => setState(() => _expenseType = 'rent'))),
               const SizedBox(width: 6),
               Expanded(child: _ExpenseChip('Utilities', 'utilities', _expenseType, () => setState(() => _expenseType = 'utilities'))),
+              const SizedBox(width: 6),
+              Expanded(child: _ExpenseChip('Transportation', 'transportation', _expenseType, () => setState(() => _expenseType = 'transportation'))),
             ],
           ),
           const SizedBox(height: 20),

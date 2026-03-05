@@ -60,6 +60,12 @@ class _RecordPurchaseViewState extends State<RecordPurchaseView> {
         return QuickActionAccounts.equipment;
       case 'Furniture':
         return QuickActionAccounts.furnitureAndFixtures;
+      case 'Land':
+        return QuickActionAccounts.land;
+      case 'Building':
+        return QuickActionAccounts.building;
+      case 'Vehicle':
+        return QuickActionAccounts.vehicle;
       default:
         return null;
     }

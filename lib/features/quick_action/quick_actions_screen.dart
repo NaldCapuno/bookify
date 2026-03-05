@@ -172,7 +172,7 @@ class QuickActionScreen extends StatelessWidget {
             ),
           ),
           _buildListTile(
-            "Pay Workers",
+            "Pay Employees",
             "Pay production labor (direct labor)",
             Icons.engineering_outlined,
             otherTheme,

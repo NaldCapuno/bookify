@@ -16,6 +16,9 @@ class _SellProductsViewState extends State<SellProductsView> {
   DateTime _selectedDate = DateTime.now();
   final _dateController = TextEditingController();
   final _totalController = TextEditingController();
+  final _productNameController = TextEditingController();
+  final _totalProductsController = TextEditingController();
+  final _qtySoldController = TextEditingController();
   final _discountController = TextEditingController();
   final _cogsController = TextEditingController();
   final _descController = TextEditingController();
@@ -31,6 +34,9 @@ class _SellProductsViewState extends State<SellProductsView> {
   void dispose() {
     _dateController.dispose();
     _totalController.dispose();
+    _productNameController.dispose();
+    _totalProductsController.dispose();
+    _qtySoldController.dispose();
     _discountController.dispose();
     _cogsController.dispose();
     _descController.dispose();
@@ -57,8 +63,13 @@ class _SellProductsViewState extends State<SellProductsView> {
     final totalRaw = _totalController.text.replaceAll(',', '').trim();
     final discountRaw = _discountController.text.replaceAll(',', '').trim();
     final cogsRaw = _cogsController.text.replaceAll(',', '').trim();
+    final productName = _productNameController.text.trim();
+    final totalProductsRaw = _totalProductsController.text.replaceAll(',', '').trim();
+    final qtySoldRaw = _qtySoldController.text.replaceAll(',', '').trim();
 
     final total = double.tryParse(totalRaw) ?? 0;
+    final totalProducts = int.tryParse(totalProductsRaw) ?? 0;
+    final qtySold = int.tryParse(qtySoldRaw) ?? 0;
     final parsedDiscount = double.tryParse(discountRaw);
     final double discount = parsedDiscount == null
         ? 0
@@ -70,6 +81,13 @@ class _SellProductsViewState extends State<SellProductsView> {
     if (desc.isEmpty || total <= 0) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Description and total amount are required.')),
+      );
+      return;
+    }
+
+    if (productName.isNotEmpty && totalProducts > 0 && qtySold > totalProducts) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Quantity sold cannot exceed total products.')),
       );
       return;
     }
@@ -132,7 +150,9 @@ class _SellProductsViewState extends State<SellProductsView> {
     try {
       await QuickActionJournalService.instance.postTemplateEntry(
         date: _selectedDate,
-        description: desc,
+        description: productName.isEmpty
+            ? desc
+            : 'Product: $productName${qtySold > 0 ? ' (Qty sold: $qtySold)' : ''} — $desc',
         referenceNo: null,
         lines: lines,
       );
@@ -167,6 +187,9 @@ class _SellProductsViewState extends State<SellProductsView> {
   @override
   Widget build(BuildContext context) {
     final isCreditSale = _selectedPaymentMethod == 'credit';
+    final totalProducts = int.tryParse(_totalProductsController.text.trim()) ?? 0;
+    final qtySold = int.tryParse(_qtySoldController.text.trim()) ?? 0;
+    final remaining = (totalProducts - qtySold);
 
     return Scaffold(
       backgroundColor: Colors.grey.shade50,
@@ -213,16 +236,76 @@ class _SellProductsViewState extends State<SellProductsView> {
               ),
             ),
           const SizedBox(height: 24),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: Colors.grey.shade200),
+            ),
+            child: Column(
+              children: [
+                TextField(
+                  controller: _productNameController,
+                  decoration: const InputDecoration(
+                    labelText: 'What product is this?',
+                    prefixIcon: Icon(Icons.inventory_2_outlined),
+                    border: UnderlineInputBorder(),
+                  ),
+                  onChanged: (_) => setState(() {}),
+                ),
+                const Divider(height: 24),
+                TextField(
+                  controller: _totalProductsController,
+                  keyboardType: TextInputType.number,
+                  decoration: const InputDecoration(
+                    labelText: 'Total products available (Finished Goods)',
+                    prefixIcon: Icon(Icons.warehouse_outlined),
+                    border: UnderlineInputBorder(),
+                  ),
+                  onChanged: (_) => setState(() {}),
+                ),
+                const Divider(height: 24),
+                TextField(
+                  controller: _qtySoldController,
+                  keyboardType: TextInputType.number,
+                  decoration: const InputDecoration(
+                    labelText: 'How many will you sell?',
+                    prefixIcon: Icon(Icons.shopping_cart_outlined),
+                    border: UnderlineInputBorder(),
+                  ),
+                  onChanged: (_) => setState(() {}),
+                ),
+                if (totalProducts > 0 && qtySold >= 0)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 10),
+                    child: Align(
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        'Finished Goods remaining: ${remaining < 0 ? 0 : remaining}',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: remaining < 0 ? Colors.red.shade700 : Colors.grey.shade700,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 24),
           QuickActionDetailsCard(
             descriptionController: _descController,
             dateText: _dateController.text,
             onDateTap: _pickDate,
-            descriptionHint: 'What was sold?',
+            descriptionLabel: 'What was sold?',
+            descriptionHint: 'Describe what was sold and any notes',
           ),
           const SizedBox(height: 16),
           _buildExtraField(
             controller: _discountController,
-            label: 'Discount (optional)',
+            label: 'Is there a discount? (optional amount)',
             icon: Icons.percent,
           ),
           const SizedBox(height: 12),

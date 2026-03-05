@@ -91,6 +91,19 @@ class LedgerDao extends DatabaseAccessor<AppDatabase> with _$LedgerDaoMixin {
     });
   }
 
+  /// Stream of balances for multiple account codes.
+  /// Returns a map: code -> balance (0.0 when not found).
+  Stream<Map<int, double>> watchBalancesForAccountCodes(Set<int> codes) {
+    return watchLedgerEntries().map((list) {
+      final Map<int, double> out = {for (final c in codes) c: 0.0};
+      for (final e in list) {
+        final code = e.account.code;
+        if (out.containsKey(code)) out[code] = e.balance;
+      }
+      return out;
+    });
+  }
+
   /// Stream of transactions for one account, joined with journal (date, description).
   /// Excludes voided journal entries (soft-delete) so they are hidden in the ledger.
   Stream<List<TypedResult>> watchTransactionsForAccount(int accountId) {

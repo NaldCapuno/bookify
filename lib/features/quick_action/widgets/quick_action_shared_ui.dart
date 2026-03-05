@@ -8,14 +8,106 @@ String formatAmount(double value) {
   return value.toStringAsFixed(2);
 }
 
+double parseAmount(TextEditingController c) {
+  return double.tryParse(c.text.replaceAll(',', '').trim()) ?? 0.0;
+}
+
+/// Before/After balance header shown above the amount card.
+class BeforeAfterBalanceHeader extends StatelessWidget {
+  const BeforeAfterBalanceHeader({
+    super.key,
+    required this.label,
+    required this.before,
+    required this.after,
+  });
+
+  final String label;
+  final double before;
+  final double after;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.grey.shade200),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: _BeforeAfterColumn(
+              title: 'BEFORE',
+              label: label,
+              value: before,
+            ),
+          ),
+          Container(
+            width: 1,
+            height: 44,
+            color: Colors.grey.shade200,
+          ),
+          Expanded(
+            child: _BeforeAfterColumn(
+              title: 'AFTER',
+              label: label,
+              value: after,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _BeforeAfterColumn extends StatelessWidget {
+  const _BeforeAfterColumn({
+    required this.title,
+    required this.label,
+    required this.value,
+  });
+
+  final String title;
+  final String label;
+  final double value;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          title,
+          style: TextStyle(
+            fontSize: 11,
+            color: Colors.grey.shade600,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          label,
+          style: TextStyle(fontSize: 12, color: Colors.grey.shade700),
+        ),
+        const SizedBox(height: 2),
+        Text(
+          '₱ ${formatAmount(value)}',
+          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+        ),
+      ],
+    );
+  }
+}
+
 /// Amount card in Record Sale style: optional balance line, TOTAL AMOUNT label, large input.
-/// [balanceStream] and [balanceLabel] when set show current balance above the amount.
-/// [checkInsufficient] when true shows red "Insufficient balance" when amount > balance.
+/// NOTE: Balance display moved to chips + before/after header per new UX.
 class QuickActionAmountCard extends StatelessWidget {
   const QuickActionAmountCard({
     super.key,
     required this.amountController,
     required this.amountLabel,
+    // Back-compat (no longer shown in this widget)
     this.balanceStream,
     this.balanceLabel,
     this.checkInsufficient = false,
@@ -50,24 +142,6 @@ class QuickActionAmountCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          if (balanceStream != null && balanceLabel != null)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 12),
-                child: StreamBuilder<double>(
-                stream: balanceStream,
-                builder: (context, snap) {
-                  final balance = snap.data ?? 0.0;
-                  return Text(
-                    '$balanceLabel ₱ ${formatAmount(balance)}',
-                    style: TextStyle(
-                      fontSize: 13,
-                      color: Colors.grey.shade700,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  );
-                },
-              ),
-            ),
           Text(
             amountLabel.toUpperCase(),
             style: TextStyle(
@@ -145,6 +219,8 @@ class PaymentMethodChips extends StatelessWidget {
     this.bankLabel = 'Bank',
     this.creditLabel = 'Unpaid',
     this.creditIcon = Icons.timer_outlined,
+    this.cashBalance,
+    this.bankBalance,
   });
 
   final String value;
@@ -153,6 +229,8 @@ class PaymentMethodChips extends StatelessWidget {
   final String bankLabel;
   final String creditLabel;
   final IconData creditIcon;
+  final double? cashBalance;
+  final double? bankBalance;
 
   @override
   Widget build(BuildContext context) {
@@ -164,6 +242,7 @@ class PaymentMethodChips extends StatelessWidget {
             icon: Icons.money,
             isSelected: value == 'cash',
             onTap: () => onChanged('cash'),
+            balance: cashBalance,
           ),
         ),
         const SizedBox(width: 8),
@@ -173,6 +252,7 @@ class PaymentMethodChips extends StatelessWidget {
             icon: Icons.account_balance,
             isSelected: value == 'bank',
             onTap: () => onChanged('bank'),
+            balance: bankBalance,
           ),
         ),
         const SizedBox(width: 8),
@@ -195,12 +275,14 @@ class _Chip extends StatelessWidget {
     required this.icon,
     required this.isSelected,
     required this.onTap,
+    this.balance,
   });
 
   final String label;
   final IconData icon;
   final bool isSelected;
   final VoidCallback onTap;
+  final double? balance;
 
   @override
   Widget build(BuildContext context) {
@@ -235,6 +317,17 @@ class _Chip extends StatelessWidget {
                   color: isSelected ? const Color(0xFF2E7D32) : Colors.grey.shade700,
                 ),
               ),
+              if (balance != null) ...[
+                const SizedBox(height: 6),
+                Text(
+                  '₱ ${formatAmount(balance!)}',
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: Colors.grey.shade700,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
             ],
           ),
         ),
@@ -249,10 +342,14 @@ class CashBankChips extends StatelessWidget {
     super.key,
     required this.value,
     required this.onChanged,
+    this.cashBalance,
+    this.bankBalance,
   });
 
   final String value;
   final ValueChanged<String> onChanged;
+  final double? cashBalance;
+  final double? bankBalance;
 
   @override
   Widget build(BuildContext context) {
@@ -264,6 +361,7 @@ class CashBankChips extends StatelessWidget {
             icon: Icons.money,
             isSelected: value == 'cash',
             onTap: () => onChanged('cash'),
+            balance: cashBalance,
           ),
         ),
         const SizedBox(width: 8),
@@ -273,6 +371,7 @@ class CashBankChips extends StatelessWidget {
             icon: Icons.account_balance,
             isSelected: value == 'bank',
             onTap: () => onChanged('bank'),
+            balance: bankBalance,
           ),
         ),
       ],
@@ -308,12 +407,14 @@ class QuickActionDetailsCard extends StatelessWidget {
     required this.descriptionController,
     required this.dateText,
     required this.onDateTap,
+    this.descriptionLabel = 'Description',
     this.descriptionHint,
   });
 
   final TextEditingController descriptionController;
   final String dateText;
   final VoidCallback onDateTap;
+  final String descriptionLabel;
   final String? descriptionHint;
 
   @override
@@ -337,7 +438,7 @@ class QuickActionDetailsCard extends StatelessWidget {
           TextField(
             controller: descriptionController,
             decoration: InputDecoration(
-              labelText: 'Description',
+              labelText: descriptionLabel,
               hintText: descriptionHint,
               prefixIcon: const Icon(Icons.description_outlined, color: Colors.black87),
               border: const UnderlineInputBorder(),
