@@ -10,6 +10,7 @@ import 'package:bookkeeping/core/widgets/app_toast.dart';
 import 'package:bookkeeping/core/services/walkthrough_service.dart';
 import 'add_account_form.dart';
 import 'package:bookkeeping/features/accounts/account_search_header.dart';
+import 'package:bookkeeping/core/theme/app_theme.dart';
 
 class AccountsScreen extends StatefulWidget {
   final int selectedIndex;
@@ -122,7 +123,9 @@ class _AccountsScreenState extends State<AccountsScreen> {
                 builder: (context, snapshot) {
                   if (snapshot.connectionState == ConnectionState.waiting) {
                     return Center(
-                      child: CircularProgressIndicator(color: colorScheme.primary),
+                      child: CircularProgressIndicator(
+                        color: colorScheme.primary,
+                      ),
                     );
                   }
 
@@ -231,15 +234,14 @@ class _AccountsScreenState extends State<AccountsScreen> {
   Widget _buildAccountTile(AccountRow row, BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
+    final warningColor = context.warning;
     final account = row.account;
     final bool isArchived = account.isArchived;
     final bool isLocked = account.isLocked;
 
     final bool isDebit = row.category.normalBalance == NormalBalance.debit;
     final String balanceTag = isDebit ? 'DR' : 'CR';
-    final Color tagColor = isDebit
-        ? colorScheme.tertiary
-        : colorScheme.error;
+    final Color tagColor = isDebit ? colorScheme.tertiary : warningColor;
 
     return Stack(
       children: [
@@ -250,7 +252,7 @@ class _AccountsScreenState extends State<AccountsScreen> {
               : DismissDirection.endToStart,
           background: Container(
             color: isLocked
-                ? colorScheme.tertiary.withValues(alpha: 0.2)
+                ? warningColor.withValues(alpha: 0.2)
                 : colorScheme.error.withValues(alpha: 0.2),
             alignment: Alignment.centerRight,
             padding: const EdgeInsets.symmetric(horizontal: 24.0),
@@ -261,13 +263,13 @@ class _AccountsScreenState extends State<AccountsScreen> {
                   isLocked
                       ? Icons.archive_outlined
                       : Icons.delete_forever_outlined,
-                  color: isLocked ? colorScheme.tertiary : colorScheme.error,
+                  color: isLocked ? warningColor : colorScheme.error,
                   size: 24,
                 ),
                 Text(
                   isLocked ? 'ARCHIVE' : 'DELETE',
                   style: theme.textTheme.bodyMedium!.copyWith(
-                    color: isLocked ? colorScheme.tertiary : colorScheme.error,
+                    color: isLocked ? warningColor : colorScheme.error,
                     fontWeight: FontWeight.bold,
                     fontSize: 10,
                   ),
@@ -319,7 +321,9 @@ class _AccountsScreenState extends State<AccountsScreen> {
                         child: Text(
                           balanceTag,
                           style: theme.textTheme.bodySmall!.copyWith(
-                            color: isArchived ? colorScheme.onSurfaceVariant : tagColor,
+                            color: isArchived
+                                ? colorScheme.onSurfaceVariant
+                                : tagColor,
                             fontSize: 9,
                             fontWeight: FontWeight.bold,
                           ),
@@ -331,7 +335,9 @@ class _AccountsScreenState extends State<AccountsScreen> {
                           account.name,
                           overflow: TextOverflow.ellipsis,
                           style: theme.textTheme.bodyLarge!.copyWith(
-                            color: isArchived ? colorScheme.onSurfaceVariant : colorScheme.onSurface,
+                            color: isArchived
+                                ? colorScheme.onSurfaceVariant
+                                : colorScheme.onSurface,
                             fontSize: 15,
                           ),
                         ),
@@ -362,6 +368,7 @@ class _AccountsScreenState extends State<AccountsScreen> {
   }
 
   Widget _buildArchiveStamp(BuildContext context) {
+    final warningColor = context.warning;
     return Positioned(
       right: 50,
       top: 15,
@@ -372,7 +379,7 @@ class _AccountsScreenState extends State<AccountsScreen> {
             padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
             decoration: BoxDecoration(
               border: Border.all(
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
+                color: warningColor.withValues(alpha: 0.5),
                 width: 1.5,
               ),
               borderRadius: BorderRadius.circular(4),
@@ -380,7 +387,7 @@ class _AccountsScreenState extends State<AccountsScreen> {
             child: Text(
               'ARCHIVED',
               style: Theme.of(context).textTheme.labelSmall!.copyWith(
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
+                color: warningColor.withValues(alpha: 0.5),
                 fontWeight: FontWeight.bold,
                 fontSize: 10,
               ),
@@ -395,6 +402,7 @@ class _AccountsScreenState extends State<AccountsScreen> {
     BuildContext context,
     Account account,
   ) async {
+    final warningColor = context.warning;
     final result = await showModalBottomSheet<bool>(
       context: context,
       shape: const RoundedRectangleBorder(
@@ -405,7 +413,7 @@ class _AccountsScreenState extends State<AccountsScreen> {
         message:
             'Archived accounts won\'t appear in active lists but remain in historical reports.',
         confirmLabel: 'Archive',
-        confirmColor: Theme.of(context).colorScheme.tertiary,
+        confirmColor: warningColor,
         icon: Icons.archive_outlined,
       ),
     );

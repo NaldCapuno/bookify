@@ -400,8 +400,8 @@ class _JournalEntryCardState extends State<JournalEntryCard> {
                     const SizedBox(height: 4),
                     Text(
                       'VOID',
-                      style: theme.textTheme.labelMedium!.copyWith(
-                        color: colorScheme.error,
+                      style: Theme.of(context).textTheme.labelMedium!.copyWith(
+                        color: Theme.of(context).colorScheme.error,
                         fontWeight: FontWeight.bold,
                         fontSize: 12,
                       ),
@@ -492,9 +492,6 @@ class _JournalEntryCardState extends State<JournalEntryCard> {
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
                             color: colorScheme.onSurface,
-                            decoration: _isVoided
-                                ? TextDecoration.lineThrough
-                                : null,
                           ),
                         ),
                         const SizedBox(height: 12),
@@ -597,9 +594,6 @@ class _JournalEntryCardState extends State<JournalEntryCard> {
                                             fontSize: 13,
                                             fontWeight: FontWeight.w500,
                                             color: colorScheme.onSurface,
-                                            decoration: _isVoided
-                                                ? TextDecoration.lineThrough
-                                                : null,
                                             height: 1.3,
                                           ),
                                     ),
@@ -680,7 +674,7 @@ class _JournalEntryCardState extends State<JournalEntryCard> {
                 color: Theme.of(
                   context,
                 ).colorScheme.error.withValues(alpha: 0.5),
-                width: 2,
+                width: 1.5,
               ),
               borderRadius: BorderRadius.circular(4),
             ),
