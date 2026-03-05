@@ -1,9 +1,11 @@
+import 'package:bookkeeping/core/database/app_database.dart';
 import 'package:bookkeeping/features/quick_action/quick_action_journal_service.dart';
+import 'package:bookkeeping/features/quick_action/widgets/quick_action_shared_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 class InventoryView extends StatefulWidget {
-  final String actionType; // 'Acquire' or 'Produce'
+  final String actionType;
   const InventoryView({super.key, required this.actionType});
 
   @override
@@ -11,12 +13,12 @@ class InventoryView extends StatefulWidget {
 }
 
 class _InventoryViewState extends State<InventoryView> {
-  final _amountController = TextEditingController(); // for Acquire
+  final _amountController = TextEditingController();
   final _descController = TextEditingController();
   final _dateController = TextEditingController();
-  final _rawUsedController = TextEditingController(); // for Produce
-  final _laborController = TextEditingController(); // for Produce
-  String _paymentMethod = 'cash'; // for Acquire: cash/bank/credit
+  final _rawUsedController = TextEditingController();
+  final _laborController = TextEditingController();
+  String _paymentMethod = 'cash';
   DateTime _selectedDate = DateTime.now();
   bool _isSaving = false;
 
@@ -93,11 +95,7 @@ class _InventoryViewState extends State<InventoryView> {
           isDebit: true,
           amount: amount,
         ),
-        TemplateLine(
-          accountCode: creditCode,
-          isDebit: false,
-          amount: amount,
-        ),
+        TemplateLine(accountCode: creditCode, isDebit: false, amount: amount),
       ];
 
       await _postLines(desc, lines);
@@ -154,152 +152,122 @@ class _InventoryViewState extends State<InventoryView> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Failed to save inventory entry. Please try again.'),
-          ),
+          const SnackBar(content: Text('Failed to save inventory entry. Please try again.')),
         );
       }
     } finally {
       if (mounted) setState(() => _isSaving = false);
     }
   }
-  static final _inputBorder = OutlineInputBorder(borderRadius: BorderRadius.circular(12));
+
+  Stream<double>? get _balanceStream {
+    if (widget.actionType != 'Acquire') return null;
+    if (_paymentMethod == 'cash') {
+      return appDb.ledgerDao.watchBalanceForAccountCode(QuickActionAccounts.cashOnHand);
+    }
+    if (_paymentMethod == 'bank') {
+      return appDb.ledgerDao.watchBalanceForAccountCode(QuickActionAccounts.cashInBank);
+    }
+    return null;
+  }
+
+  String? get _balanceLabel {
+    if (widget.actionType != 'Acquire') return null;
+    if (_paymentMethod == 'cash') return 'Cash balance:';
+    if (_paymentMethod == 'bank') return 'Bank balance:';
+    return null;
+  }
+
+  double get _currentAmount =>
+      double.tryParse(_amountController.text.replaceAll(',', '').trim()) ?? 0;
 
   @override
   Widget build(BuildContext context) {
-    final bool isAcquire = widget.actionType == 'Acquire';
+    final isAcquire = widget.actionType == 'Acquire';
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: Colors.grey.shade50,
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
         leading: const BackButton(color: Colors.black87),
         title: Text(
-          "${widget.actionType} Inventory",
-          style: const TextStyle(
-            color: Colors.black87,
-            fontWeight: FontWeight.bold,
-          ),
+          '${widget.actionType} Inventory',
+          style: const TextStyle(color: Colors.black87, fontWeight: FontWeight.bold),
         ),
       ),
       body: ListView(
         padding: const EdgeInsets.all(20),
         children: [
-          const Text(
-            "Transaction Details",
-            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+          if (isAcquire) ...[
+            QuickActionAmountCard(
+              amountController: _amountController,
+              amountLabel: 'Amount',
+              balanceStream: _balanceStream,
+              balanceLabel: _balanceLabel,
+              checkInsufficient: _paymentMethod != 'credit',
+              onAmountChanged: () => setState(() {}),
+            ),
+            if (_balanceStream != null)
+              StreamBuilder<double>(
+                stream: _balanceStream,
+                builder: (context, snap) {
+                  final balance = snap.data ?? 0.0;
+                  return InsufficientBalanceNotice(
+                    amount: _currentAmount,
+                    currentBalance: balance,
+                    isOutflow: true,
+                  );
+                },
+              ),
+            const SizedBox(height: 24),
+            const QuickActionSectionLabel('Paid via'),
+            PaymentMethodChips(
+              value: _paymentMethod,
+              onChanged: (v) => setState(() => _paymentMethod = v),
+              creditLabel: 'Pay Later',
+            ),
+          ] else ...[
+            QuickActionAmountCard(
+              amountController: _rawUsedController,
+              amountLabel: 'Raw Materials Used',
+              onAmountChanged: () => setState(() {}),
+            ),
+            const SizedBox(height: 16),
+            QuickActionAmountCard(
+              amountController: _laborController,
+              amountLabel: 'Direct Labor',
+              onAmountChanged: () => setState(() {}),
+            ),
+          ],
+          const SizedBox(height: 24),
+          QuickActionDetailsCard(
+            descriptionController: _descController,
+            dateText: _dateController.text,
+            onDateTap: _pickDate,
           ),
-          const SizedBox(height: 16),
-          if (isAcquire) ..._acquireFields() else ..._produceFields(),
         ],
       ),
-      bottomNavigationBar: Padding(
-        padding: const EdgeInsets.all(20),
-        child: ElevatedButton(
-          onPressed: _isSaving ? null : _save,
-          style: ElevatedButton.styleFrom(backgroundColor: Colors.teal),
-          child: Text(
-            _isSaving ? "Saving..." : "Save Entry",
-            style: const TextStyle(color: Colors.white),
-          ),
-        ),
-      ),
+      bottomNavigationBar: isAcquire && _balanceStream != null
+          ? StreamBuilder<double>(
+              stream: _balanceStream,
+              builder: (context, snap) {
+                final balance = snap.data ?? 0.0;
+                final insufficient = _paymentMethod != 'credit' &&
+                    _currentAmount > balance &&
+                    _currentAmount > 0;
+                return QuickActionSaveButton(
+                  onPressed: insufficient ? null : _save,
+                  isSaving: _isSaving,
+                  label: 'Save Entry',
+                );
+              },
+            )
+          : QuickActionSaveButton(
+              onPressed: _save,
+              isSaving: _isSaving,
+              label: 'Save Entry',
+            ),
     );
-  }
-
-  List<Widget> _acquireFields() {
-    return [
-      TextField(
-        controller: _dateController,
-        readOnly: true,
-        decoration: InputDecoration(
-          labelText: 'Date',
-          prefixIcon: const Icon(Icons.calendar_today),
-          border: _inputBorder,
-        ),
-        onTap: _pickDate,
-      ),
-      const SizedBox(height: 12),
-      TextField(
-        controller: _descController,
-        decoration: InputDecoration(
-          labelText: 'Description',
-          prefixIcon: const Icon(Icons.description_outlined),
-          border: _inputBorder,
-        ),
-      ),
-      const SizedBox(height: 12),
-      TextField(
-        controller: _amountController,
-        keyboardType: const TextInputType.numberWithOptions(decimal: true),
-        decoration: InputDecoration(
-          labelText: 'Amount',
-          prefixIcon: const Icon(Icons.attach_money),
-          border: _inputBorder,
-        ),
-      ),
-      const SizedBox(height: 12),
-      DropdownButtonFormField<String>(
-        value: _paymentMethod,
-        items: const [
-          DropdownMenuItem(value: 'cash', child: Text('Cash on Hand')),
-          DropdownMenuItem(value: 'bank', child: Text('Cash in Bank')),
-          DropdownMenuItem(value: 'credit', child: Text('Pay Later')),
-        ],
-        onChanged: (val) {
-          if (val != null) setState(() => _paymentMethod = val);
-        },
-        decoration: InputDecoration(
-          labelText: 'Paid via',
-          prefixIcon: const Icon(Icons.payments_outlined),
-          border: _inputBorder,
-        ),
-      ),
-    ];
-  }
-
-  List<Widget> _produceFields() {
-    return [
-      TextField(
-        controller: _dateController,
-        readOnly: true,
-        decoration: InputDecoration(
-          labelText: 'Date',
-          prefixIcon: const Icon(Icons.calendar_today),
-          border: _inputBorder,
-        ),
-        onTap: _pickDate,
-      ),
-      const SizedBox(height: 12),
-      TextField(
-        controller: _descController,
-        decoration: InputDecoration(
-          labelText: 'Description',
-          prefixIcon: const Icon(Icons.description_outlined),
-          border: _inputBorder,
-        ),
-      ),
-      const SizedBox(height: 12),
-      TextField(
-        controller: _rawUsedController,
-        keyboardType: const TextInputType.numberWithOptions(decimal: true),
-        decoration: InputDecoration(
-          labelText: 'Amount for Raw Materials used',
-          prefixIcon: const Icon(Icons.widgets_outlined),
-          border: _inputBorder,
-        ),
-      ),
-      const SizedBox(height: 12),
-      TextField(
-        controller: _laborController,
-        keyboardType: const TextInputType.numberWithOptions(decimal: true),
-        decoration: InputDecoration(
-          labelText: 'Amount for Direct Labor',
-          prefixIcon: const Icon(Icons.people_alt_outlined),
-          border: _inputBorder,
-        ),
-      ),
-    ];
   }
 }

@@ -1,4 +1,6 @@
+import 'package:bookkeeping/core/database/app_database.dart';
 import 'package:bookkeeping/features/quick_action/quick_action_journal_service.dart';
+import 'package:bookkeeping/features/quick_action/widgets/quick_action_shared_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
@@ -15,7 +17,7 @@ class _RefundToCustomersViewState extends State<RefundToCustomersView> {
   final _amountController = TextEditingController();
   final _descController = TextEditingController();
   final _dateController = TextEditingController();
-  String _method = 'cash'; // cash, bank, credit
+  String _method = 'cash';
   DateTime _selectedDate = DateTime.now();
   bool _isSaving = false;
 
@@ -76,17 +78,12 @@ class _RefundToCustomersViewState extends State<RefundToCustomersView> {
     }
 
     final lines = <TemplateLine>[
-      // Refund reduces revenue
       TemplateLine(
         accountCode: QuickActionAccounts.salesReturnsAndAllowances,
         isDebit: true,
         amount: amount,
       ),
-      TemplateLine(
-        accountCode: creditAccount,
-        isDebit: false,
-        amount: amount,
-      ),
+      TemplateLine(accountCode: creditAccount, isDebit: false, amount: amount),
     ];
 
     setState(() => _isSaving = true);
@@ -97,15 +94,11 @@ class _RefundToCustomersViewState extends State<RefundToCustomersView> {
         referenceNo: null,
         lines: lines,
       );
-      if (mounted) {
-        Navigator.pop(context, true);
-      }
+      if (mounted) Navigator.pop(context, true);
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Failed to save entry. Please try again.'),
-          ),
+          const SnackBar(content: Text('Failed to save refund. Please try again.')),
         );
       }
     } finally {
@@ -113,98 +106,96 @@ class _RefundToCustomersViewState extends State<RefundToCustomersView> {
     }
   }
 
+  Stream<double>? get _balanceStream {
+    if (_method == 'cash') {
+      return appDb.ledgerDao.watchBalanceForAccountCode(QuickActionAccounts.cashOnHand);
+    }
+    if (_method == 'bank') {
+      return appDb.ledgerDao.watchBalanceForAccountCode(QuickActionAccounts.cashInBank);
+    }
+    return null;
+  }
+
+  String? get _balanceLabel {
+    if (_method == 'cash') return 'Cash balance:';
+    if (_method == 'bank') return 'Bank balance:';
+    return null;
+  }
+
+  bool get _isOutflow => _method == 'cash' || _method == 'bank';
+
+  double get _currentAmount =>
+      double.tryParse(_amountController.text.replaceAll(',', '').trim()) ?? 0;
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: Colors.grey.shade50,
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
         leading: const BackButton(color: Colors.black87),
         title: const Text(
           RefundToCustomersView._title,
-          style: TextStyle(
-            color: Colors.black87,
-            fontWeight: FontWeight.bold,
-          ),
+          style: TextStyle(color: Colors.black87, fontWeight: FontWeight.bold),
         ),
       ),
       body: ListView(
         padding: const EdgeInsets.all(20),
         children: [
-          const Text(
-            "Transaction Details",
-            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+          QuickActionAmountCard(
+            amountController: _amountController,
+            amountLabel: 'Amount',
+            balanceStream: _balanceStream,
+            balanceLabel: _balanceLabel,
+            checkInsufficient: _isOutflow,
+            onAmountChanged: () => setState(() {}),
           ),
-          const SizedBox(height: 16),
-          TextField(
-            controller: _dateController,
-            readOnly: true,
-            decoration: InputDecoration(
-              labelText: 'Date',
-              prefixIcon: const Icon(Icons.calendar_today),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
+          if (_isOutflow && _balanceStream != null)
+            StreamBuilder<double>(
+              stream: _balanceStream,
+              builder: (context, snap) {
+                final balance = snap.data ?? 0.0;
+                return InsufficientBalanceNotice(
+                  amount: _currentAmount,
+                  currentBalance: balance,
+                  isOutflow: true,
+                );
+              },
             ),
-            onTap: _pickDate,
-          ),
-          const SizedBox(height: 12),
-          DropdownButtonFormField<String>(
+          const SizedBox(height: 24),
+          const QuickActionSectionLabel('Refunded via'),
+          PaymentMethodChips(
             value: _method,
-            items: const [
-              DropdownMenuItem(value: 'cash', child: Text('Cash on Hand')),
-              DropdownMenuItem(value: 'bank', child: Text('Cash in Bank')),
-              DropdownMenuItem(value: 'credit', child: Text('On Credit')),
-            ],
-            onChanged: (val) {
-              if (val != null) setState(() => _method = val);
-            },
-            decoration: InputDecoration(
-              labelText: 'Refunded via',
-              prefixIcon: const Icon(Icons.payment_outlined),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-            ),
+            onChanged: (v) => setState(() => _method = v),
+            creditLabel: 'On Credit',
           ),
-          const SizedBox(height: 12),
-          TextField(
-            controller: _descController,
-            decoration: InputDecoration(
-              labelText: 'Description',
-              prefixIcon: const Icon(Icons.description_outlined),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-            ),
-          ),
-          const SizedBox(height: 12),
-          TextField(
-            controller: _amountController,
-            keyboardType:
-                const TextInputType.numberWithOptions(decimal: true),
-            decoration: InputDecoration(
-              labelText: 'Amount',
-              prefixIcon: const Icon(Icons.attach_money),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-            ),
+          const SizedBox(height: 24),
+          QuickActionDetailsCard(
+            descriptionController: _descController,
+            dateText: _dateController.text,
+            onDateTap: _pickDate,
           ),
         ],
       ),
-      bottomNavigationBar: Padding(
-        padding: const EdgeInsets.all(20),
-        child: ElevatedButton(
-          onPressed: _isSaving ? null : _save,
-          style: ElevatedButton.styleFrom(backgroundColor: Colors.teal),
-          child: Text(
-            _isSaving ? "Saving..." : "Save Entry",
-            style: const TextStyle(color: Colors.white),
-          ),
-        ),
-      ),
+      bottomNavigationBar: _isOutflow && _balanceStream != null
+          ? StreamBuilder<double>(
+              stream: _balanceStream,
+              builder: (context, snap) {
+                final balance = snap.data ?? 0.0;
+                final insufficient = _currentAmount > balance && _currentAmount > 0;
+                return QuickActionSaveButton(
+                  onPressed: insufficient ? null : _save,
+                  isSaving: _isSaving,
+                  label: 'Save Entry',
+                );
+              },
+            )
+          : QuickActionSaveButton(
+              onPressed: _save,
+              isSaving: _isSaving,
+              label: 'Save Entry',
+            ),
     );
   }
 }

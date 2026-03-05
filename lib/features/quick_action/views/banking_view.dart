@@ -1,9 +1,11 @@
+import 'package:bookkeeping/core/database/app_database.dart';
 import 'package:bookkeeping/features/quick_action/quick_action_journal_service.dart';
+import 'package:bookkeeping/features/quick_action/widgets/quick_action_shared_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 class BankingView extends StatefulWidget {
-  final String type; // 'Deposit' or 'Withdraw'
+  final String type;
   const BankingView({super.key, required this.type});
 
   @override
@@ -58,8 +60,6 @@ class _BankingViewState extends State<BankingView> {
       return;
     }
 
-    // Withdraw: Dr Cash, Cr Cash in Bank
-    // Deposit: Dr Cash in Bank, Cr Cash
     final isDeposit = widget.type == 'Deposit';
     final debitCode =
         isDeposit ? QuickActionAccounts.cashInBank : QuickActionAccounts.cashOnHand;
@@ -67,16 +67,8 @@ class _BankingViewState extends State<BankingView> {
         isDeposit ? QuickActionAccounts.cashOnHand : QuickActionAccounts.cashInBank;
 
     final lines = <TemplateLine>[
-      TemplateLine(
-        accountCode: debitCode,
-        isDebit: true,
-        amount: amount,
-      ),
-      TemplateLine(
-        accountCode: creditCode,
-        isDebit: false,
-        amount: amount,
-      ),
+      TemplateLine(accountCode: debitCode, isDebit: true, amount: amount),
+      TemplateLine(accountCode: creditCode, isDebit: false, amount: amount),
     ];
 
     setState(() => _isSaving = true);
@@ -87,15 +79,11 @@ class _BankingViewState extends State<BankingView> {
         referenceNo: null,
         lines: lines,
       );
-      if (mounted) {
-        Navigator.pop(context, true);
-      }
+      if (mounted) Navigator.pop(context, true);
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Failed to record transfer. Please try again.'),
-          ),
+          const SnackBar(content: Text('Failed to record transfer. Please try again.')),
         );
       }
     } finally {
@@ -103,75 +91,76 @@ class _BankingViewState extends State<BankingView> {
     }
   }
 
+  Stream<double> get _balanceStream {
+    if (widget.type == 'Deposit') {
+      return appDb.ledgerDao.watchBalanceForAccountCode(QuickActionAccounts.cashOnHand);
+    }
+    return appDb.ledgerDao.watchBalanceForAccountCode(QuickActionAccounts.cashInBank);
+  }
+
+  String get _balanceLabel =>
+      widget.type == 'Deposit' ? 'Cash balance:' : 'Bank balance:';
+
+  String get _amountLabel =>
+      widget.type == 'Deposit' ? 'Amount to Bank' : 'Amount from Bank';
+
+  double get _currentAmount =>
+      double.tryParse(_amountController.text.replaceAll(',', '').trim()) ?? 0;
+
   @override
   Widget build(BuildContext context) {
-    final amountLabel =
-        widget.type == 'Deposit' ? "Amount to Bank" : "Amount from Bank";
-
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: Colors.grey.shade50,
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
         leading: const BackButton(color: Colors.black87),
         title: Text(
-          "${widget.type} Funds",
-          style: const TextStyle(
-            color: Colors.black87,
-            fontWeight: FontWeight.bold,
-          ),
+          '${widget.type} Funds',
+          style: const TextStyle(color: Colors.black87, fontWeight: FontWeight.bold),
         ),
       ),
       body: ListView(
         padding: const EdgeInsets.all(20),
         children: [
-          const Text(
-            "Transaction Details",
-            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+          QuickActionAmountCard(
+            amountController: _amountController,
+            amountLabel: _amountLabel,
+            balanceStream: _balanceStream,
+            balanceLabel: _balanceLabel,
+            checkInsufficient: true,
+            onAmountChanged: () => setState(() {}),
           ),
-          const SizedBox(height: 16),
-          TextField(
-            controller: _dateController,
-            readOnly: true,
-            decoration: InputDecoration(
-              labelText: 'Date',
-              prefixIcon: const Icon(Icons.calendar_today),
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-            ),
-            onTap: _pickDate,
+          StreamBuilder<double>(
+            stream: _balanceStream,
+            builder: (context, snap) {
+              final balance = snap.data ?? 0.0;
+              return InsufficientBalanceNotice(
+                amount: _currentAmount,
+                currentBalance: balance,
+                isOutflow: true,
+              );
+            },
           ),
-          const SizedBox(height: 12),
-          TextField(
-            controller: _descController,
-            decoration: InputDecoration(
-              labelText: 'Description',
-              prefixIcon: const Icon(Icons.description_outlined),
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-            ),
-          ),
-          const SizedBox(height: 12),
-          TextField(
-            controller: _amountController,
-            keyboardType:
-                const TextInputType.numberWithOptions(decimal: true),
-            decoration: InputDecoration(
-              labelText: amountLabel,
-              prefixIcon: const Icon(Icons.attach_money),
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-            ),
+          const SizedBox(height: 24),
+          QuickActionDetailsCard(
+            descriptionController: _descController,
+            dateText: _dateController.text,
+            onDateTap: _pickDate,
           ),
         ],
       ),
-      bottomNavigationBar: Padding(
-        padding: const EdgeInsets.all(20),
-        child: ElevatedButton(
-          onPressed: _isSaving ? null : _save,
-          style: ElevatedButton.styleFrom(backgroundColor: Colors.teal),
-          child: Text(
-            _isSaving ? "Saving..." : "Save Entry",
-            style: const TextStyle(color: Colors.white),
-          ),
-        ),
+      bottomNavigationBar: StreamBuilder<double>(
+        stream: _balanceStream,
+        builder: (context, snap) {
+          final balance = snap.data ?? 0.0;
+          final insufficient = _currentAmount > balance && _currentAmount > 0;
+          return QuickActionSaveButton(
+            onPressed: insufficient ? null : _save,
+            isSaving: _isSaving,
+            label: 'Save Entry',
+          );
+        },
       ),
     );
   }

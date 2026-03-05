@@ -1,4 +1,6 @@
+import 'package:bookkeeping/core/database/app_database.dart';
 import 'package:bookkeeping/features/quick_action/quick_action_journal_service.dart';
+import 'package:bookkeeping/features/quick_action/widgets/quick_action_shared_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
@@ -59,7 +61,6 @@ class _ConsumeSuppliesViewState extends State<ConsumeSuppliesView> {
       return;
     }
 
-    // Dr Supplies Expense (610), Cr Supplies (130)
     final lines = <TemplateLine>[
       TemplateLine(
         accountCode: QuickActionAccounts.suppliesExpense,
@@ -85,9 +86,7 @@ class _ConsumeSuppliesViewState extends State<ConsumeSuppliesView> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Failed to save entry. Please try again.'),
-          ),
+          const SnackBar(content: Text('Failed to save entry. Please try again.')),
         );
       }
     } finally {
@@ -98,69 +97,38 @@ class _ConsumeSuppliesViewState extends State<ConsumeSuppliesView> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: Colors.grey.shade50,
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
         leading: const BackButton(color: Colors.black87),
         title: const Text(
           ConsumeSuppliesView._title,
-          style: TextStyle(
-            color: Colors.black87,
-            fontWeight: FontWeight.bold,
-          ),
+          style: TextStyle(color: Colors.black87, fontWeight: FontWeight.bold),
         ),
       ),
       body: ListView(
         padding: const EdgeInsets.all(20),
         children: [
-          const Text(
-            "Transaction Details",
-            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+          QuickActionAmountCard(
+            amountController: _amountController,
+            amountLabel: 'Amount (value of supplies used)',
+            balanceStream: appDb.ledgerDao.watchBalanceForAccountCode(QuickActionAccounts.supplies),
+            balanceLabel: 'Supplies balance:',
+            onAmountChanged: () => setState(() {}),
           ),
-          const SizedBox(height: 16),
-          TextField(
-            controller: _dateController,
-            readOnly: true,
-            decoration: InputDecoration(
-              labelText: 'Date',
-              prefixIcon: const Icon(Icons.calendar_today),
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-            ),
-            onTap: _pickDate,
-          ),
-          const SizedBox(height: 12),
-          TextField(
-            controller: _descController,
-            decoration: InputDecoration(
-              labelText: 'Description',
-              prefixIcon: const Icon(Icons.description_outlined),
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-            ),
-          ),
-          const SizedBox(height: 12),
-          TextField(
-            controller: _amountController,
-            keyboardType:
-                const TextInputType.numberWithOptions(decimal: true),
-            decoration: InputDecoration(
-              labelText: 'Amount (value of supplies used)',
-              prefixIcon: const Icon(Icons.attach_money),
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-            ),
+          const SizedBox(height: 24),
+          QuickActionDetailsCard(
+            descriptionController: _descController,
+            dateText: _dateController.text,
+            onDateTap: _pickDate,
           ),
         ],
       ),
-      bottomNavigationBar: Padding(
-        padding: const EdgeInsets.all(20),
-        child: ElevatedButton(
-          onPressed: _isSaving ? null : _save,
-          style: ElevatedButton.styleFrom(backgroundColor: Colors.teal),
-          child: Text(
-            _isSaving ? "Saving..." : "Save Entry",
-            style: const TextStyle(color: Colors.white),
-          ),
-        ),
+      bottomNavigationBar: QuickActionSaveButton(
+        onPressed: _save,
+        isSaving: _isSaving,
+        label: 'Save Entry',
       ),
     );
   }

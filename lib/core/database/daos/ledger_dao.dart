@@ -80,6 +80,17 @@ class LedgerDao extends DatabaseAccessor<AppDatabase> with _$LedgerDaoMixin {
     });
   }
 
+  /// Stream of balance for a single account by code (e.g. 101 Cash, 102 Bank).
+  /// Use for quick action screens to show current balance and insufficient balance checks.
+  Stream<double> watchBalanceForAccountCode(int code) {
+    return watchLedgerEntries().map((list) {
+      for (final e in list) {
+        if (e.account.code == code) return e.balance;
+      }
+      return 0.0;
+    });
+  }
+
   /// Stream of transactions for one account, joined with journal (date, description).
   /// Excludes voided journal entries (soft-delete) so they are hidden in the ledger.
   Stream<List<TypedResult>> watchTransactionsForAccount(int accountId) {
