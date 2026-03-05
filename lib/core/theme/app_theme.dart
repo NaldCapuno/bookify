@@ -1,5 +1,31 @@
 import 'package:flutter/material.dart';
 
+/// Custom extension to add a 'warning' color slot to the theme.
+class AppColorsExtension extends ThemeExtension<AppColorsExtension> {
+  final Color warning;
+
+  AppColorsExtension({required this.warning});
+
+  @override
+  ThemeExtension<AppColorsExtension> copyWith({Color? warning}) {
+    return AppColorsExtension(warning: warning ?? this.warning);
+  }
+
+  @override
+  ThemeExtension<AppColorsExtension> lerp(
+    ThemeExtension<AppColorsExtension>? other,
+    double t,
+  ) {
+    if (other is! AppColorsExtension) return this;
+    return AppColorsExtension(warning: Color.lerp(warning, other.warning, t)!);
+  }
+}
+
+extension ThemeColors on BuildContext {
+  Color get warning =>
+      Theme.of(this).extension<AppColorsExtension>()?.warning ?? Colors.orange;
+}
+
 /// Central app theme. Use [AppTheme.light] and [AppTheme.dark] in MaterialApp.
 class AppTheme {
   AppTheme._();
@@ -112,8 +138,16 @@ class AppTheme {
 
   static ThemeData _buildTheme(ColorScheme scheme) {
     final base = ThemeData.from(colorScheme: scheme);
+    final isDark = scheme.brightness == Brightness.dark;
+
     return base.copyWith(
       useMaterial3: true,
+      // --- ADDED THE EXTENSION HERE ---
+      extensions: [
+        AppColorsExtension(
+          warning: isDark ? const Color(0xFFFFB74D) : const Color(0xFFF57C00),
+        ),
+      ],
       textTheme: _textTheme(scheme),
       scaffoldBackgroundColor: scheme.surfaceContainerHighest,
       appBarTheme: AppBarTheme(
@@ -124,16 +158,14 @@ class AppTheme {
         iconTheme: IconThemeData(color: scheme.primary),
       ),
       cardTheme: CardThemeData(
-        color: scheme.brightness == Brightness.dark
-            ? scheme.surfaceContainerHighest
-            : scheme.surface,
+        color: isDark ? scheme.surfaceContainerHighest : scheme.surface,
         elevation: 0,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16),
           side: BorderSide(
-            color: scheme.brightness == Brightness.light
-                ? Colors.black.withValues(alpha: 0.08)
-                : Colors.white.withValues(alpha: 0.08),
+            color: isDark
+                ? Colors.white.withValues(alpha: 0.08)
+                : Colors.black.withValues(alpha: 0.08),
           ),
         ),
       ),
@@ -155,9 +187,7 @@ class AppTheme {
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: scheme.brightness == Brightness.dark
-            ? scheme.surfaceContainerHighest
-            : scheme.surface,
+        fillColor: isDark ? scheme.surfaceContainerHighest : scheme.surface,
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
