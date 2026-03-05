@@ -19,6 +19,7 @@ MigrationStrategy buildMigrationStrategy(AppDatabase db) {
           AccountCategoriesCompanion.insert(id: const Value(11), name: 'Current Asset', parent: const Value(1), normalBalance: NormalBalance.debit),
           AccountCategoriesCompanion.insert(id: const Value(12), name: 'Non-current Asset', parent: const Value(1), normalBalance: NormalBalance.debit),
           AccountCategoriesCompanion.insert(id: const Value(21), name: 'Current Liability', parent: const Value(2), normalBalance: NormalBalance.credit),
+          AccountCategoriesCompanion.insert(id: const Value(21), name: 'Non-current Liability', parent: const Value(2), normalBalance: NormalBalance.credit),
           AccountCategoriesCompanion.insert(id: const Value(31), name: 'Owner\'s Equity', parent: const Value(3), normalBalance: NormalBalance.credit),
           AccountCategoriesCompanion.insert(id: const Value(41), name: 'Operating Revenue', parent: const Value(4), normalBalance: NormalBalance.credit),
           AccountCategoriesCompanion.insert(id: const Value(51), name: 'Costs of Sale', parent: const Value(5), normalBalance: NormalBalance.debit),
@@ -31,17 +32,18 @@ MigrationStrategy buildMigrationStrategy(AppDatabase db) {
       await db.batch((batch) {
         batch.insertAll(db.accounts, [
           // ASSETS
-          AccountsCompanion.insert(code: 101, name: 'Cash in Bank', categoryId: 11, isLocked: const Value(true)),
-          AccountsCompanion.insert(code: 102, name: 'Cash on Hand / Petty Cash', categoryId: 11, isLocked: const Value(true)),
+          AccountsCompanion.insert(code: 101, name: 'Cash on Hand', categoryId: 11, isLocked: const Value(true)),
+          AccountsCompanion.insert(code: 102, name: 'Cash in Bank', categoryId: 11, isLocked: const Value(true)),
           AccountsCompanion.insert(code: 110, name: 'Accounts Receivable', categoryId: 11, isLocked: const Value(true)),
-          AccountsCompanion.insert(code: 120, name: 'Inventory', categoryId: 11, isLocked: const Value(true)),
+          AccountsCompanion.insert(code: 120, name: 'Inventory - Raw Materials', categoryId: 11, isLocked: const Value(true)),
+          AccountsCompanion.insert(code: 121, name: 'Inventory - Finished Goods', categoryId: 11, isLocked: const Value(true)),
           AccountsCompanion.insert(code: 130, name: 'Supplies', categoryId: 11, isLocked: const Value(true)),
           AccountsCompanion.insert(code: 150, name: 'Equipment', categoryId: 12, isLocked: const Value(true)),
           AccountsCompanion.insert(code: 160, name: 'Furniture and Fixtures', categoryId: 12, isLocked: const Value(true)),
           // LIABILITIES
           AccountsCompanion.insert(code: 201, name: 'Accounts Payable', categoryId: 21, isLocked: const Value(true)),
           AccountsCompanion.insert(code: 215, name: 'Sales Tax Payable', categoryId: 21, isLocked: const Value(true)),
-          AccountsCompanion.insert(code: 230, name: 'Short-Term Loans', categoryId: 21, isLocked: const Value(true)),
+          AccountsCompanion.insert(code: 230, name: 'Long-Term Loans', categoryId: 22, isLocked: const Value(true)),
           // CAPITAL
           AccountsCompanion.insert(code: 340, name: 'Owner\'s Capital', categoryId: 31, isLocked: const Value(true)),
           AccountsCompanion.insert(code: 341, name: 'Owner\'s Drawings', categoryId: 31, isLocked: const Value(true)),
