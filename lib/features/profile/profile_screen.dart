@@ -58,10 +58,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
         _contactNumberController.text = user.contactNumber ?? '';
 
         _selectedBusinessType = user.businessType;
-        if (user.businessType != null) {
-          _businessTypeController.text = user.businessType!.displayName;
-        }
-
+        _businessTypeController.text = user.businessType.displayName;
+      
         _isLoading = false;
       });
     } else {
