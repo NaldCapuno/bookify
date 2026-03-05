@@ -48,19 +48,7 @@ class $AccountCategoriesTable extends AccountCategories
     ),
   );
   @override
-  late final GeneratedColumnWithTypeConverter<NormalBalance, String>
-  normalBalance =
-      GeneratedColumn<String>(
-        'normal_balance',
-        aliasedName,
-        false,
-        type: DriftSqlType.string,
-        requiredDuringInsert: true,
-      ).withConverter<NormalBalance>(
-        $AccountCategoriesTable.$converternormalBalance,
-      );
-  @override
-  List<GeneratedColumn> get $columns => [id, name, parent, normalBalance];
+  List<GeneratedColumn> get $columns => [id, name, parent];
   @override
   String get aliasedName => _alias ?? actualTableName;
   @override
@@ -111,12 +99,6 @@ class $AccountCategoriesTable extends AccountCategories
         DriftSqlType.int,
         data['${effectivePrefix}parent'],
       ),
-      normalBalance: $AccountCategoriesTable.$converternormalBalance.fromSql(
-        attachedDatabase.typeMapping.read(
-          DriftSqlType.string,
-          data['${effectivePrefix}normal_balance'],
-        )!,
-      ),
     );
   }
 
@@ -124,24 +106,13 @@ class $AccountCategoriesTable extends AccountCategories
   $AccountCategoriesTable createAlias(String alias) {
     return $AccountCategoriesTable(attachedDatabase, alias);
   }
-
-  static JsonTypeConverter2<NormalBalance, String, String>
-  $converternormalBalance = const EnumNameConverter<NormalBalance>(
-    NormalBalance.values,
-  );
 }
 
 class AccountCategory extends DataClass implements Insertable<AccountCategory> {
   final int id;
   final String name;
   final int? parent;
-  final NormalBalance normalBalance;
-  const AccountCategory({
-    required this.id,
-    required this.name,
-    this.parent,
-    required this.normalBalance,
-  });
+  const AccountCategory({required this.id, required this.name, this.parent});
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
@@ -149,11 +120,6 @@ class AccountCategory extends DataClass implements Insertable<AccountCategory> {
     map['name'] = Variable<String>(name);
     if (!nullToAbsent || parent != null) {
       map['parent'] = Variable<int>(parent);
-    }
-    {
-      map['normal_balance'] = Variable<String>(
-        $AccountCategoriesTable.$converternormalBalance.toSql(normalBalance),
-      );
     }
     return map;
   }
@@ -165,7 +131,6 @@ class AccountCategory extends DataClass implements Insertable<AccountCategory> {
       parent: parent == null && nullToAbsent
           ? const Value.absent()
           : Value(parent),
-      normalBalance: Value(normalBalance),
     );
   }
 
@@ -178,9 +143,6 @@ class AccountCategory extends DataClass implements Insertable<AccountCategory> {
       id: serializer.fromJson<int>(json['id']),
       name: serializer.fromJson<String>(json['name']),
       parent: serializer.fromJson<int?>(json['parent']),
-      normalBalance: $AccountCategoriesTable.$converternormalBalance.fromJson(
-        serializer.fromJson<String>(json['normalBalance']),
-      ),
     );
   }
   @override
@@ -190,9 +152,6 @@ class AccountCategory extends DataClass implements Insertable<AccountCategory> {
       'id': serializer.toJson<int>(id),
       'name': serializer.toJson<String>(name),
       'parent': serializer.toJson<int?>(parent),
-      'normalBalance': serializer.toJson<String>(
-        $AccountCategoriesTable.$converternormalBalance.toJson(normalBalance),
-      ),
     };
   }
 
@@ -200,21 +159,16 @@ class AccountCategory extends DataClass implements Insertable<AccountCategory> {
     int? id,
     String? name,
     Value<int?> parent = const Value.absent(),
-    NormalBalance? normalBalance,
   }) => AccountCategory(
     id: id ?? this.id,
     name: name ?? this.name,
     parent: parent.present ? parent.value : this.parent,
-    normalBalance: normalBalance ?? this.normalBalance,
   );
   AccountCategory copyWithCompanion(AccountCategoriesCompanion data) {
     return AccountCategory(
       id: data.id.present ? data.id.value : this.id,
       name: data.name.present ? data.name.value : this.name,
       parent: data.parent.present ? data.parent.value : this.parent,
-      normalBalance: data.normalBalance.present
-          ? data.normalBalance.value
-          : this.normalBalance,
     );
   }
 
@@ -223,53 +177,45 @@ class AccountCategory extends DataClass implements Insertable<AccountCategory> {
     return (StringBuffer('AccountCategory(')
           ..write('id: $id, ')
           ..write('name: $name, ')
-          ..write('parent: $parent, ')
-          ..write('normalBalance: $normalBalance')
+          ..write('parent: $parent')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode => Object.hash(id, name, parent, normalBalance);
+  int get hashCode => Object.hash(id, name, parent);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
       (other is AccountCategory &&
           other.id == this.id &&
           other.name == this.name &&
-          other.parent == this.parent &&
-          other.normalBalance == this.normalBalance);
+          other.parent == this.parent);
 }
 
 class AccountCategoriesCompanion extends UpdateCompanion<AccountCategory> {
   final Value<int> id;
   final Value<String> name;
   final Value<int?> parent;
-  final Value<NormalBalance> normalBalance;
   const AccountCategoriesCompanion({
     this.id = const Value.absent(),
     this.name = const Value.absent(),
     this.parent = const Value.absent(),
-    this.normalBalance = const Value.absent(),
   });
   AccountCategoriesCompanion.insert({
     this.id = const Value.absent(),
     required String name,
     this.parent = const Value.absent(),
-    required NormalBalance normalBalance,
-  }) : name = Value(name),
-       normalBalance = Value(normalBalance);
+  }) : name = Value(name);
   static Insertable<AccountCategory> custom({
     Expression<int>? id,
     Expression<String>? name,
     Expression<int>? parent,
-    Expression<String>? normalBalance,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
       if (name != null) 'name': name,
       if (parent != null) 'parent': parent,
-      if (normalBalance != null) 'normal_balance': normalBalance,
     });
   }
 
@@ -277,13 +223,11 @@ class AccountCategoriesCompanion extends UpdateCompanion<AccountCategory> {
     Value<int>? id,
     Value<String>? name,
     Value<int?>? parent,
-    Value<NormalBalance>? normalBalance,
   }) {
     return AccountCategoriesCompanion(
       id: id ?? this.id,
       name: name ?? this.name,
       parent: parent ?? this.parent,
-      normalBalance: normalBalance ?? this.normalBalance,
     );
   }
 
@@ -299,13 +243,6 @@ class AccountCategoriesCompanion extends UpdateCompanion<AccountCategory> {
     if (parent.present) {
       map['parent'] = Variable<int>(parent.value);
     }
-    if (normalBalance.present) {
-      map['normal_balance'] = Variable<String>(
-        $AccountCategoriesTable.$converternormalBalance.toSql(
-          normalBalance.value,
-        ),
-      );
-    }
     return map;
   }
 
@@ -314,8 +251,7 @@ class AccountCategoriesCompanion extends UpdateCompanion<AccountCategory> {
     return (StringBuffer('AccountCategoriesCompanion(')
           ..write('id: $id, ')
           ..write('name: $name, ')
-          ..write('parent: $parent, ')
-          ..write('normalBalance: $normalBalance')
+          ..write('parent: $parent')
           ..write(')'))
         .toString();
   }
@@ -388,6 +324,15 @@ class $AccountsTable extends Accounts with TableInfo<$AccountsTable, Account> {
       'REFERENCES account_categories (id)',
     ),
   );
+  @override
+  late final GeneratedColumnWithTypeConverter<NormalBalance, String>
+  normalBalance = GeneratedColumn<String>(
+    'normal_balance',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  ).withConverter<NormalBalance>($AccountsTable.$converternormalBalance);
   static const VerificationMeta _isActiveMeta = const VerificationMeta(
     'isActive',
   );
@@ -440,6 +385,7 @@ class $AccountsTable extends Accounts with TableInfo<$AccountsTable, Account> {
     name,
     description,
     categoryId,
+    normalBalance,
     isActive,
     isLocked,
     isArchived,
@@ -539,6 +485,12 @@ class $AccountsTable extends Accounts with TableInfo<$AccountsTable, Account> {
         DriftSqlType.int,
         data['${effectivePrefix}category_id'],
       )!,
+      normalBalance: $AccountsTable.$converternormalBalance.fromSql(
+        attachedDatabase.typeMapping.read(
+          DriftSqlType.string,
+          data['${effectivePrefix}normal_balance'],
+        )!,
+      ),
       isActive: attachedDatabase.typeMapping.read(
         DriftSqlType.bool,
         data['${effectivePrefix}is_active'],
@@ -558,6 +510,11 @@ class $AccountsTable extends Accounts with TableInfo<$AccountsTable, Account> {
   $AccountsTable createAlias(String alias) {
     return $AccountsTable(attachedDatabase, alias);
   }
+
+  static JsonTypeConverter2<NormalBalance, String, String>
+  $converternormalBalance = const EnumNameConverter<NormalBalance>(
+    NormalBalance.values,
+  );
 }
 
 class Account extends DataClass implements Insertable<Account> {
@@ -566,6 +523,7 @@ class Account extends DataClass implements Insertable<Account> {
   final String name;
   final String? description;
   final int categoryId;
+  final NormalBalance normalBalance;
   final bool isActive;
   final bool isLocked;
   final bool isArchived;
@@ -575,6 +533,7 @@ class Account extends DataClass implements Insertable<Account> {
     required this.name,
     this.description,
     required this.categoryId,
+    required this.normalBalance,
     required this.isActive,
     required this.isLocked,
     required this.isArchived,
@@ -589,6 +548,11 @@ class Account extends DataClass implements Insertable<Account> {
       map['description'] = Variable<String>(description);
     }
     map['category_id'] = Variable<int>(categoryId);
+    {
+      map['normal_balance'] = Variable<String>(
+        $AccountsTable.$converternormalBalance.toSql(normalBalance),
+      );
+    }
     map['is_active'] = Variable<bool>(isActive);
     map['is_locked'] = Variable<bool>(isLocked);
     map['is_archived'] = Variable<bool>(isArchived);
@@ -604,6 +568,7 @@ class Account extends DataClass implements Insertable<Account> {
           ? const Value.absent()
           : Value(description),
       categoryId: Value(categoryId),
+      normalBalance: Value(normalBalance),
       isActive: Value(isActive),
       isLocked: Value(isLocked),
       isArchived: Value(isArchived),
@@ -621,6 +586,9 @@ class Account extends DataClass implements Insertable<Account> {
       name: serializer.fromJson<String>(json['name']),
       description: serializer.fromJson<String?>(json['description']),
       categoryId: serializer.fromJson<int>(json['categoryId']),
+      normalBalance: $AccountsTable.$converternormalBalance.fromJson(
+        serializer.fromJson<String>(json['normalBalance']),
+      ),
       isActive: serializer.fromJson<bool>(json['isActive']),
       isLocked: serializer.fromJson<bool>(json['isLocked']),
       isArchived: serializer.fromJson<bool>(json['isArchived']),
@@ -635,6 +603,9 @@ class Account extends DataClass implements Insertable<Account> {
       'name': serializer.toJson<String>(name),
       'description': serializer.toJson<String?>(description),
       'categoryId': serializer.toJson<int>(categoryId),
+      'normalBalance': serializer.toJson<String>(
+        $AccountsTable.$converternormalBalance.toJson(normalBalance),
+      ),
       'isActive': serializer.toJson<bool>(isActive),
       'isLocked': serializer.toJson<bool>(isLocked),
       'isArchived': serializer.toJson<bool>(isArchived),
@@ -647,6 +618,7 @@ class Account extends DataClass implements Insertable<Account> {
     String? name,
     Value<String?> description = const Value.absent(),
     int? categoryId,
+    NormalBalance? normalBalance,
     bool? isActive,
     bool? isLocked,
     bool? isArchived,
@@ -656,6 +628,7 @@ class Account extends DataClass implements Insertable<Account> {
     name: name ?? this.name,
     description: description.present ? description.value : this.description,
     categoryId: categoryId ?? this.categoryId,
+    normalBalance: normalBalance ?? this.normalBalance,
     isActive: isActive ?? this.isActive,
     isLocked: isLocked ?? this.isLocked,
     isArchived: isArchived ?? this.isArchived,
@@ -671,6 +644,9 @@ class Account extends DataClass implements Insertable<Account> {
       categoryId: data.categoryId.present
           ? data.categoryId.value
           : this.categoryId,
+      normalBalance: data.normalBalance.present
+          ? data.normalBalance.value
+          : this.normalBalance,
       isActive: data.isActive.present ? data.isActive.value : this.isActive,
       isLocked: data.isLocked.present ? data.isLocked.value : this.isLocked,
       isArchived: data.isArchived.present
@@ -687,6 +663,7 @@ class Account extends DataClass implements Insertable<Account> {
           ..write('name: $name, ')
           ..write('description: $description, ')
           ..write('categoryId: $categoryId, ')
+          ..write('normalBalance: $normalBalance, ')
           ..write('isActive: $isActive, ')
           ..write('isLocked: $isLocked, ')
           ..write('isArchived: $isArchived')
@@ -701,6 +678,7 @@ class Account extends DataClass implements Insertable<Account> {
     name,
     description,
     categoryId,
+    normalBalance,
     isActive,
     isLocked,
     isArchived,
@@ -714,6 +692,7 @@ class Account extends DataClass implements Insertable<Account> {
           other.name == this.name &&
           other.description == this.description &&
           other.categoryId == this.categoryId &&
+          other.normalBalance == this.normalBalance &&
           other.isActive == this.isActive &&
           other.isLocked == this.isLocked &&
           other.isArchived == this.isArchived);
@@ -725,6 +704,7 @@ class AccountsCompanion extends UpdateCompanion<Account> {
   final Value<String> name;
   final Value<String?> description;
   final Value<int> categoryId;
+  final Value<NormalBalance> normalBalance;
   final Value<bool> isActive;
   final Value<bool> isLocked;
   final Value<bool> isArchived;
@@ -734,6 +714,7 @@ class AccountsCompanion extends UpdateCompanion<Account> {
     this.name = const Value.absent(),
     this.description = const Value.absent(),
     this.categoryId = const Value.absent(),
+    this.normalBalance = const Value.absent(),
     this.isActive = const Value.absent(),
     this.isLocked = const Value.absent(),
     this.isArchived = const Value.absent(),
@@ -744,18 +725,21 @@ class AccountsCompanion extends UpdateCompanion<Account> {
     required String name,
     this.description = const Value.absent(),
     required int categoryId,
+    required NormalBalance normalBalance,
     this.isActive = const Value.absent(),
     this.isLocked = const Value.absent(),
     this.isArchived = const Value.absent(),
   }) : code = Value(code),
        name = Value(name),
-       categoryId = Value(categoryId);
+       categoryId = Value(categoryId),
+       normalBalance = Value(normalBalance);
   static Insertable<Account> custom({
     Expression<int>? id,
     Expression<int>? code,
     Expression<String>? name,
     Expression<String>? description,
     Expression<int>? categoryId,
+    Expression<String>? normalBalance,
     Expression<bool>? isActive,
     Expression<bool>? isLocked,
     Expression<bool>? isArchived,
@@ -766,6 +750,7 @@ class AccountsCompanion extends UpdateCompanion<Account> {
       if (name != null) 'name': name,
       if (description != null) 'description': description,
       if (categoryId != null) 'category_id': categoryId,
+      if (normalBalance != null) 'normal_balance': normalBalance,
       if (isActive != null) 'is_active': isActive,
       if (isLocked != null) 'is_locked': isLocked,
       if (isArchived != null) 'is_archived': isArchived,
@@ -778,6 +763,7 @@ class AccountsCompanion extends UpdateCompanion<Account> {
     Value<String>? name,
     Value<String?>? description,
     Value<int>? categoryId,
+    Value<NormalBalance>? normalBalance,
     Value<bool>? isActive,
     Value<bool>? isLocked,
     Value<bool>? isArchived,
@@ -788,6 +774,7 @@ class AccountsCompanion extends UpdateCompanion<Account> {
       name: name ?? this.name,
       description: description ?? this.description,
       categoryId: categoryId ?? this.categoryId,
+      normalBalance: normalBalance ?? this.normalBalance,
       isActive: isActive ?? this.isActive,
       isLocked: isLocked ?? this.isLocked,
       isArchived: isArchived ?? this.isArchived,
@@ -812,6 +799,11 @@ class AccountsCompanion extends UpdateCompanion<Account> {
     if (categoryId.present) {
       map['category_id'] = Variable<int>(categoryId.value);
     }
+    if (normalBalance.present) {
+      map['normal_balance'] = Variable<String>(
+        $AccountsTable.$converternormalBalance.toSql(normalBalance.value),
+      );
+    }
     if (isActive.present) {
       map['is_active'] = Variable<bool>(isActive.value);
     }
@@ -832,6 +824,7 @@ class AccountsCompanion extends UpdateCompanion<Account> {
           ..write('name: $name, ')
           ..write('description: $description, ')
           ..write('categoryId: $categoryId, ')
+          ..write('normalBalance: $normalBalance, ')
           ..write('isActive: $isActive, ')
           ..write('isLocked: $isLocked, ')
           ..write('isArchived: $isArchived')
@@ -2225,14 +2218,12 @@ typedef $$AccountCategoriesTableCreateCompanionBuilder =
       Value<int> id,
       required String name,
       Value<int?> parent,
-      required NormalBalance normalBalance,
     });
 typedef $$AccountCategoriesTableUpdateCompanionBuilder =
     AccountCategoriesCompanion Function({
       Value<int> id,
       Value<String> name,
       Value<int?> parent,
-      Value<NormalBalance> normalBalance,
     });
 
 final class $$AccountCategoriesTableReferences
@@ -2312,12 +2303,6 @@ class $$AccountCategoriesTableFilterComposer
     builder: (column) => ColumnFilters(column),
   );
 
-  ColumnWithTypeConverterFilters<NormalBalance, NormalBalance, String>
-  get normalBalance => $composableBuilder(
-    column: $table.normalBalance,
-    builder: (column) => ColumnWithTypeConverterFilters(column),
-  );
-
   $$AccountCategoriesTableFilterComposer get parent {
     final $$AccountCategoriesTableFilterComposer composer = $composerBuilder(
       composer: this,
@@ -2386,11 +2371,6 @@ class $$AccountCategoriesTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
-  ColumnOrderings<String> get normalBalance => $composableBuilder(
-    column: $table.normalBalance,
-    builder: (column) => ColumnOrderings(column),
-  );
-
   $$AccountCategoriesTableOrderingComposer get parent {
     final $$AccountCategoriesTableOrderingComposer composer = $composerBuilder(
       composer: this,
@@ -2429,12 +2409,6 @@ class $$AccountCategoriesTableAnnotationComposer
 
   GeneratedColumn<String> get name =>
       $composableBuilder(column: $table.name, builder: (column) => column);
-
-  GeneratedColumnWithTypeConverter<NormalBalance, String> get normalBalance =>
-      $composableBuilder(
-        column: $table.normalBalance,
-        builder: (column) => column,
-      );
 
   $$AccountCategoriesTableAnnotationComposer get parent {
     final $$AccountCategoriesTableAnnotationComposer composer =
@@ -2522,24 +2496,20 @@ class $$AccountCategoriesTableTableManager
                 Value<int> id = const Value.absent(),
                 Value<String> name = const Value.absent(),
                 Value<int?> parent = const Value.absent(),
-                Value<NormalBalance> normalBalance = const Value.absent(),
               }) => AccountCategoriesCompanion(
                 id: id,
                 name: name,
                 parent: parent,
-                normalBalance: normalBalance,
               ),
           createCompanionCallback:
               ({
                 Value<int> id = const Value.absent(),
                 required String name,
                 Value<int?> parent = const Value.absent(),
-                required NormalBalance normalBalance,
               }) => AccountCategoriesCompanion.insert(
                 id: id,
                 name: name,
                 parent: parent,
-                normalBalance: normalBalance,
               ),
           withReferenceMapper: (p0) => p0
               .map(
@@ -2637,6 +2607,7 @@ typedef $$AccountsTableCreateCompanionBuilder =
       required String name,
       Value<String?> description,
       required int categoryId,
+      required NormalBalance normalBalance,
       Value<bool> isActive,
       Value<bool> isLocked,
       Value<bool> isArchived,
@@ -2648,6 +2619,7 @@ typedef $$AccountsTableUpdateCompanionBuilder =
       Value<String> name,
       Value<String?> description,
       Value<int> categoryId,
+      Value<NormalBalance> normalBalance,
       Value<bool> isActive,
       Value<bool> isLocked,
       Value<bool> isArchived,
@@ -2722,6 +2694,12 @@ class $$AccountsTableFilterComposer
   ColumnFilters<String> get description => $composableBuilder(
     column: $table.description,
     builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnWithTypeConverterFilters<NormalBalance, NormalBalance, String>
+  get normalBalance => $composableBuilder(
+    column: $table.normalBalance,
+    builder: (column) => ColumnWithTypeConverterFilters(column),
   );
 
   ColumnFilters<bool> get isActive => $composableBuilder(
@@ -2817,6 +2795,11 @@ class $$AccountsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get normalBalance => $composableBuilder(
+    column: $table.normalBalance,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<bool> get isActive => $composableBuilder(
     column: $table.isActive,
     builder: (column) => ColumnOrderings(column),
@@ -2878,6 +2861,12 @@ class $$AccountsTableAnnotationComposer
     column: $table.description,
     builder: (column) => column,
   );
+
+  GeneratedColumnWithTypeConverter<NormalBalance, String> get normalBalance =>
+      $composableBuilder(
+        column: $table.normalBalance,
+        builder: (column) => column,
+      );
 
   GeneratedColumn<bool> get isActive =>
       $composableBuilder(column: $table.isActive, builder: (column) => column);
@@ -2973,6 +2962,7 @@ class $$AccountsTableTableManager
                 Value<String> name = const Value.absent(),
                 Value<String?> description = const Value.absent(),
                 Value<int> categoryId = const Value.absent(),
+                Value<NormalBalance> normalBalance = const Value.absent(),
                 Value<bool> isActive = const Value.absent(),
                 Value<bool> isLocked = const Value.absent(),
                 Value<bool> isArchived = const Value.absent(),
@@ -2982,6 +2972,7 @@ class $$AccountsTableTableManager
                 name: name,
                 description: description,
                 categoryId: categoryId,
+                normalBalance: normalBalance,
                 isActive: isActive,
                 isLocked: isLocked,
                 isArchived: isArchived,
@@ -2993,6 +2984,7 @@ class $$AccountsTableTableManager
                 required String name,
                 Value<String?> description = const Value.absent(),
                 required int categoryId,
+                required NormalBalance normalBalance,
                 Value<bool> isActive = const Value.absent(),
                 Value<bool> isLocked = const Value.absent(),
                 Value<bool> isArchived = const Value.absent(),
@@ -3002,6 +2994,7 @@ class $$AccountsTableTableManager
                 name: name,
                 description: description,
                 categoryId: categoryId,
+                normalBalance: normalBalance,
                 isActive: isActive,
                 isLocked: isLocked,
                 isArchived: isArchived,

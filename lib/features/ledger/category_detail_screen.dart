@@ -1,3 +1,4 @@
+import 'package:bookkeeping/core/database/tables/accounts_table.dart';
 import 'package:drift/drift.dart' hide Column;
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
@@ -35,46 +36,29 @@ class CategoryDetailScreen extends StatelessWidget {
             );
           }
           if (snapshot.hasError) {
-            return Center(
-              child: Text(
-                'Error: ${snapshot.error}',
-                style: theme.textTheme.bodyLarge,
-              ),
-            );
+            return Center(child: Text('Error: ${snapshot.error}'));
           }
 
           final allEntries = snapshot.data ?? [];
-          final entries = allEntries
-              .where(
-                (e) =>
-                    e.category.parent == categoryId ||
-                    e.category.id == categoryId,
-              )
-              .where((e) => e.transactionCount > 0)
-              .toList();
+
+          // Filter logic: Include accounts where the category is the selected one
+          // OR where the category's parent is the selected one (e.g. "Asset" selected, show "Current Asset" accounts)
+          final entries = allEntries.where((e) {
+            final isSameCategory = e.category.id == categoryId;
+            final isParentCategory = e.category.parent == categoryId;
+            return (isSameCategory || isParentCategory) &&
+                e.transactionCount > 0;
+          }).toList();
 
           if (entries.isEmpty) {
-            return Center(
-              child: Padding(
-                padding: const EdgeInsets.all(24),
-                child: Text(
-                  'No accounts with transactions in this category',
-                  textAlign: TextAlign.center,
-                  style: theme.textTheme.bodyMedium!.copyWith(
-                    color: colorScheme.onSurfaceVariant,
-                    fontSize: 14,
-                  ),
-                ),
-              ),
-            );
+            return _buildEmptyState(theme, colorScheme);
           }
 
           return ListView.builder(
             padding: const EdgeInsets.all(16),
             itemCount: entries.length,
-            itemBuilder: (context, index) {
-              return _buildAccountTable(context, entries[index]);
-            },
+            itemBuilder: (context, index) =>
+                _buildAccountTable(context, entries[index]),
           );
         },
       ),
@@ -89,7 +73,6 @@ class CategoryDetailScreen extends StatelessWidget {
     return Card(
       margin: const EdgeInsets.only(bottom: 16),
       elevation: 2,
-      shadowColor: colorScheme.shadow,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
         side: BorderSide(color: colorScheme.outlineVariant, width: 1),
@@ -99,6 +82,7 @@ class CategoryDetailScreen extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
+            // Account Header
             Text(
               '${entry.account.code} - ${entry.account.name}',
               style: theme.textTheme.titleSmall!.copyWith(
@@ -107,88 +91,31 @@ class CategoryDetailScreen extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 12),
-            Row(
-              children: [
-                Expanded(
-                  flex: 1,
-                  child: Text(
-                    'DATE',
-                    style: theme.textTheme.bodySmall!.copyWith(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 11,
-                    ),
-                  ),
-                ),
-                Expanded(
-                  flex: 2,
-                  child: Text(
-                    'DESCRIPTION',
-                    style: theme.textTheme.bodySmall!.copyWith(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 11,
-                    ),
-                  ),
-                ),
-                Expanded(
-                  flex: 1,
-                  child: Text(
-                    'DEBIT',
-                    textAlign: TextAlign.right,
-                    style: theme.textTheme.bodySmall!.copyWith(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 11,
-                    ),
-                  ),
-                ),
-                Expanded(
-                  flex: 1,
-                  child: Text(
-                    'CREDIT',
-                    textAlign: TextAlign.right,
-                    style: theme.textTheme.bodySmall!.copyWith(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 11,
-                    ),
-                  ),
-                ),
-              ],
-            ),
+
+            // Table Header
+            _buildTableHeader(theme),
             Divider(color: colorScheme.outline, thickness: 1),
+
+            // Transactions List
             StreamBuilder<List<TypedResult>>(
-              stream: appDb.ledgerDao.watchTransactionsForAccount(entry.account.id),
+              stream: appDb.ledgerDao.watchTransactionsForAccount(
+                entry.account.id,
+              ),
               builder: (context, txSnapshot) {
-                if (txSnapshot.connectionState == ConnectionState.waiting) {
-                  return Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    child: Center(
-                      child: SizedBox(
-                        width: 20,
-                        height: 20,
-                        child: CircularProgressIndicator(
-                          color: Theme.of(context).colorScheme.primary,
-                          strokeWidth: 2,
-                        ),
-                      ),
-                    ),
-                  );
-                }
+                if (!txSnapshot.hasData) return const LinearProgressIndicator();
 
                 final rows = txSnapshot.data ?? [];
                 double totalDebit = 0;
                 double totalCredit = 0;
 
-                for (final row in rows) {
-                  final tx = row.readTable(appDb.transactions);
-                  totalDebit += tx.debit;
-                  totalCredit += tx.credit;
-                }
-
                 return Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     ...rows.map((row) {
                       final journal = row.readTable(appDb.journals);
                       final tx = row.readTable(appDb.transactions);
+                      totalDebit += tx.debit;
+                      totalCredit += tx.credit;
+
                       return Padding(
                         padding: const EdgeInsets.symmetric(vertical: 6),
                         child: Row(
@@ -198,16 +125,15 @@ class CategoryDetailScreen extends StatelessWidget {
                               flex: 1,
                               child: Text(
                                 dateFormat.format(journal.date),
-                                style: theme.textTheme.bodyMedium!.copyWith(fontSize: 13),
+                                style: const TextStyle(fontSize: 12),
                               ),
                             ),
                             Expanded(
                               flex: 2,
                               child: Text(
                                 journal.description,
-                                style: theme.textTheme.bodyMedium!.copyWith(fontSize: 13),
+                                style: const TextStyle(fontSize: 12),
                                 maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
                               ),
                             ),
                             Expanded(
@@ -235,48 +161,15 @@ class CategoryDetailScreen extends StatelessWidget {
                       );
                     }),
                     Divider(color: colorScheme.outline, height: 24),
-                    // TOTAL row commented out for now; only BALANCE is shown.
-                    // Row(
-                    //   children: [
-                    //     const Expanded(
-                    //       flex: 1,
-                    //       child: Text(
-                    //         'TOTAL',
-                    //         style: TextStyle(
-                    //           fontWeight: FontWeight.bold,
-                    //           fontSize: 12,
-                    //         ),
-                    //       ),
-                    //     ),
-                    //     const Expanded(flex: 2, child: SizedBox()),
-                    //     Expanded(
-                    //       flex: 1,
-                    //       child: _buildAmountCell(
-                    //         _amountFormat.format(totalDebit),
-                    //         hasAmount: true,
-                    //         fontSize: 12,
-                    //         bold: true,
-                    //       ),
-                    //     ),
-                    //     Expanded(
-                    //       flex: 1,
-                    //       child: _buildAmountCell(
-                    //         _amountFormat.format(totalCredit),
-                    //         hasAmount: true,
-                    //         fontSize: 12,
-                    //         bold: true,
-                    //       ),
-                    //     ),
-                    //   ],
-                    // ),
-                    const SizedBox(height: 8),
+
+                    // Balance Row
                     Row(
                       children: [
-                        Expanded(
+                        const Expanded(
                           flex: 1,
                           child: Text(
                             'BALANCE',
-                            style: theme.textTheme.bodySmall!.copyWith(
+                            style: TextStyle(
                               fontWeight: FontWeight.w900,
                               fontSize: 12,
                             ),
@@ -287,15 +180,15 @@ class CategoryDetailScreen extends StatelessWidget {
                           flex: 2,
                           child: _buildAmountCell(
                             context,
+                            // FIX: Now using account.normalBalance instead of category.normalBalance
                             _amountFormat.format(
-                              _balanceForAccount(
-                                entry.category.normalBalance,
+                              _calculateBalance(
+                                entry.account.normalBalance,
                                 totalDebit,
                                 totalCredit,
                               ),
                             ),
                             hasAmount: true,
-                            fontSize: 12,
                             bold: true,
                           ),
                         ),
@@ -311,45 +204,67 @@ class CategoryDetailScreen extends StatelessWidget {
     );
   }
 
-  /// Balance per account using category normal balance (same logic as LedgerDao).
-  static double _balanceForAccount(
+  // --- Helper Methods ---
+
+  static double _calculateBalance(
     NormalBalance normalBalance,
-    double totalDebit,
-    double totalCredit,
+    double debit,
+    double credit,
   ) {
-    if (normalBalance == NormalBalance.debit) {
-      return totalDebit - totalCredit;
-    }
-    return totalCredit - totalDebit;
+    return (normalBalance == NormalBalance.debit)
+        ? (debit - credit)
+        : (credit - debit);
   }
 
-  /// Renders debit/credit cell: "—" centered, numbers right-aligned and scale down if too long.
+  Widget _buildTableHeader(ThemeData theme) {
+    const style = TextStyle(fontWeight: FontWeight.bold, fontSize: 11);
+    return const Row(
+      children: [
+        Expanded(flex: 1, child: Text('DATE', style: style)),
+        Expanded(flex: 2, child: Text('DESCRIPTION', style: style)),
+        Expanded(
+          flex: 1,
+          child: Text('DEBIT', textAlign: TextAlign.right, style: style),
+        ),
+        Expanded(
+          flex: 1,
+          child: Text('CREDIT', textAlign: TextAlign.right, style: style),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildEmptyState(ThemeData theme, ColorScheme colorScheme) {
+    return Center(
+      child: Text(
+        'No transactions found for this category.',
+        style: theme.textTheme.bodyMedium!.copyWith(
+          color: colorScheme.onSurfaceVariant,
+        ),
+      ),
+    );
+  }
+
   static Widget _buildAmountCell(
     BuildContext context,
     String value, {
     required bool hasAmount,
-    double fontSize = 13,
     bool bold = false,
   }) {
-    final theme = Theme.of(context);
-    final text = Text(
-      value,
-      textAlign: hasAmount ? TextAlign.right : TextAlign.center,
-      style: theme.textTheme.bodyMedium!.copyWith(
-        fontSize: fontSize,
-        fontWeight: bold ? FontWeight.bold : FontWeight.normal,
+    return Align(
+      alignment: Alignment.centerRight,
+      child: FittedBox(
+        fit: BoxFit.scaleDown,
+        child: Text(
+          value,
+          textAlign: hasAmount ? TextAlign.right : TextAlign.center,
+          style: TextStyle(
+            fontSize: 13,
+            fontWeight: bold ? FontWeight.bold : FontWeight.normal,
+            color: hasAmount ? null : Theme.of(context).colorScheme.outline,
+          ),
+        ),
       ),
     );
-    if (hasAmount) {
-      return Align(
-        alignment: Alignment.centerRight,
-        child: FittedBox(
-          fit: BoxFit.scaleDown,
-          alignment: Alignment.centerRight,
-          child: text,
-        ),
-      );
-    }
-    return text;
   }
 }

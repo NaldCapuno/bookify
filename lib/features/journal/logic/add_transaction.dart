@@ -2,7 +2,8 @@
 
 import 'package:bookkeeping/core/database/app_database.dart';
 import 'package:bookkeeping/core/database/daos/journal_entry_daos.dart';
-import 'package:bookkeeping/core/database/tables/account_categories_table.dart';
+import 'package:bookkeeping/core/database/tables/accounts_table.dart';
+import 'package:bookkeeping/core/theme/app_theme.dart';
 import 'package:bookkeeping/core/widgets/app_toast.dart';
 import 'package:flutter/material.dart';
 import 'package:drift/drift.dart' as drift;
@@ -252,8 +253,11 @@ class _AddJournalEntryFormState extends State<AddJournalEntryForm> {
                                   final isSelected =
                                       selectedAccountId == element.account.id;
                                   final isDebit =
-                                      element.category.normalBalance ==
+                                      element.account.normalBalance ==
                                       NormalBalance.debit;
+                                  final Color tagColor = isDebit
+                                      ? colorScheme.tertiary
+                                      : context.warning;
                                   return Container(
                                     key: isSelected ? selectedItemKey : null,
                                     margin: const EdgeInsets.symmetric(
@@ -283,9 +287,9 @@ class _AddJournalEntryFormState extends State<AddJournalEntryForm> {
                                           vertical: 6,
                                         ),
                                         decoration: BoxDecoration(
-                                          color: isDebit
-                                              ? colorScheme.primaryContainer
-                                              : colorScheme.tertiaryContainer,
+                                          color: tagColor.withValues(
+                                            alpha: 0.2,
+                                          ),
                                           borderRadius: BorderRadius.circular(
                                             20,
                                           ),
@@ -295,9 +299,7 @@ class _AddJournalEntryFormState extends State<AddJournalEntryForm> {
                                           style: TextStyle(
                                             fontSize: 11,
                                             fontWeight: FontWeight.bold,
-                                            color: isDebit
-                                                ? colorScheme.primary
-                                                : colorScheme.tertiary,
+                                            color: tagColor,
                                           ),
                                         ),
                                       ),
