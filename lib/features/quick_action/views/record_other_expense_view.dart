@@ -53,6 +53,8 @@ class _RecordOtherExpenseViewState extends State<RecordOtherExpenseView> {
 
   int _expenseAccountForType(String type) {
     switch (type) {
+      case 'tax':
+        return QuickActionAccounts.taxExpense;
       case 'interest':
         return QuickActionAccounts.interestExpense;
       case 'misc':
@@ -97,7 +99,9 @@ class _RecordOtherExpenseViewState extends State<RecordOtherExpenseView> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Failed to save expense. Please try again.')),
+          const SnackBar(
+            content: Text('Failed to save expense. Please try again.'),
+          ),
         );
       }
     } finally {
@@ -105,10 +109,13 @@ class _RecordOtherExpenseViewState extends State<RecordOtherExpenseView> {
     }
   }
 
-  Stream<double> get _balanceStream =>
-      _paymentMethod == 'cash'
-          ? appDb.ledgerDao.watchBalanceForAccountCode(QuickActionAccounts.cashOnHand)
-          : appDb.ledgerDao.watchBalanceForAccountCode(QuickActionAccounts.cashInBank);
+  Stream<double> get _balanceStream => _paymentMethod == 'cash'
+      ? appDb.ledgerDao.watchBalanceForAccountCode(
+          QuickActionAccounts.cashOnHand,
+        )
+      : appDb.ledgerDao.watchBalanceForAccountCode(
+          QuickActionAccounts.cashInBank,
+        );
 
   String get _balanceLabel =>
       _paymentMethod == 'cash' ? 'Cash balance:' : 'Bank balance:';
@@ -128,7 +135,8 @@ class _RecordOtherExpenseViewState extends State<RecordOtherExpenseView> {
         leading: BackButton(color: scheme.primary),
         title: Text(
           RecordOtherExpenseView._title,
-          style: textTheme.headlineLarge?.copyWith(fontSize: 20) ??
+          style:
+              textTheme.headlineLarge?.copyWith(fontSize: 20) ??
               TextStyle(color: scheme.onSurface, fontWeight: FontWeight.bold),
         ),
       ),
@@ -138,10 +146,12 @@ class _RecordOtherExpenseViewState extends State<RecordOtherExpenseView> {
           QuickActionAccounts.cashInBank,
         }),
         builder: (context, snap) {
-          final balances = snap.data ?? {
-            QuickActionAccounts.cashOnHand: 0.0,
-            QuickActionAccounts.cashInBank: 0.0,
-          };
+          final balances =
+              snap.data ??
+              {
+                QuickActionAccounts.cashOnHand: 0.0,
+                QuickActionAccounts.cashInBank: 0.0,
+              };
           final before = _paymentMethod == 'cash'
               ? (balances[QuickActionAccounts.cashOnHand] ?? 0.0)
               : (balances[QuickActionAccounts.cashInBank] ?? 0.0);
@@ -152,7 +162,9 @@ class _RecordOtherExpenseViewState extends State<RecordOtherExpenseView> {
             padding: const EdgeInsets.all(20),
             children: [
               BeforeAfterBalanceHeader(
-                label: _paymentMethod == 'cash' ? 'Cash balance' : 'Bank balance',
+                label: _paymentMethod == 'cash'
+                    ? 'Cash balance'
+                    : 'Bank balance',
                 before: before,
                 after: after,
               ),
@@ -192,6 +204,16 @@ class _RecordOtherExpenseViewState extends State<RecordOtherExpenseView> {
                   const SizedBox(width: 8),
                   Expanded(
                     child: _ExpenseChip(
+                      'Tax',
+                      'tax',
+                      _expenseType,
+                      () => setState(() => _expenseType = 'tax'),
+                      accentColor: const Color(0xFF00897B), // Teal
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: _ExpenseChip(
                       'Interest',
                       'interest',
                       _expenseType,
@@ -199,10 +221,14 @@ class _RecordOtherExpenseViewState extends State<RecordOtherExpenseView> {
                       accentColor: const Color(0xFF7B1FA2), // Purple
                     ),
                   ),
-                  const SizedBox(width: 8),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Row(
+                children: [
                   Expanded(
                     child: _ExpenseChip(
-                      'Misc',
+                      'Miscellaneous',
                       'misc',
                       _expenseType,
                       () => setState(() => _expenseType = 'misc'),
@@ -246,7 +272,13 @@ class _RecordOtherExpenseViewState extends State<RecordOtherExpenseView> {
 }
 
 class _ExpenseChip extends StatelessWidget {
-  const _ExpenseChip(this.label, this.value, this.selected, this.onTap, {required this.accentColor});
+  const _ExpenseChip(
+    this.label,
+    this.value,
+    this.selected,
+    this.onTap, {
+    required this.accentColor,
+  });
 
   final String label;
   final String value;
@@ -269,7 +301,9 @@ class _ExpenseChip extends StatelessWidget {
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(12),
             border: Border.all(
-              color: isSelected ? accentColor : accentColor.withValues(alpha: 0.4),
+              color: isSelected
+                  ? accentColor
+                  : accentColor.withValues(alpha: 0.4),
               width: isSelected ? 1.5 : 1,
             ),
           ),

@@ -12,7 +12,6 @@ import 'views/pay_your_debt_view.dart';
 import 'views/lend_money_view.dart';
 import 'views/settle_operations_view.dart';
 import 'views/fund_marketing_view.dart';
-import 'views/remit_taxes_view.dart';
 import 'views/refund_to_customers_view.dart';
 import 'views/record_other_expense_view.dart';
 import 'views/borrow_money_view.dart';
@@ -47,7 +46,8 @@ class QuickActionScreen extends StatelessWidget {
         ),
         title: Text(
           "Quick Actions",
-          style: textTheme.headlineLarge?.copyWith(fontSize: 20) ??
+          style:
+              textTheme.headlineLarge?.copyWith(fontSize: 20) ??
               TextStyle(color: scheme.onSurface, fontWeight: FontWeight.bold),
         ),
       ),
@@ -230,16 +230,6 @@ class QuickActionScreen extends StatelessWidget {
           ),
           _buildListTile(
             context,
-            "Remit Taxes",
-            "Pay government tax dues",
-            Icons.receipt_long_outlined,
-            onTap: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const RemitTaxesView()),
-            ),
-          ),
-          _buildListTile(
-            context,
             "Refund to Customers",
             "Return money for goods",
             Icons.assignment_return_outlined,
@@ -402,11 +392,12 @@ class QuickActionScreen extends StatelessWidget {
       padding: const EdgeInsets.only(bottom: 16, left: 4),
       child: Text(
         title,
-        style: textTheme.titleMedium?.copyWith(
-          color: scheme.onSurface,
-          fontSize: 20,
-          fontWeight: FontWeight.bold,
-        ) ??
+        style:
+            textTheme.titleMedium?.copyWith(
+              color: scheme.onSurface,
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+            ) ??
             TextStyle(
               fontSize: 20,
               fontWeight: FontWeight.bold,
@@ -460,21 +451,14 @@ class QuickActionScreen extends StatelessWidget {
                       ),
                       Text(
                         subtitle,
-                        style: TextStyle(
-                          color: subtitleColor,
-                          fontSize: 12,
-                        ),
+                        style: TextStyle(color: subtitleColor, fontSize: 12),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
                     ],
                   ),
                 ),
-                Icon(
-                  Icons.arrow_forward_ios,
-                  color: textColor,
-                  size: 16,
-                ),
+                Icon(Icons.arrow_forward_ios, color: textColor, size: 16),
               ],
             ),
           ),
@@ -521,7 +505,8 @@ class QuickActionScreen extends StatelessWidget {
                     children: [
                       Text(
                         title,
-                        style: textTheme.titleMedium?.copyWith(fontSize: 15) ??
+                        style:
+                            textTheme.titleMedium?.copyWith(fontSize: 15) ??
                             TextStyle(
                               fontWeight: FontWeight.bold,
                               fontSize: 15,
@@ -530,7 +515,8 @@ class QuickActionScreen extends StatelessWidget {
                       ),
                       Text(
                         subtitle,
-                        style: textTheme.bodySmall?.copyWith(fontSize: 12) ??
+                        style:
+                            textTheme.bodySmall?.copyWith(fontSize: 12) ??
                             TextStyle(
                               color: scheme.onSurfaceVariant,
                               fontSize: 12,
@@ -595,7 +581,8 @@ class QuickActionScreen extends StatelessWidget {
                 ),
                 Text(
                   t,
-                  style: textTheme.titleSmall?.copyWith(height: 1.1) ??
+                  style:
+                      textTheme.titleSmall?.copyWith(height: 1.1) ??
                       TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 13,
@@ -628,7 +615,8 @@ class QuickActionScreen extends StatelessWidget {
       ),
       title: Text(
         t,
-        style: textTheme.titleMedium?.copyWith(fontSize: 15) ??
+        style:
+            textTheme.titleMedium?.copyWith(fontSize: 15) ??
             TextStyle(
               fontWeight: FontWeight.w600,
               fontSize: 15,
@@ -637,7 +625,8 @@ class QuickActionScreen extends StatelessWidget {
       ),
       subtitle: Text(
         s,
-        style: textTheme.bodySmall?.copyWith(fontSize: 12) ??
+        style:
+            textTheme.bodySmall?.copyWith(fontSize: 12) ??
             TextStyle(fontSize: 12, color: scheme.onSurfaceVariant),
       ),
       trailing: Icon(

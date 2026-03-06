@@ -268,12 +268,6 @@ class _InventoryViewState extends State<InventoryView> {
               amountLabel: 'Raw Materials Used',
               onAmountChanged: () => setState(() {}),
             ),
-            const SizedBox(height: 16),
-            QuickActionAmountCard(
-              amountController: _laborController,
-              amountLabel: 'Direct Labor',
-              onAmountChanged: () => setState(() {}),
-            ),
             StreamBuilder<double>(
               stream: appDb.ledgerDao.watchBalanceForAccountCode(
                 QuickActionAccounts.inventoryRawMaterials,
@@ -290,7 +284,7 @@ class _InventoryViewState extends State<InventoryView> {
                   child: Align(
                     alignment: Alignment.centerLeft,
                     child: Text(
-                      'Raw Materials Remaining: ${formatAmount(displayRemaining)}',
+                      'Raw materials remaining: ${formatAmount(displayRemaining)}',
                       style: TextStyle(
                         fontSize: 13,
                         color: remaining < 0 ? scheme.error : scheme.onSurfaceVariant,
@@ -300,6 +294,39 @@ class _InventoryViewState extends State<InventoryView> {
                   ),
                 );
               },
+            ),
+            const SizedBox(height: 16),
+            QuickActionAmountCard(
+              amountController: _laborController,
+              amountLabel: 'Direct Labor',
+              onAmountChanged: () => setState(() {}),
+            ),
+            Padding(
+              padding: const EdgeInsets.only(top: 10),
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: Builder(
+                  builder: (context) {
+                    final rawUsed = double.tryParse(
+                          _rawUsedController.text.replaceAll(',', '').trim(),
+                        ) ??
+                        0.0;
+                    final labor = double.tryParse(
+                          _laborController.text.replaceAll(',', '').trim(),
+                        ) ??
+                        0.0;
+                    final totalFinishedGoods = rawUsed + labor;
+                    return Text(
+                      'Total finished goods: ${formatAmount(totalFinishedGoods)}',
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: scheme.onSurfaceVariant,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    );
+                  },
+                ),
+              ),
             ),
               ],
               const SizedBox(height: 24),
