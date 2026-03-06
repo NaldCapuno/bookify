@@ -107,7 +107,7 @@ class QuickActionScreen extends StatelessWidget {
             children: [
               Expanded(
                 child: _buildGridTile(
-                  "Acquire\nMaterials",
+                  "Acquire\nRaw Materials",
                   Icons.widgets_outlined,
                   inventoryTheme,
                   onTap: () => Navigator.push(
@@ -122,7 +122,7 @@ class QuickActionScreen extends StatelessWidget {
               const SizedBox(width: 12),
               Expanded(
                 child: _buildGridTile(
-                  "Produce\nGoods",
+                  "Produce\nFinished Goods",
                   Icons.inventory_2_outlined,
                   inventoryTheme,
                   onTap: () => Navigator.push(

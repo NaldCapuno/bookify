@@ -129,9 +129,21 @@ class _PayYourDebtViewState extends State<PayYourDebtView> {
             QuickActionAccounts.cashOnHand: 0.0,
             QuickActionAccounts.cashInBank: 0.0,
           };
+          final before = _paymentMethod == 'cash'
+              ? (balances[QuickActionAccounts.cashOnHand] ?? 0.0)
+              : (balances[QuickActionAccounts.cashInBank] ?? 0.0);
+          final amount = parseAmount(_amountController);
+          final after = before - amount;
+
           return ListView(
             padding: const EdgeInsets.all(20),
             children: [
+              BeforeAfterBalanceHeader(
+                label: _paymentMethod == 'cash' ? 'Cash balance' : 'Bank balance',
+                before: before,
+                after: after,
+              ),
+              const SizedBox(height: 16),
               QuickActionAmountCard(
                 amountController: _amountController,
                 amountLabel: 'Amount',
@@ -157,7 +169,7 @@ class _PayYourDebtViewState extends State<PayYourDebtView> {
                 children: [
                   Expanded(
                     child: _DebtChip(
-                      label: 'Payable ≤ 3 months',
+                      label: 'Payable (3 months or less)',
                       isSelected: _debtType == 'ap',
                       onTap: () => setState(() => _debtType = 'ap'),
                     ),
@@ -165,7 +177,7 @@ class _PayYourDebtViewState extends State<PayYourDebtView> {
                   const SizedBox(width: 8),
                   Expanded(
                     child: _DebtChip(
-                      label: 'Loan > 3 months',
+                      label: 'Loan (more than 3 months)',
                       isSelected: _debtType == 'loan',
                       onTap: () => setState(() => _debtType = 'loan'),
                     ),

@@ -122,7 +122,7 @@ class _BorrowMoneyViewState extends State<BorrowMoneyView> {
             children: [
               Expanded(
                 child: _DebtChip(
-                  label: 'Payable ≤ 3 months',
+                  label: 'Payable (3 months or less)',
                   isSelected: _debtType == 'ap',
                   onTap: () => setState(() => _debtType = 'ap'),
                 ),
@@ -130,7 +130,7 @@ class _BorrowMoneyViewState extends State<BorrowMoneyView> {
               const SizedBox(width: 8),
               Expanded(
                 child: _DebtChip(
-                  label: 'Loan > 3 months',
+                  label: 'Loan (more than 3 months)',
                   isSelected: _debtType == 'loan',
                   onTap: () => setState(() => _debtType = 'loan'),
                 ),

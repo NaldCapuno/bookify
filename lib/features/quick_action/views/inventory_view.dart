@@ -180,7 +180,7 @@ class _InventoryViewState extends State<InventoryView> {
         elevation: 0,
         leading: const BackButton(color: Colors.black87),
         title: Text(
-          '${widget.actionType} Inventory',
+          isAcquire ? 'Acquire Raw Materials' : 'Produce Finished Goods',
           style: const TextStyle(color: Colors.black87, fontWeight: FontWeight.bold),
         ),
       ),

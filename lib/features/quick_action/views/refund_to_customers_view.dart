@@ -150,9 +150,22 @@ class _RefundToCustomersViewState extends State<RefundToCustomersView> {
             QuickActionAccounts.cashOnHand: 0.0,
             QuickActionAccounts.cashInBank: 0.0,
           };
+          final before = _method == 'cash'
+              ? (balances[QuickActionAccounts.cashOnHand] ?? 0.0)
+              : (balances[QuickActionAccounts.cashInBank] ?? 0.0);
+          final amount = parseAmount(_amountController);
+          final after = before - amount;
+
           return ListView(
             padding: const EdgeInsets.all(20),
             children: [
+              if (_isOutflow)
+                BeforeAfterBalanceHeader(
+                  label: _method == 'cash' ? 'Cash balance' : 'Bank balance',
+                  before: before,
+                  after: after,
+                ),
+              if (_isOutflow) const SizedBox(height: 16),
               QuickActionAmountCard(
                 amountController: _amountController,
                 amountLabel: 'Amount',
