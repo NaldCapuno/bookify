@@ -4,6 +4,10 @@ import 'package:tutorial_coach_mark/tutorial_coach_mark.dart';
 
 class WalkthroughService {
   static const String _prefPrefix = 'walkthrough_complete_';
+  static const Color _walkthroughShadow = Colors.black;
+  static const Color _walkthroughOnShadow = Colors.white;
+  static const Color _walkthroughButtonBg = Colors.white;
+  static const Color _walkthroughButtonFg = Colors.black87;
 
   /// Uncomment the calls below to enable: walkthroughs won't show again after Finish or Skip
   // ignore: unused_element
@@ -57,7 +61,7 @@ class WalkthroughService {
 
     TutorialCoachMark(
       targets: targets,
-      colorShadow: Theme.of(context).colorScheme.primary,
+      colorShadow: _walkthroughShadow,
       opacityShadow: 0.9,
       textSkip: "SKIP",
       paddingFocus: 10,
@@ -106,7 +110,7 @@ class WalkthroughService {
 
     TutorialCoachMark(
       targets: targets,
-      colorShadow: Theme.of(context).colorScheme.primary,
+      colorShadow: _walkthroughShadow,
       opacityShadow: 0.9,
       textSkip: "SKIP",
       beforeFocus: (target) => _scrollToTarget(target),
@@ -165,7 +169,7 @@ class WalkthroughService {
 
     TutorialCoachMark(
       targets: targets,
-      colorShadow: Theme.of(context).colorScheme.primary,
+      colorShadow: _walkthroughShadow,
       opacityShadow: 0.9,
       textSkip: "SKIP",
       beforeFocus: (target) => _scrollToTarget(target),
@@ -211,7 +215,7 @@ class WalkthroughService {
 
     TutorialCoachMark(
       targets: targets,
-      colorShadow: Theme.of(context).colorScheme.primary,
+      colorShadow: _walkthroughShadow,
       opacityShadow: 0.9,
       textSkip: "SKIP",
       beforeFocus: (target) => _scrollToTarget(target),
@@ -259,7 +263,7 @@ class WalkthroughService {
 
     TutorialCoachMark(
       targets: targets,
-      colorShadow: Theme.of(context).colorScheme.primary,
+      colorShadow: _walkthroughShadow,
       opacityShadow: 0.9,
       textSkip: "SKIP",
       beforeFocus: (target) => _scrollToTarget(target),
@@ -311,7 +315,7 @@ class WalkthroughService {
                   title,
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
-                    color: Theme.of(context).colorScheme.onPrimary,
+                    color: _walkthroughOnShadow,
                     fontSize: 22,
                   ),
                 ),
@@ -319,7 +323,7 @@ class WalkthroughService {
                 Text(
                   text,
                   style: TextStyle(
-                    color: Theme.of(context).colorScheme.onPrimary,
+                    color: _walkthroughOnShadow,
                     fontSize: 16,
                   ),
                 ),
@@ -329,8 +333,8 @@ class WalkthroughService {
                     controller.next();
                   },
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Theme.of(context).colorScheme.surface,
-                    foregroundColor: Theme.of(context).colorScheme.onSurface,
+                    backgroundColor: _walkthroughButtonBg,
+                    foregroundColor: _walkthroughButtonFg,
                   ),
                   child: Text(
                     isLastStep ? "Finish" : "Next",
