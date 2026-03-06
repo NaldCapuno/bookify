@@ -129,70 +129,87 @@ class _RecordOtherExpenseViewState extends State<RecordOtherExpenseView> {
           style: TextStyle(color: Colors.black87, fontWeight: FontWeight.bold),
         ),
       ),
-      body: ListView(
-        padding: const EdgeInsets.all(20),
-        children: [
-          QuickActionAmountCard(
-            amountController: _amountController,
-            amountLabel: 'Amount',
-            balanceStream: _balanceStream,
-            balanceLabel: _balanceLabel,
-            checkInsufficient: true,
-            onAmountChanged: () => setState(() {}),
-          ),
-          StreamBuilder<double>(
-            stream: _balanceStream,
-            builder: (context, snap) {
-              final balance = snap.data ?? 0.0;
-              return InsufficientBalanceNotice(
-                amount: _currentAmount,
-                currentBalance: balance,
-                isOutflow: true,
-              );
-            },
-          ),
-          const SizedBox(height: 24),
-          const QuickActionSectionLabel('Expense Type'),
-          Row(
+      body: StreamBuilder<Map<int, double>>(
+        stream: appDb.ledgerDao.watchBalancesForAccountCodes({
+          QuickActionAccounts.cashOnHand,
+          QuickActionAccounts.cashInBank,
+        }),
+        builder: (context, snap) {
+          final balances = snap.data ?? {
+            QuickActionAccounts.cashOnHand: 0.0,
+            QuickActionAccounts.cashInBank: 0.0,
+          };
+          return ListView(
+            padding: const EdgeInsets.all(20),
             children: [
-              Expanded(
-                child: _ExpenseChip(
-                  'Bank Fees',
-                  'bankFees',
-                  _expenseType,
-                  () => setState(() => _expenseType = 'bankFees'),
-                ),
+              QuickActionAmountCard(
+                amountController: _amountController,
+                amountLabel: 'Amount',
+                balanceStream: _balanceStream,
+                balanceLabel: _balanceLabel,
+                checkInsufficient: true,
+                onAmountChanged: () => setState(() {}),
               ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: _ExpenseChip(
-                  'Interest',
-                  'interest',
-                  _expenseType,
-                  () => setState(() => _expenseType = 'interest'),
-                ),
+              StreamBuilder<double>(
+                stream: _balanceStream,
+                builder: (context, snap) {
+                  final balance = snap.data ?? 0.0;
+                  return InsufficientBalanceNotice(
+                    amount: _currentAmount,
+                    currentBalance: balance,
+                    isOutflow: true,
+                  );
+                },
               ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: _ExpenseChip(
-                  'Misc',
-                  'misc',
-                  _expenseType,
-                  () => setState(() => _expenseType = 'misc'),
-                ),
+              const SizedBox(height: 24),
+              const QuickActionSectionLabel('Expense Type'),
+              Row(
+                children: [
+                  Expanded(
+                    child: _ExpenseChip(
+                      'Bank Fees',
+                      'bankFees',
+                      _expenseType,
+                      () => setState(() => _expenseType = 'bankFees'),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: _ExpenseChip(
+                      'Interest',
+                      'interest',
+                      _expenseType,
+                      () => setState(() => _expenseType = 'interest'),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: _ExpenseChip(
+                      'Misc',
+                      'misc',
+                      _expenseType,
+                      () => setState(() => _expenseType = 'misc'),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 20),
+              const QuickActionSectionLabel('Paid via'),
+              CashBankChips(
+                value: _paymentMethod,
+                onChanged: (v) => setState(() => _paymentMethod = v),
+                cashBalance: balances[QuickActionAccounts.cashOnHand],
+                bankBalance: balances[QuickActionAccounts.cashInBank],
+              ),
+              const SizedBox(height: 24),
+              QuickActionDetailsCard(
+                descriptionController: _descController,
+                dateText: _dateController.text,
+                onDateTap: _pickDate,
               ),
             ],
-          ),
-          const SizedBox(height: 20),
-          const QuickActionSectionLabel('Paid via'),
-          CashBankChips(value: _paymentMethod, onChanged: (v) => setState(() => _paymentMethod = v)),
-          const SizedBox(height: 24),
-          QuickActionDetailsCard(
-            descriptionController: _descController,
-            dateText: _dateController.text,
-            onDateTap: _pickDate,
-          ),
-        ],
+          );
+        },
       ),
       bottomNavigationBar: StreamBuilder<double>(
         stream: _balanceStream,

@@ -152,6 +152,16 @@ class QuickActionScreen extends StatelessWidget {
             ),
           ),
           _buildListTile(
+            "Disburse Funds",
+            "Owner withdrawal or fund distribution",
+            Icons.account_balance_outlined,
+            otherTheme,
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const DisburseFundsView()),
+            ),
+          ),
+          _buildListTile(
             "Lend Money",
             "Provide a loan or advance",
             Icons.handshake_outlined,
@@ -302,19 +312,6 @@ class QuickActionScreen extends StatelessWidget {
             Navigator.push(
               context,
               MaterialPageRoute(builder: (_) => const BorrowMoneyView()),
-            );
-          },
-        ),
-        _buildListTile(
-          "Disburse funds",
-          "Receive external funding",
-          Icons.account_balance_outlined,
-          receiveTheme,
-          onTap: () {
-            Navigator.pop(context);
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const DisburseFundsView()),
             );
           },
         ),

@@ -140,43 +140,57 @@ class _RefundToCustomersViewState extends State<RefundToCustomersView> {
           style: TextStyle(color: Colors.black87, fontWeight: FontWeight.bold),
         ),
       ),
-      body: ListView(
-        padding: const EdgeInsets.all(20),
-        children: [
-          QuickActionAmountCard(
-            amountController: _amountController,
-            amountLabel: 'Amount',
-            balanceStream: _balanceStream,
-            balanceLabel: _balanceLabel,
-            checkInsufficient: _isOutflow,
-            onAmountChanged: () => setState(() {}),
-          ),
-          if (_isOutflow && _balanceStream != null)
-            StreamBuilder<double>(
-              stream: _balanceStream,
-              builder: (context, snap) {
-                final balance = snap.data ?? 0.0;
-                return InsufficientBalanceNotice(
-                  amount: _currentAmount,
-                  currentBalance: balance,
-                  isOutflow: true,
-                );
-              },
-            ),
-          const SizedBox(height: 24),
-          const QuickActionSectionLabel('Refunded via'),
-          PaymentMethodChips(
-            value: _method,
-            onChanged: (v) => setState(() => _method = v),
-            creditLabel: 'On Credit',
-          ),
-          const SizedBox(height: 24),
-          QuickActionDetailsCard(
-            descriptionController: _descController,
-            dateText: _dateController.text,
-            onDateTap: _pickDate,
-          ),
-        ],
+      body: StreamBuilder<Map<int, double>>(
+        stream: appDb.ledgerDao.watchBalancesForAccountCodes({
+          QuickActionAccounts.cashOnHand,
+          QuickActionAccounts.cashInBank,
+        }),
+        builder: (context, snap) {
+          final balances = snap.data ?? {
+            QuickActionAccounts.cashOnHand: 0.0,
+            QuickActionAccounts.cashInBank: 0.0,
+          };
+          return ListView(
+            padding: const EdgeInsets.all(20),
+            children: [
+              QuickActionAmountCard(
+                amountController: _amountController,
+                amountLabel: 'Amount',
+                balanceStream: _balanceStream,
+                balanceLabel: _balanceLabel,
+                checkInsufficient: _isOutflow,
+                onAmountChanged: () => setState(() {}),
+              ),
+              if (_isOutflow && _balanceStream != null)
+                StreamBuilder<double>(
+                  stream: _balanceStream,
+                  builder: (context, snap) {
+                    final balance = snap.data ?? 0.0;
+                    return InsufficientBalanceNotice(
+                      amount: _currentAmount,
+                      currentBalance: balance,
+                      isOutflow: true,
+                    );
+                  },
+                ),
+              const SizedBox(height: 24),
+              const QuickActionSectionLabel('Refunded via'),
+              PaymentMethodChips(
+                value: _method,
+                onChanged: (v) => setState(() => _method = v),
+                creditLabel: 'On Credit',
+                cashBalance: balances[QuickActionAccounts.cashOnHand],
+                bankBalance: balances[QuickActionAccounts.cashInBank],
+              ),
+              const SizedBox(height: 24),
+              QuickActionDetailsCard(
+                descriptionController: _descController,
+                dateText: _dateController.text,
+                onDateTap: _pickDate,
+              ),
+            ],
+          );
+        },
       ),
       bottomNavigationBar: _isOutflow && _balanceStream != null
           ? StreamBuilder<double>(

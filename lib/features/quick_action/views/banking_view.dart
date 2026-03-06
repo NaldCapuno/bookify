@@ -91,24 +91,15 @@ class _BankingViewState extends State<BankingView> {
     }
   }
 
-  Stream<double> get _balanceStream {
-    if (widget.type == 'Deposit') {
-      return appDb.ledgerDao.watchBalanceForAccountCode(QuickActionAccounts.cashOnHand);
-    }
-    return appDb.ledgerDao.watchBalanceForAccountCode(QuickActionAccounts.cashInBank);
-  }
-
-  String get _balanceLabel =>
-      widget.type == 'Deposit' ? 'Cash balance:' : 'Bank balance:';
-
   String get _amountLabel =>
-      widget.type == 'Deposit' ? 'Amount to Bank' : 'Amount from Bank';
+      widget.type == 'Deposit' ? 'Deposit amount' : 'Withdraw amount';
 
   double get _currentAmount =>
       double.tryParse(_amountController.text.replaceAll(',', '').trim()) ?? 0;
 
   @override
   Widget build(BuildContext context) {
+    final isDeposit = widget.type == 'Deposit';
     return Scaffold(
       backgroundColor: Colors.grey.shade50,
       appBar: AppBar(
@@ -116,45 +107,77 @@ class _BankingViewState extends State<BankingView> {
         elevation: 0,
         leading: const BackButton(color: Colors.black87),
         title: Text(
-          '${widget.type} Funds',
+          widget.type == 'Deposit' ? 'Deposit to Bank' : 'Withdraw from Bank',
           style: const TextStyle(color: Colors.black87, fontWeight: FontWeight.bold),
         ),
       ),
-      body: ListView(
-        padding: const EdgeInsets.all(20),
-        children: [
-          QuickActionAmountCard(
-            amountController: _amountController,
-            amountLabel: _amountLabel,
-            balanceStream: _balanceStream,
-            balanceLabel: _balanceLabel,
-            checkInsufficient: true,
-            onAmountChanged: () => setState(() {}),
-          ),
-          StreamBuilder<double>(
-            stream: _balanceStream,
-            builder: (context, snap) {
-              final balance = snap.data ?? 0.0;
-              return InsufficientBalanceNotice(
-                amount: _currentAmount,
-                currentBalance: balance,
-                isOutflow: true,
-              );
-            },
-          ),
-          const SizedBox(height: 24),
-          QuickActionDetailsCard(
-            descriptionController: _descController,
-            dateText: _dateController.text,
-            onDateTap: _pickDate,
-          ),
-        ],
-      ),
-      bottomNavigationBar: StreamBuilder<double>(
-        stream: _balanceStream,
+      body: StreamBuilder<Map<int, double>>(
+        stream: appDb.ledgerDao.watchBalancesForAccountCodes({
+          QuickActionAccounts.cashOnHand,
+          QuickActionAccounts.cashInBank,
+        }),
         builder: (context, snap) {
-          final balance = snap.data ?? 0.0;
-          final insufficient = _currentAmount > balance && _currentAmount > 0;
+          final balances = snap.data ?? {
+            QuickActionAccounts.cashOnHand: 0.0,
+            QuickActionAccounts.cashInBank: 0.0,
+          };
+          final cash = balances[QuickActionAccounts.cashOnHand] ?? 0.0;
+          final bank = balances[QuickActionAccounts.cashInBank] ?? 0.0;
+          final amount = _currentAmount;
+
+          // Only show bank balance: before and after (deposit adds, withdraw subtracts).
+          final bankBefore = bank;
+          final bankAfter = isDeposit ? bank + amount : bank - amount;
+          final sourceBalance = isDeposit ? cash : bank;
+          final insufficient = amount > 0 && amount > sourceBalance;
+
+          return ListView(
+            padding: const EdgeInsets.all(20),
+            children: [
+              BeforeAfterBalanceHeader(
+                label: 'Bank balance',
+                before: bankBefore,
+                after: bankAfter,
+              ),
+              const SizedBox(height: 16),
+              QuickActionAmountCard(
+                amountController: _amountController,
+                amountLabel: _amountLabel,
+                onAmountChanged: () => setState(() {}),
+              ),
+              if (insufficient)
+                Padding(
+                  padding: const EdgeInsets.only(top: 8),
+                  child: InsufficientBalanceNotice(
+                    amount: amount,
+                    currentBalance: sourceBalance,
+                    isOutflow: true,
+                  ),
+                ),
+              const SizedBox(height: 24),
+              QuickActionDetailsCard(
+                descriptionController: _descController,
+                dateText: _dateController.text,
+                onDateTap: _pickDate,
+              ),
+            ],
+          );
+        },
+      ),
+      bottomNavigationBar: StreamBuilder<Map<int, double>>(
+        stream: appDb.ledgerDao.watchBalancesForAccountCodes({
+          QuickActionAccounts.cashOnHand,
+          QuickActionAccounts.cashInBank,
+        }),
+        builder: (context, snap) {
+          final balances = snap.data ?? {
+            QuickActionAccounts.cashOnHand: 0.0,
+            QuickActionAccounts.cashInBank: 0.0,
+          };
+          final sourceBalance = isDeposit
+              ? (balances[QuickActionAccounts.cashOnHand] ?? 0.0)
+              : (balances[QuickActionAccounts.cashInBank] ?? 0.0);
+          final insufficient = _currentAmount > sourceBalance && _currentAmount > 0;
           return QuickActionSaveButton(
             onPressed: insufficient ? null : _save,
             isSaving: _isSaving,

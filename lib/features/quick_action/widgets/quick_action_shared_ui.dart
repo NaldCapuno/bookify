@@ -13,17 +13,22 @@ double parseAmount(TextEditingController c) {
 }
 
 /// Before/After balance header shown above the amount card.
+/// Optional [beforeTitle] and [afterTitle] override the column headers (default: 'BEFORE', 'AFTER').
 class BeforeAfterBalanceHeader extends StatelessWidget {
   const BeforeAfterBalanceHeader({
     super.key,
     required this.label,
     required this.before,
     required this.after,
+    this.beforeTitle = 'BEFORE',
+    this.afterTitle = 'AFTER',
   });
 
   final String label;
   final double before;
   final double after;
+  final String beforeTitle;
+  final String afterTitle;
 
   @override
   Widget build(BuildContext context) {
@@ -38,7 +43,7 @@ class BeforeAfterBalanceHeader extends StatelessWidget {
         children: [
           Expanded(
             child: _BeforeAfterColumn(
-              title: 'BEFORE',
+              title: beforeTitle,
               label: label,
               value: before,
             ),
@@ -50,7 +55,7 @@ class BeforeAfterBalanceHeader extends StatelessWidget {
           ),
           Expanded(
             child: _BeforeAfterColumn(
-              title: 'AFTER',
+              title: afterTitle,
               label: label,
               value: after,
             ),

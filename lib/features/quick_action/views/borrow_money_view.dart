@@ -1,4 +1,3 @@
-import 'package:bookkeeping/core/database/app_database.dart';
 import 'package:bookkeeping/features/quick_action/quick_action_journal_service.dart';
 import 'package:bookkeeping/features/quick_action/widgets/quick_action_shared_ui.dart';
 import 'package:flutter/material.dart';
@@ -96,14 +95,6 @@ class _BorrowMoneyViewState extends State<BorrowMoneyView> {
     }
   }
 
-  Stream<double> get _balanceStream =>
-      _receivedTo == 'cash'
-          ? appDb.ledgerDao.watchBalanceForAccountCode(QuickActionAccounts.cashOnHand)
-          : appDb.ledgerDao.watchBalanceForAccountCode(QuickActionAccounts.cashInBank);
-
-  String get _balanceLabel =>
-      _receivedTo == 'cash' ? 'Cash balance:' : 'Bank balance:';
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -117,64 +108,48 @@ class _BorrowMoneyViewState extends State<BorrowMoneyView> {
           style: TextStyle(color: Colors.black87, fontWeight: FontWeight.bold),
         ),
       ),
-      body: StreamBuilder<Map<int, double>>(
-        stream: appDb.ledgerDao.watchBalancesForAccountCodes({
-          QuickActionAccounts.cashOnHand,
-          QuickActionAccounts.cashInBank,
-        }),
-        builder: (context, snap) {
-          final balances = snap.data ??
-              {
-                QuickActionAccounts.cashOnHand: 0.0,
-                QuickActionAccounts.cashInBank: 0.0,
-              };
-
-          return ListView(
-            padding: const EdgeInsets.all(20),
+      body: ListView(
+        padding: const EdgeInsets.all(20),
+        children: [
+          QuickActionAmountCard(
+            amountController: _amountController,
+            amountLabel: 'Amount',
+            onAmountChanged: () => setState(() {}),
+          ),
+          const SizedBox(height: 24),
+          const QuickActionSectionLabel('Debt Account'),
+          Row(
             children: [
-              QuickActionAmountCard(
-                amountController: _amountController,
-                amountLabel: 'Amount',
-                onAmountChanged: () => setState(() {}),
+              Expanded(
+                child: _DebtChip(
+                  label: 'Payable ≤ 3 months',
+                  isSelected: _debtType == 'ap',
+                  onTap: () => setState(() => _debtType = 'ap'),
+                ),
               ),
-              const SizedBox(height: 24),
-              const QuickActionSectionLabel('Debt Account'),
-              Row(
-                children: [
-                  Expanded(
-                    child: _DebtChip(
-                      label: 'Payable (≤ 3 months)',
-                      isSelected: _debtType == 'ap',
-                      onTap: () => setState(() => _debtType = 'ap'),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: _DebtChip(
-                      label: 'Loan (> 3 months)',
-                      isSelected: _debtType == 'loan',
-                      onTap: () => setState(() => _debtType = 'loan'),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 20),
-              const QuickActionSectionLabel('Received to (Cash / Bank)'),
-              CashBankChips(
-                value: _receivedTo,
-                onChanged: (v) => setState(() => _receivedTo = v),
-                cashBalance: balances[QuickActionAccounts.cashOnHand],
-                bankBalance: balances[QuickActionAccounts.cashInBank],
-              ),
-              const SizedBox(height: 24),
-              QuickActionDetailsCard(
-                descriptionController: _descController,
-                dateText: _dateController.text,
-                onDateTap: _pickDate,
+              const SizedBox(width: 8),
+              Expanded(
+                child: _DebtChip(
+                  label: 'Loan > 3 months',
+                  isSelected: _debtType == 'loan',
+                  onTap: () => setState(() => _debtType = 'loan'),
+                ),
               ),
             ],
-          );
-        },
+          ),
+          const SizedBox(height: 20),
+          const QuickActionSectionLabel('Received to (Cash / Bank)'),
+          CashBankChips(
+            value: _receivedTo,
+            onChanged: (v) => setState(() => _receivedTo = v),
+          ),
+          const SizedBox(height: 24),
+          QuickActionDetailsCard(
+            descriptionController: _descController,
+            dateText: _dateController.text,
+            onDateTap: _pickDate,
+          ),
+        ],
       ),
       bottomNavigationBar: QuickActionSaveButton(
         onPressed: _save,

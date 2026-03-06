@@ -171,36 +171,63 @@ class _RecordPurchaseViewState extends State<RecordPurchaseView> {
           style: TextStyle(color: Colors.black87, fontWeight: FontWeight.bold),
         ),
       ),
-      body: ListView(
-        padding: const EdgeInsets.all(20),
-        children: [
-          QuickActionAmountCard(
-            amountController: _amountController,
-            amountLabel: 'Amount',
-            balanceStream: _balanceStream,
-            balanceLabel: _balanceLabel,
-            checkInsufficient: _isOutflow,
-            onAmountChanged: () => setState(() {}),
-          ),
-          if (_isOutflow && _balanceStream != null)
-            StreamBuilder<double>(
-              stream: _balanceStream,
-              builder: (context, snap) {
-                final balance = snap.data ?? 0.0;
-                return InsufficientBalanceNotice(
-                  amount: _currentAmount,
-                  currentBalance: balance,
-                  isOutflow: true,
-                );
-              },
-            ),
-          const SizedBox(height: 24),
-          const QuickActionSectionLabel('Paid via'),
-          PaymentMethodChips(
-            value: _selectedPaymentMethod,
-            onChanged: (v) => setState(() => _selectedPaymentMethod = v),
-            creditLabel: 'Pay Later',
-          ),
+      body: StreamBuilder<Map<int, double>>(
+        stream: appDb.ledgerDao.watchBalancesForAccountCodes({
+          QuickActionAccounts.cashOnHand,
+          QuickActionAccounts.cashInBank,
+        }),
+        builder: (context, snap) {
+          final balances = snap.data ?? {
+            QuickActionAccounts.cashOnHand: 0.0,
+            QuickActionAccounts.cashInBank: 0.0,
+          };
+          final cashBalance = balances[QuickActionAccounts.cashOnHand] ?? 0.0;
+          final bankBalance = balances[QuickActionAccounts.cashInBank] ?? 0.0;
+          final amount = _currentAmount;
+          final isCash = _selectedPaymentMethod == 'cash';
+
+          return ListView(
+            padding: const EdgeInsets.all(20),
+            children: [
+              if (_isOutflow) ...[
+                BeforeAfterBalanceHeader(
+                  label: isCash ? 'Cash balance' : 'Bank balance',
+                  before: isCash ? cashBalance : bankBalance,
+                  after: (isCash ? cashBalance : bankBalance) - amount,
+                  beforeTitle: 'Current',
+                  afterTitle: 'AFTER',
+                ),
+                const SizedBox(height: 16),
+              ],
+              QuickActionAmountCard(
+                amountController: _amountController,
+                amountLabel: 'Amount',
+                balanceStream: _balanceStream,
+                balanceLabel: _balanceLabel,
+                checkInsufficient: _isOutflow,
+                onAmountChanged: () => setState(() {}),
+              ),
+              if (_isOutflow && _balanceStream != null)
+                StreamBuilder<double>(
+                  stream: _balanceStream,
+                  builder: (context, snap) {
+                    final balance = snap.data ?? 0.0;
+                    return InsufficientBalanceNotice(
+                      amount: _currentAmount,
+                      currentBalance: balance,
+                      isOutflow: true,
+                    );
+                  },
+                ),
+              const SizedBox(height: 24),
+              const QuickActionSectionLabel('Paid via'),
+              PaymentMethodChips(
+                value: _selectedPaymentMethod,
+                onChanged: (v) => setState(() => _selectedPaymentMethod = v),
+                creditLabel: 'Pay Later',
+                cashBalance: balances[QuickActionAccounts.cashOnHand],
+                bankBalance: balances[QuickActionAccounts.cashInBank],
+              ),
           if (isUnpaid)
             Padding(
               padding: const EdgeInsets.only(top: 12),
@@ -247,7 +274,9 @@ class _RecordPurchaseViewState extends State<RecordPurchaseView> {
             onDateTap: _pickDate,
             descriptionHint: 'e.g. 2 Laptops for office',
           ),
-        ],
+            ],
+          );
+        },
       ),
       bottomNavigationBar: _isOutflow && _balanceStream != null
           ? StreamBuilder<double>(

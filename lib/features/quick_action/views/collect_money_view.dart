@@ -62,6 +62,23 @@ class _CollectMoneyViewState extends State<CollectMoneyView> {
       return;
     }
 
+    // Never accept amount greater than current receivables.
+    final receivablesBalance = await appDb.ledgerDao
+        .watchBalanceForAccountCode(QuickActionAccounts.accountsReceivable)
+        .first;
+    if (amount > receivablesBalance) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Amount collected cannot exceed total receivables. Reduce the amount.',
+            ),
+          ),
+        );
+      }
+      return;
+    }
+
     setState(() => _isSaving = true);
     try {
       final toCashOnHand = _cashLocation == 'cash';
@@ -126,7 +143,8 @@ class _CollectMoneyViewState extends State<CollectMoneyView> {
           final receivablesBefore =
               balances[QuickActionAccounts.accountsReceivable] ?? 0.0;
           final amount = parseAmount(_amountController);
-          final receivablesAfter = (receivablesBefore - amount);
+          final receivablesAfter = receivablesBefore - amount;
+          final exceedsReceivables = amount > 0 && amount > receivablesBefore;
 
           return ListView(
             padding: const EdgeInsets.all(20),
@@ -135,6 +153,8 @@ class _CollectMoneyViewState extends State<CollectMoneyView> {
                 label: 'Total Receivables',
                 before: receivablesBefore,
                 after: receivablesAfter,
+                beforeTitle: 'Current',
+                afterTitle: 'AFTER',
               ),
               const SizedBox(height: 16),
               QuickActionAmountCard(
@@ -142,13 +162,32 @@ class _CollectMoneyViewState extends State<CollectMoneyView> {
                 amountLabel: 'Amount Collected',
                 onAmountChanged: () => setState(() {}),
               ),
+              if (exceedsReceivables)
+                Padding(
+                  padding: const EdgeInsets.only(top: 8),
+                  child: Row(
+                    children: [
+                      Icon(Icons.warning_amber_rounded,
+                          size: 20, color: Colors.red.shade700),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          'Amount cannot exceed total receivables (₱ ${formatAmount(receivablesBefore)}).',
+                          style: TextStyle(
+                            color: Colors.red.shade700,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               const SizedBox(height: 24),
               const QuickActionSectionLabel('Received to (Cash / Bank)'),
               CashBankChips(
                 value: _cashLocation,
                 onChanged: (v) => setState(() => _cashLocation = v),
-                cashBalance: balances[QuickActionAccounts.cashOnHand],
-                bankBalance: balances[QuickActionAccounts.cashInBank],
               ),
               const SizedBox(height: 24),
               QuickActionDetailsCard(
@@ -160,10 +199,24 @@ class _CollectMoneyViewState extends State<CollectMoneyView> {
           );
         },
       ),
-      bottomNavigationBar: QuickActionSaveButton(
-        onPressed: _save,
-        isSaving: _isSaving,
-        label: 'Save Entry',
+      bottomNavigationBar: StreamBuilder<Map<int, double>>(
+        stream: appDb.ledgerDao.watchBalancesForAccountCodes({
+          QuickActionAccounts.accountsReceivable,
+        }),
+        builder: (context, snap) {
+          final balances = snap.data ?? {
+            QuickActionAccounts.accountsReceivable: 0.0,
+          };
+          final receivablesBefore =
+              balances[QuickActionAccounts.accountsReceivable] ?? 0.0;
+          final amount = parseAmount(_amountController);
+          final exceedsReceivables = amount > receivablesBefore && amount > 0;
+          return QuickActionSaveButton(
+            onPressed: exceedsReceivables ? null : _save,
+            isSaving: _isSaving,
+            label: 'Save Entry',
+          );
+        },
       ),
     );
   }
