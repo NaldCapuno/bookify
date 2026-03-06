@@ -1,4 +1,5 @@
 import 'package:bookkeeping/core/database/app_database.dart';
+import 'package:bookkeeping/core/theme/app_theme.dart';
 import 'package:bookkeeping/features/quick_action/quick_action_journal_service.dart';
 import 'package:bookkeeping/features/quick_action/widgets/quick_action_shared_ui.dart';
 import 'package:flutter/material.dart';
@@ -159,16 +160,19 @@ class _RecordPurchaseViewState extends State<RecordPurchaseView> {
   @override
   Widget build(BuildContext context) {
     final isUnpaid = _selectedPaymentMethod == 'credit';
+    final scheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
 
     return Scaffold(
-      backgroundColor: Colors.grey.shade50,
+      backgroundColor: scheme.surfaceContainerHighest,
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: scheme.surfaceContainerHighest,
         elevation: 0,
-        leading: const BackButton(color: Colors.black87),
-        title: const Text(
+        leading: BackButton(color: scheme.primary),
+        title: Text(
           'Record Purchase',
-          style: TextStyle(color: Colors.black87, fontWeight: FontWeight.bold),
+          style: textTheme.headlineLarge?.copyWith(fontSize: 20) ??
+              TextStyle(color: scheme.onSurface, fontWeight: FontWeight.bold),
         ),
       ),
       body: StreamBuilder<Map<int, double>>(
@@ -194,8 +198,6 @@ class _RecordPurchaseViewState extends State<RecordPurchaseView> {
                   label: isCash ? 'Cash balance' : 'Bank balance',
                   before: isCash ? cashBalance : bankBalance,
                   after: (isCash ? cashBalance : bankBalance) - amount,
-                  beforeTitle: 'Current',
-                  afterTitle: 'AFTER',
                 ),
                 const SizedBox(height: 16),
               ],
@@ -233,12 +235,12 @@ class _RecordPurchaseViewState extends State<RecordPurchaseView> {
               padding: const EdgeInsets.only(top: 12),
               child: Row(
                 children: [
-                  Icon(Icons.warning_amber_rounded, size: 18, color: Colors.orange.shade700),
+                  Icon(Icons.warning_amber_rounded, size: 18, color: context.warning),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
                       'Will be recorded as Accounts Payable (Debt).',
-                      style: TextStyle(color: Colors.orange.shade700, fontSize: 13),
+                      style: TextStyle(color: context.warning, fontSize: 13),
                     ),
                   ),
                 ],
@@ -248,9 +250,9 @@ class _RecordPurchaseViewState extends State<RecordPurchaseView> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: scheme.surface,
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: Colors.grey.shade200),
+              border: Border.all(color: scheme.outlineVariant),
             ),
             child: DropdownButtonFormField<String>(
               value: _currentCategory,

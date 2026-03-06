@@ -118,15 +118,18 @@ class _SettleOperationsViewState extends State<SettleOperationsView> {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
     return Scaffold(
-      backgroundColor: Colors.grey.shade50,
+      backgroundColor: scheme.surfaceContainerHighest,
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: scheme.surfaceContainerHighest,
         elevation: 0,
-        leading: const BackButton(color: Colors.black87),
-        title: const Text(
+        leading: BackButton(color: scheme.primary),
+        title: Text(
           SettleOperationsView._title,
-          style: TextStyle(color: Colors.black87, fontWeight: FontWeight.bold),
+          style: textTheme.headlineLarge?.copyWith(fontSize: 20) ??
+              TextStyle(color: scheme.onSurface, fontWeight: FontWeight.bold),
         ),
       ),
       body: StreamBuilder<Map<int, double>>(
@@ -177,11 +180,35 @@ class _SettleOperationsViewState extends State<SettleOperationsView> {
               const QuickActionSectionLabel('Expense Type'),
               Row(
                 children: [
-                  Expanded(child: _ExpenseChip('Rent', 'rent', _expenseType, () => setState(() => _expenseType = 'rent'))),
+                  Expanded(
+                    child: _ExpenseChip(
+                      'Rent',
+                      'rent',
+                      _expenseType,
+                      () => setState(() => _expenseType = 'rent'),
+                      accentColor: const Color(0xFF00838F), // Teal
+                    ),
+                  ),
                   const SizedBox(width: 6),
-                  Expanded(child: _ExpenseChip('Utilities', 'utilities', _expenseType, () => setState(() => _expenseType = 'utilities'))),
+                  Expanded(
+                    child: _ExpenseChip(
+                      'Utilities',
+                      'utilities',
+                      _expenseType,
+                      () => setState(() => _expenseType = 'utilities'),
+                      accentColor: const Color(0xFFE65100), // Orange
+                    ),
+                  ),
                   const SizedBox(width: 6),
-                  Expanded(child: _ExpenseChip('Transportation', 'transportation', _expenseType, () => setState(() => _expenseType = 'transportation'))),
+                  Expanded(
+                    child: _ExpenseChip(
+                      'Transportation',
+                      'transportation',
+                      _expenseType,
+                      () => setState(() => _expenseType = 'transportation'),
+                      accentColor: const Color(0xFF1976D2), // Blue
+                    ),
+                  ),
                 ],
               ),
               const SizedBox(height: 20),
@@ -219,18 +246,20 @@ class _SettleOperationsViewState extends State<SettleOperationsView> {
 }
 
 class _ExpenseChip extends StatelessWidget {
-  const _ExpenseChip(this.label, this.value, this.selected, this.onTap);
+  const _ExpenseChip(this.label, this.value, this.selected, this.onTap, {required this.accentColor});
 
   final String label;
   final String value;
   final String selected;
   final VoidCallback onTap;
+  final Color accentColor;
 
   @override
   Widget build(BuildContext context) {
     final isSelected = selected == value;
+    final scheme = Theme.of(context).colorScheme;
     return Material(
-      color: isSelected ? const Color(0xFF2E7D32).withValues(alpha: 0.12) : Colors.white,
+      color: isSelected ? accentColor.withValues(alpha: 0.15) : scheme.surface,
       borderRadius: BorderRadius.circular(12),
       child: InkWell(
         onTap: onTap,
@@ -240,7 +269,7 @@ class _ExpenseChip extends StatelessWidget {
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(12),
             border: Border.all(
-              color: isSelected ? const Color(0xFF2E7D32) : Colors.grey.shade300,
+              color: isSelected ? accentColor : accentColor.withValues(alpha: 0.4),
               width: isSelected ? 1.5 : 1,
             ),
           ),
@@ -251,7 +280,7 @@ class _ExpenseChip extends StatelessWidget {
               style: TextStyle(
                 fontSize: 11,
                 fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                color: isSelected ? const Color(0xFF2E7D32) : Colors.grey.shade700,
+                color: isSelected ? accentColor : scheme.onSurfaceVariant,
               ),
             ),
           ),

@@ -1,3 +1,4 @@
+import 'package:bookkeeping/core/theme/app_theme.dart';
 import 'package:bookkeeping/features/quick_action/quick_action_journal_service.dart';
 import 'package:bookkeeping/features/quick_action/widgets/quick_action_shared_ui.dart';
 import 'package:flutter/material.dart';
@@ -97,15 +98,18 @@ class _BorrowMoneyViewState extends State<BorrowMoneyView> {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
     return Scaffold(
-      backgroundColor: Colors.grey.shade50,
+      backgroundColor: scheme.surfaceContainerHighest,
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: scheme.surfaceContainerHighest,
         elevation: 0,
-        leading: const BackButton(color: Colors.black87),
-        title: const Text(
+        leading: BackButton(color: scheme.primary),
+        title: Text(
           BorrowMoneyView._title,
-          style: TextStyle(color: Colors.black87, fontWeight: FontWeight.bold),
+          style: textTheme.headlineLarge?.copyWith(fontSize: 20) ??
+              TextStyle(color: scheme.onSurface, fontWeight: FontWeight.bold),
         ),
       ),
       body: ListView(
@@ -125,6 +129,7 @@ class _BorrowMoneyViewState extends State<BorrowMoneyView> {
                   label: 'Payable (3 months or less)',
                   isSelected: _debtType == 'ap',
                   onTap: () => setState(() => _debtType = 'ap'),
+                  accentColor: const Color(0xFF1976D2), // Blue
                 ),
               ),
               const SizedBox(width: 8),
@@ -133,6 +138,7 @@ class _BorrowMoneyViewState extends State<BorrowMoneyView> {
                   label: 'Loan (more than 3 months)',
                   isSelected: _debtType == 'loan',
                   onTap: () => setState(() => _debtType = 'loan'),
+                  accentColor: const Color(0xFF7B1FA2), // Purple
                 ),
               ),
             ],
@@ -161,16 +167,23 @@ class _BorrowMoneyViewState extends State<BorrowMoneyView> {
 }
 
 class _DebtChip extends StatelessWidget {
-  const _DebtChip({required this.label, required this.isSelected, required this.onTap});
+  const _DebtChip({
+    required this.label,
+    required this.isSelected,
+    required this.onTap,
+    required this.accentColor,
+  });
 
   final String label;
   final bool isSelected;
   final VoidCallback onTap;
+  final Color accentColor;
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return Material(
-      color: isSelected ? const Color(0xFF2E7D32).withValues(alpha: 0.12) : Colors.white,
+      color: isSelected ? accentColor.withValues(alpha: 0.15) : scheme.surface,
       borderRadius: BorderRadius.circular(12),
       child: InkWell(
         onTap: onTap,
@@ -180,7 +193,7 @@ class _DebtChip extends StatelessWidget {
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(12),
             border: Border.all(
-              color: isSelected ? const Color(0xFF2E7D32) : Colors.grey.shade300,
+              color: isSelected ? accentColor : accentColor.withValues(alpha: 0.4),
               width: isSelected ? 1.5 : 1,
             ),
           ),
@@ -191,7 +204,7 @@ class _DebtChip extends StatelessWidget {
               style: TextStyle(
                 fontSize: 12,
                 fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                color: isSelected ? const Color(0xFF2E7D32) : Colors.grey.shade700,
+                color: isSelected ? accentColor : scheme.onSurfaceVariant,
               ),
             ),
           ),

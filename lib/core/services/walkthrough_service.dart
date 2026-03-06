@@ -57,7 +57,7 @@ class WalkthroughService {
 
     TutorialCoachMark(
       targets: targets,
-      colorShadow: const Color(0xFF1A1C1E),
+      colorShadow: Theme.of(context).colorScheme.primary,
       opacityShadow: 0.9,
       textSkip: "SKIP",
       paddingFocus: 10,
@@ -106,7 +106,7 @@ class WalkthroughService {
 
     TutorialCoachMark(
       targets: targets,
-      colorShadow: const Color(0xFF1A1C1E),
+      colorShadow: Theme.of(context).colorScheme.primary,
       opacityShadow: 0.9,
       textSkip: "SKIP",
       beforeFocus: (target) => _scrollToTarget(target),
@@ -165,7 +165,7 @@ class WalkthroughService {
 
     TutorialCoachMark(
       targets: targets,
-      colorShadow: const Color(0xFF1A1C1E),
+      colorShadow: Theme.of(context).colorScheme.primary,
       opacityShadow: 0.9,
       textSkip: "SKIP",
       beforeFocus: (target) => _scrollToTarget(target),
@@ -211,7 +211,7 @@ class WalkthroughService {
 
     TutorialCoachMark(
       targets: targets,
-      colorShadow: const Color(0xFF1A1C1E),
+      colorShadow: Theme.of(context).colorScheme.primary,
       opacityShadow: 0.9,
       textSkip: "SKIP",
       beforeFocus: (target) => _scrollToTarget(target),
@@ -259,7 +259,7 @@ class WalkthroughService {
 
     TutorialCoachMark(
       targets: targets,
-      colorShadow: const Color(0xFF1A1C1E),
+      colorShadow: Theme.of(context).colorScheme.primary,
       opacityShadow: 0.9,
       textSkip: "SKIP",
       beforeFocus: (target) => _scrollToTarget(target),
@@ -309,16 +309,19 @@ class WalkthroughService {
               children: [
                 Text(
                   title,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontWeight: FontWeight.bold,
-                    color: Colors.white,
+                    color: Theme.of(context).colorScheme.onPrimary,
                     fontSize: 22,
                   ),
                 ),
                 const SizedBox(height: 10),
                 Text(
                   text,
-                  style: const TextStyle(color: Colors.white, fontSize: 16),
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.onPrimary,
+                    fontSize: 16,
+                  ),
                 ),
                 const SizedBox(height: 10),
                 ElevatedButton(
@@ -326,11 +329,11 @@ class WalkthroughService {
                     controller.next();
                   },
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.white,
+                    backgroundColor: Theme.of(context).colorScheme.surface,
+                    foregroundColor: Theme.of(context).colorScheme.onSurface,
                   ),
                   child: Text(
                     isLastStep ? "Finish" : "Next",
-                    style: const TextStyle(color: Colors.black),
                   ),
                 ),
               ],

@@ -1,4 +1,5 @@
 import 'package:bookkeeping/core/database/app_database.dart';
+import 'package:bookkeeping/core/theme/app_theme.dart';
 import 'package:bookkeeping/features/quick_action/quick_action_journal_service.dart';
 import 'package:bookkeeping/features/quick_action/widgets/quick_action_shared_ui.dart';
 import 'package:flutter/material.dart';
@@ -149,16 +150,19 @@ class _SellProductsViewState extends State<SellProductsView> {
   @override
   Widget build(BuildContext context) {
     final isCreditSale = _selectedPaymentMethod == 'credit';
+    final scheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
 
     return Scaffold(
-      backgroundColor: Colors.grey.shade50,
+      backgroundColor: scheme.surfaceContainerHighest,
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: scheme.surfaceContainerHighest,
         elevation: 0,
-        leading: const BackButton(color: Colors.black87),
-        title: const Text(
+        leading: BackButton(color: scheme.primary),
+        title: Text(
           'Record Sale',
-          style: TextStyle(color: Colors.black87, fontWeight: FontWeight.bold),
+          style: textTheme.headlineLarge?.copyWith(fontSize: 20) ??
+              TextStyle(color: scheme.onSurface, fontWeight: FontWeight.bold),
         ),
       ),
       body: ListView(
@@ -176,9 +180,9 @@ class _SellProductsViewState extends State<SellProductsView> {
                 padding: const EdgeInsets.all(14),
                 margin: const EdgeInsets.only(bottom: 16),
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: scheme.surface,
                   borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: Colors.grey.shade200),
+                  border: Border.all(color: scheme.outlineVariant),
                 ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -187,7 +191,7 @@ class _SellProductsViewState extends State<SellProductsView> {
                       'Total Finished Goods',
                       style: TextStyle(
                         fontSize: 13,
-                        color: Colors.grey.shade700,
+                        color: scheme.onSurfaceVariant,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
@@ -196,7 +200,7 @@ class _SellProductsViewState extends State<SellProductsView> {
                       style: TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 15,
-                        color: cogs > balance ? Colors.red.shade700 : null,
+                        color: cogs > balance ? scheme.error : null,
                       ),
                     ),
                   ],
@@ -205,6 +209,7 @@ class _SellProductsViewState extends State<SellProductsView> {
             },
           ),
           _buildExtraField(
+            context,
             controller: _sellingPriceController,
             label: 'Selling price',
             icon: Icons.sell_outlined,
@@ -212,6 +217,7 @@ class _SellProductsViewState extends State<SellProductsView> {
           ),
           const SizedBox(height: 16),
           _buildExtraField(
+            context,
             controller: _discountController,
             label: 'Is there a discount? (optional amount)',
             icon: Icons.percent,
@@ -221,9 +227,9 @@ class _SellProductsViewState extends State<SellProductsView> {
           Container(
             padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: scheme.surface,
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: Colors.grey.shade200),
+              border: Border.all(color: scheme.outlineVariant),
             ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -232,7 +238,7 @@ class _SellProductsViewState extends State<SellProductsView> {
                   'Total Amount',
                   style: TextStyle(
                     fontSize: 13,
-                    color: Colors.grey.shade700,
+                    color: scheme.onSurfaceVariant,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
@@ -248,6 +254,7 @@ class _SellProductsViewState extends State<SellProductsView> {
           ),
           const SizedBox(height: 16),
           _buildExtraField(
+            context,
             controller: _cogsController,
             label: 'Total value of goods sold (COGS)',
             icon: Icons.inventory_2_outlined,
@@ -264,12 +271,12 @@ class _SellProductsViewState extends State<SellProductsView> {
               padding: const EdgeInsets.only(top: 12),
               child: Row(
                 children: [
-                  Icon(Icons.info_outline, size: 18, color: Colors.orange.shade700),
+                  Icon(Icons.info_outline, size: 18, color: context.warning),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
                       'This will be recorded as an Account Receivable.',
-                      style: TextStyle(color: Colors.orange.shade700, fontSize: 13),
+                      style: TextStyle(color: context.warning, fontSize: 13),
                     ),
                   ),
                 ],
@@ -293,25 +300,27 @@ class _SellProductsViewState extends State<SellProductsView> {
     );
   }
 
-  Widget _buildExtraField({
+  Widget _buildExtraField(
+    BuildContext context, {
     required TextEditingController controller,
     required String label,
     required IconData icon,
     VoidCallback? onChanged,
   }) {
+    final scheme = Theme.of(context).colorScheme;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: scheme.surface,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.grey.shade200),
+        border: Border.all(color: scheme.outlineVariant),
       ),
       child: TextField(
         controller: controller,
         keyboardType: const TextInputType.numberWithOptions(decimal: true),
         decoration: InputDecoration(
           labelText: label,
-          prefixIcon: Icon(icon, color: Colors.black87),
+          prefixIcon: Icon(icon, color: scheme.onSurface),
           border: const UnderlineInputBorder(),
           contentPadding: const EdgeInsets.symmetric(vertical: 12),
         ),
