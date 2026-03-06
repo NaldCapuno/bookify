@@ -125,7 +125,7 @@ class _BorrowMoneyViewState extends State<BorrowMoneyView> {
             children: [
               Expanded(
                 child: _DebtChip(
-                  label: 'Payable (3 months or less)',
+                  label: 'Payable',
                   isSelected: _debtType == 'ap',
                   onTap: () => setState(() => _debtType = 'ap'),
                   accentColor: const Color(0xFF1976D2), // Blue
@@ -134,13 +134,28 @@ class _BorrowMoneyViewState extends State<BorrowMoneyView> {
               const SizedBox(width: 8),
               Expanded(
                 child: _DebtChip(
-                  label: 'Loan (more than 3 months)',
+                  label: 'Loan',
                   isSelected: _debtType == 'loan',
                   onTap: () => setState(() => _debtType = 'loan'),
                   accentColor: const Color(0xFF7B1FA2), // Purple
                 ),
               ),
             ],
+          ),
+          const SizedBox(height: 10),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: Text(
+              _debtType == 'ap'
+                  ? '- Payable: This debt must be settled within 90 days'
+                  : '- Loan: This debt is due after 90 days',
+              style: TextStyle(
+                fontSize: 12,
+                height: 1.35,
+                color: scheme.onSurfaceVariant,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
           ),
           const SizedBox(height: 20),
           const QuickActionSectionLabel('Received to (Cash / Bank)'),

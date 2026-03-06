@@ -116,9 +116,34 @@ class _ConsumeSuppliesViewState extends State<ConsumeSuppliesView> {
           QuickActionAmountCard(
             amountController: _amountController,
             amountLabel: 'Amount (value of supplies used)',
-            balanceStream: appDb.ledgerDao.watchBalanceForAccountCode(QuickActionAccounts.supplies),
-            balanceLabel: 'Supplies balance:',
             onAmountChanged: () => setState(() {}),
+          ),
+          StreamBuilder<double>(
+            stream: appDb.ledgerDao
+                .watchBalanceForAccountCode(QuickActionAccounts.supplies),
+            builder: (context, snap) {
+              final scheme = Theme.of(context).colorScheme;
+              final balance = snap.data ?? 0.0;
+              final used = parseAmount(_amountController);
+              final remaining = balance - used;
+              final displayRemaining = remaining.clamp(0.0, double.infinity);
+              return Padding(
+                padding: const EdgeInsets.only(top: 10),
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    'Supplies Remaining: ${formatAmount(displayRemaining)}',
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: remaining < 0
+                          ? scheme.error
+                          : scheme.onSurfaceVariant,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              );
+            },
           ),
           const SizedBox(height: 24),
           QuickActionDetailsCard(

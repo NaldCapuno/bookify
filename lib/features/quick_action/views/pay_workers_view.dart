@@ -100,14 +100,6 @@ class _PayWorkersViewState extends State<PayWorkersView> {
     }
   }
 
-  Stream<double> get _balanceStream =>
-      _paymentMethod == 'cash'
-          ? appDb.ledgerDao.watchBalanceForAccountCode(QuickActionAccounts.cashOnHand)
-          : appDb.ledgerDao.watchBalanceForAccountCode(QuickActionAccounts.cashInBank);
-
-  String get _balanceLabel =>
-      _paymentMethod == 'cash' ? 'Cash balance:' : 'Bank balance:';
-
   double get _currentAmount =>
       double.tryParse(_amountController.text.replaceAll(',', '').trim()) ?? 0;
 
@@ -131,18 +123,21 @@ class _PayWorkersViewState extends State<PayWorkersView> {
         stream: appDb.ledgerDao.watchBalancesForAccountCodes({
           QuickActionAccounts.cashOnHand,
           QuickActionAccounts.cashInBank,
+          QuickActionAccounts.directLabor,
         }),
         builder: (context, snap) {
           final balances = snap.data ??
               {
                 QuickActionAccounts.cashOnHand: 0.0,
                 QuickActionAccounts.cashInBank: 0.0,
+                QuickActionAccounts.directLabor: 0.0,
               };
           final amount = _currentAmount;
+          final cash = balances[QuickActionAccounts.cashOnHand] ?? 0.0;
+          final bank = balances[QuickActionAccounts.cashInBank] ?? 0.0;
+          final directLabor = balances[QuickActionAccounts.directLabor] ?? 0.0;
           final isCash = _paymentMethod == 'cash';
-          final before = isCash
-              ? (balances[QuickActionAccounts.cashOnHand] ?? 0.0)
-              : (balances[QuickActionAccounts.cashInBank] ?? 0.0);
+          final before = isCash ? cash : bank;
           final after = before - amount;
 
           return ListView(
@@ -187,13 +182,18 @@ class _PayWorkersViewState extends State<PayWorkersView> {
                   ),
                 ],
               ),
+              const SizedBox(height: 10),
+              if (_employeeType == 'workers')
+                _PostingHintCard(
+                  directLaborBalance: directLabor.abs(),
+                ),
               const SizedBox(height: 20),
               const QuickActionSectionLabel('Paid via'),
               CashBankChips(
                 value: _paymentMethod,
                 onChanged: (v) => setState(() => _paymentMethod = v),
-                cashBalance: balances[QuickActionAccounts.cashOnHand],
-                bankBalance: balances[QuickActionAccounts.cashInBank],
+                cashBalance: cash,
+                bankBalance: bank,
               ),
               const SizedBox(height: 24),
               QuickActionDetailsCard(
@@ -217,10 +217,10 @@ class _PayWorkersViewState extends State<PayWorkersView> {
                 QuickActionAccounts.cashOnHand: 0.0,
                 QuickActionAccounts.cashInBank: 0.0,
               };
+          final cash = balances[QuickActionAccounts.cashOnHand] ?? 0.0;
+          final bank = balances[QuickActionAccounts.cashInBank] ?? 0.0;
           final isCash = _paymentMethod == 'cash';
-          final before = isCash
-              ? (balances[QuickActionAccounts.cashOnHand] ?? 0.0)
-              : (balances[QuickActionAccounts.cashInBank] ?? 0.0);
+          final before = isCash ? cash : bank;
           final amount = _currentAmount;
           final insufficient = amount > 0 && amount > before;
           return QuickActionSaveButton(
@@ -229,6 +229,45 @@ class _PayWorkersViewState extends State<PayWorkersView> {
             label: 'Save Entry',
           );
         },
+      ),
+    );
+  }
+}
+
+class _PostingHintCard extends StatelessWidget {
+  const _PostingHintCard({
+    required this.directLaborBalance,
+  });
+
+  final double directLaborBalance;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final text = 'Direct labor balance: ${formatAmount(directLaborBalance)}';
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: scheme.surface,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: scheme.outlineVariant),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(Icons.info_outline, size: 18, color: scheme.primary),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              text,
+              style: TextStyle(
+                fontSize: 13,
+                color: scheme.onSurfaceVariant,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

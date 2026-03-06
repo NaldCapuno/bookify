@@ -17,6 +17,7 @@ class _InventoryViewState extends State<InventoryView> {
   final _descController = TextEditingController();
   final _dateController = TextEditingController();
   final _rawUsedController = TextEditingController();
+  final _laborController = TextEditingController();
   String _paymentMethod = 'cash';
   DateTime _selectedDate = DateTime.now();
   bool _isSaving = false;
@@ -33,6 +34,7 @@ class _InventoryViewState extends State<InventoryView> {
     _descController.dispose();
     _dateController.dispose();
     _rawUsedController.dispose();
+    _laborController.dispose();
     super.dispose();
   }
 
@@ -100,6 +102,8 @@ class _InventoryViewState extends State<InventoryView> {
     } else {
       final rawRaw = _rawUsedController.text.replaceAll(',', '').trim();
       final rawUsed = double.tryParse(rawRaw) ?? 0;
+      final rawLabor = _laborController.text.replaceAll(',', '').trim();
+      final labor = double.tryParse(rawLabor) ?? 0;
 
       if (rawUsed <= 0) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -110,17 +114,34 @@ class _InventoryViewState extends State<InventoryView> {
         return;
       }
 
+      if (labor < 0) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Direct Labor cannot be negative.'),
+          ),
+        );
+        return;
+      }
+
+      final finishedGoodsProduced = rawUsed + labor;
+
       final lines = <TemplateLine>[
         TemplateLine(
           accountCode: QuickActionAccounts.inventoryFinishedGoods,
           isDebit: true,
-          amount: rawUsed,
+          amount: finishedGoodsProduced,
         ),
         TemplateLine(
           accountCode: QuickActionAccounts.inventoryRawMaterials,
           isDebit: false,
           amount: rawUsed,
         ),
+        if (labor > 0)
+          TemplateLine(
+            accountCode: QuickActionAccounts.directLabor,
+            isDebit: false,
+            amount: labor,
+          ),
       ];
 
       await _postLines(desc, lines);
@@ -197,10 +218,21 @@ class _InventoryViewState extends State<InventoryView> {
             QuickActionAccounts.cashOnHand: 0.0,
             QuickActionAccounts.cashInBank: 0.0,
           };
+          final cash = balances[QuickActionAccounts.cashOnHand] ?? 0.0;
+          final bank = balances[QuickActionAccounts.cashInBank] ?? 0.0;
+
           return ListView(
             padding: const EdgeInsets.all(20),
             children: [
               if (isAcquire) ...[
+                if (_paymentMethod != 'credit') ...[
+                  BeforeAfterBalanceHeader(
+                    label: _paymentMethod == 'cash' ? 'Cash balance' : 'Bank balance',
+                    before: _paymentMethod == 'cash' ? cash : bank,
+                    after: (_paymentMethod == 'cash' ? cash : bank) - _currentAmount,
+                  ),
+                  const SizedBox(height: 16),
+                ],
                 QuickActionAmountCard(
                   amountController: _amountController,
                   amountLabel: 'Amount',
@@ -227,13 +259,19 @@ class _InventoryViewState extends State<InventoryView> {
                   value: _paymentMethod,
                   onChanged: (v) => setState(() => _paymentMethod = v),
                   creditLabel: 'Pay Later',
-                  cashBalance: balances[QuickActionAccounts.cashOnHand],
-                  bankBalance: balances[QuickActionAccounts.cashInBank],
+                  cashBalance: cash,
+                  bankBalance: bank,
                 ),
               ] else ...[
             QuickActionAmountCard(
               amountController: _rawUsedController,
               amountLabel: 'Raw Materials Used',
+              onAmountChanged: () => setState(() {}),
+            ),
+            const SizedBox(height: 16),
+            QuickActionAmountCard(
+              amountController: _laborController,
+              amountLabel: 'Direct Labor',
               onAmountChanged: () => setState(() {}),
             ),
             StreamBuilder<double>(

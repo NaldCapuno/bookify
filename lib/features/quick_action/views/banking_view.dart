@@ -128,9 +128,9 @@ class _BankingViewState extends State<BankingView> {
           final bank = balances[QuickActionAccounts.cashInBank] ?? 0.0;
           final amount = _currentAmount;
 
-          // Only show bank balance: before and after (deposit adds, withdraw subtracts).
-          final bankBefore = bank;
-          final bankAfter = isDeposit ? bank + amount : bank - amount;
+          // Deposit: show cash balance (source). Withdraw: show bank balance (source).
+          final balanceBefore = isDeposit ? cash : bank;
+          final balanceAfter = isDeposit ? cash - amount : bank - amount;
           final sourceBalance = isDeposit ? cash : bank;
           final insufficient = amount > 0 && amount > sourceBalance;
 
@@ -138,9 +138,9 @@ class _BankingViewState extends State<BankingView> {
             padding: const EdgeInsets.all(20),
             children: [
               BeforeAfterBalanceHeader(
-                label: 'Bank balance',
-                before: bankBefore,
-                after: bankAfter,
+                label: isDeposit ? 'Cash balance' : 'Bank balance',
+                before: balanceBefore,
+                after: balanceAfter,
               ),
               const SizedBox(height: 16),
               QuickActionAmountCard(
