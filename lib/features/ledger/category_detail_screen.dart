@@ -6,7 +6,6 @@ import 'package:bookkeeping/core/widgets/appbar.dart';
 
 import '../../core/database/app_database.dart';
 import '../../core/database/daos/ledger_dao.dart';
-import '../../core/database/tables/account_categories_table.dart';
 
 class CategoryDetailScreen extends StatelessWidget {
   final int categoryId;

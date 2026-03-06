@@ -1,4 +1,3 @@
-import 'package:bookkeeping/core/theme/app_theme.dart';
 import 'package:bookkeeping/features/quick_action/quick_action_journal_service.dart';
 import 'package:bookkeeping/features/quick_action/widgets/quick_action_shared_ui.dart';
 import 'package:flutter/material.dart';
