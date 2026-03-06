@@ -272,9 +272,9 @@ MigrationStrategy buildMigrationStrategy(AppDatabase db) {
             normalBalance: NormalBalance.debit,
           ),
           AccountsCompanion.insert(
-            code: 510,
-            name: 'Sales Tax Expense',
-            categoryId: 52,
+            code: 622,
+            name: ' Tax Expense',
+            categoryId: 53,
             isLocked: const Value(true),
             normalBalance: NormalBalance.debit,
           ),
