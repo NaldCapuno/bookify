@@ -159,7 +159,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Total Liquidity',
+                'Total',
                 style: TextStyle(
                   color: Colors.white.withOpacity(0.8),
                   fontSize: 14,
