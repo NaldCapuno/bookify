@@ -36,7 +36,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
   final DateFormat _dateFormat = DateFormat('MMM dd, yyyy');
   late final UserService _userService;
 
-  // Helper method for strict Accounting Standard formatting (Negative numbers in parentheses)
   String _formatAccounting(double amount) {
     if (amount == 0) return '₱0.00';
     final formatted = _currencyFormat.format(amount.abs());
@@ -70,7 +69,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
       return;
     }
     _hasShownTour = true;
-    // Delay so splash/onboarding transition settles and first target positions correctly
     Future.delayed(const Duration(milliseconds: 800), () {
       if (!mounted) return;
       WalkthroughService.showDashboardTour(
@@ -83,14 +81,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
     });
   }
 
-  // ... inside your Widget class ...
-
   void _goToQuickActions(BuildContext context) {
     Navigator.push(
       context,
       MaterialPageRoute(
-        fullscreenDialog:
-            true, // This makes it slide up like a sheet, but it's a screen
+        fullscreenDialog: true,
         builder: (context) => const QuickActionScreen(),
       ),
     );
@@ -106,56 +101,56 @@ class _DashboardScreenState extends State<DashboardScreen> {
         children: [
           _buildWelcomeBanner(context, key: _bannerKey),
           const SizedBox(height: 16),
-          _buildTotalCashSection(context, key: _cashCardKey),
+          _buildLiquiditySection(context, key: _cashCardKey),
           const SizedBox(height: 24),
-
           const Text(
             'Overview',
             style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 16),
-
           _buildDynamicAnalyticsSections(),
         ],
       ),
       floatingActionButton: AppFloatingActionButton(
         label: 'Quick Entry',
-        icon: Icons.bolt, // Lightning bolt signifies "Quick Action"
+        icon: Icons.bolt,
         onPressed: () => _goToQuickActions(context),
       ),
     );
   }
 
-  // --- SECTION 1: TOTAL CASH ---
-  Widget _buildTotalCashSection(BuildContext context, {required Key key}) {
+  // --- SECTION 1: UPDATED LIQUIDITY (Total -> Breakdown) ---
+  Widget _buildLiquiditySection(BuildContext context, {required Key key}) {
     return StreamBuilder<List<LedgerEntry>>(
       stream: appDb.ledgerDao.watchLedgerEntries(),
       builder: (context, snapshot) {
-        double totalCash = 0.0;
+        double cashOnHand = 0.0;
+        double cashInBank = 0.0;
 
         if (snapshot.hasData) {
           for (var entry in snapshot.data!) {
             final accName = entry.account.name.toLowerCase();
-            if (accName.contains('cash on hand')) {
-              totalCash += entry.balance;
-            }
+            if (accName == 'cash on hand') cashOnHand += entry.balance;
+            if (accName == 'cash in bank') cashInBank += entry.balance;
           }
         }
+
+        double totalLiquidity = cashOnHand + cashInBank;
 
         return Container(
           key: key,
           padding: const EdgeInsets.all(24),
           decoration: BoxDecoration(
             gradient: const LinearGradient(
-              colors: [Color(0xFF2E7D32), Color(0xFF43A047)],
+              colors: [Color(0xFF2E7D32), Color.fromARGB(255, 44, 161, 51)],
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
             ),
             borderRadius: BorderRadius.circular(20),
             boxShadow: [
               BoxShadow(
-                color: Colors.green.withValues(alpha: 0.3),
-                blurRadius: 8,
+                color: Colors.green.withOpacity(0.2),
+                blurRadius: 10,
                 offset: const Offset(0, 4),
               ),
             ],
@@ -163,43 +158,38 @@ class _DashboardScreenState extends State<DashboardScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.2),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: const Icon(
-                      Icons.account_balance_wallet,
-                      color: Colors.white,
-                      size: 28,
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Text(
-                    'Cash on Hand',
-                    style: Theme.of(context).textTheme.titleMedium!.copyWith(
-                      color: Colors.white,
-                      fontSize: 18,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                ],
+              Text(
+                'Total Liquidity',
+                style: TextStyle(
+                  color: Colors.white.withOpacity(0.8),
+                  fontSize: 14,
+                ),
               ),
-              const SizedBox(height: 24),
+              const SizedBox(height: 4),
               FittedBox(
-                fit: BoxFit.scaleDown,
-                alignment: Alignment.centerLeft,
                 child: Text(
-                  _formatAccounting(totalCash),
-                  style: Theme.of(context).textTheme.headlineLarge!.copyWith(
+                  _formatAccounting(totalLiquidity),
+                  style: const TextStyle(
                     color: Colors.white,
-                    fontSize: 40,
                     fontWeight: FontWeight.bold,
+                    fontSize: 36,
                   ),
                 ),
+              ),
+              const Padding(
+                padding: EdgeInsets.symmetric(vertical: 16),
+                child: Divider(color: Colors.white24, height: 1),
+              ),
+              _buildSmallLiquidityRow(
+                'Cash on Hand',
+                cashOnHand,
+                Icons.payments,
+              ),
+              const SizedBox(height: 8),
+              _buildSmallLiquidityRow(
+                'Cash in Bank',
+                cashInBank,
+                Icons.account_balance,
               ),
             ],
           ),
@@ -208,75 +198,89 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  // --- SECTIONS 2, 3, 4 & 5: DYNAMIC ANALYTICS ---
+  Widget _buildSmallLiquidityRow(String title, double amount, IconData icon) {
+    return Row(
+      children: [
+        Icon(icon, color: Colors.white70, size: 16),
+        const SizedBox(width: 8),
+        Text(
+          title,
+          style: const TextStyle(color: Colors.white70, fontSize: 13),
+        ),
+        const Spacer(),
+        Text(
+          _formatAccounting(amount),
+          style: const TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.w500,
+            fontSize: 14,
+          ),
+        ),
+      ],
+    );
+  }
+
+  // --- DYNAMIC ANALYTICS (Revenue & Cost Calculation) ---
   Widget _buildDynamicAnalyticsSections() {
     return StreamBuilder<List<JournalSummary>>(
       stream: appDb.journalEntryDao.watchJournalSummaries(),
       builder: (context, snapshot) {
+        double netSales = 0.0;
+        double totalCosts = 0.0;
         double inflow = 0.0;
         double outflow = 0.0;
-        double income = 0.0;
-        double expenses = 0.0;
         List<double> quarterlySales = [0.0, 0.0, 0.0, 0.0];
-
-        // List explicitly for sales entries
         List<JournalSummary> salesActivities = [];
 
         if (snapshot.hasData) {
           final now = DateTime.now();
-
           for (var summary in snapshot.data!) {
             if (summary.journal.isVoid) continue;
 
-            double entryCashIn = 0;
-            double entryCashOut = 0;
-            double entryIncome = 0;
-            double entryExpense = 0;
-            bool isSale = false;
+            double entryNetSale = 0.0;
+            bool isSaleEvent = false;
 
             for (var detail in summary.details) {
               final accName = detail.account.name.toLowerCase();
-              final deb = detail.transactionLine.debit;
-              final cred = detail.transactionLine.credit;
+              final dr = detail.transactionLine.debit;
+              final cr = detail.transactionLine.credit;
 
-              if (accName.contains('cash on hand')) {
-                entryCashIn += deb;
-                entryCashOut += cred;
+              // Cash Flow (Liquidity check)
+              if (accName.contains('cash on hand') ||
+                  accName.contains('cash in bank')) {
+                inflow += dr;
+                outflow += cr;
               }
-              // STRICT MATCH: Only accounts containing "Sales Revenue"
-              else if (accName.contains('sales revenue')) {
-                entryIncome += (cred - deb);
-                isSale = true; // Mark that this journal entry contains a sale
-              } else if (accName.contains('expense') ||
-                  accName.contains('cost') ||
-                  accName.contains('purchases') ||
-                  accName.contains('supplies')) {
-                entryExpense += (deb - cred);
+
+              // Revenue logic (Gross - Contra)
+              if (accName == 'sales revenue') {
+                entryNetSale += (cr - dr);
+                isSaleEvent = true;
+              } else if (accName == 'sales returns and allowances' ||
+                  accName == 'sales discounts') {
+                entryNetSale -= (dr - cr);
+              }
+
+              // Costs & Operating Expenses
+              if (accName == 'raw materials used' ||
+                  accName == 'direct labor' ||
+                  accName == 'cost of goods sold (cogs)' ||
+                  accName.contains('expense') ||
+                  accName == 'bank fees') {
+                totalCosts += (dr - cr);
               }
             }
 
-            inflow += entryCashIn;
-            outflow += entryCashOut;
-            income += entryIncome;
-            expenses += entryExpense;
-
-            // Map Sales Revenue to the Quarterly Chart
-            if (summary.journal.date.year == now.year && entryIncome > 0) {
+            netSales += entryNetSale;
+            if (summary.journal.date.year == now.year && entryNetSale > 0) {
               int q = (summary.journal.date.month - 1) ~/ 3;
-              if (q >= 0 && q <= 3) {
-                quarterlySales[q] += entryIncome;
-              }
+              if (q >= 0 && q <= 3) quarterlySales[q] += entryNetSale;
             }
-
-            // If it is a sale, add it to our specific sales feed list
-            if (isSale && entryIncome > 0) {
-              salesActivities.add(summary);
-            }
+            if (isSaleEvent) salesActivities.add(summary);
           }
         }
 
         return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
               children: [
@@ -302,23 +306,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
               ],
             ),
             const SizedBox(height: 24),
-
-            _buildProfitAndLossSection(context, income, expenses, key: _plKey),
+            _buildProfitAndLossSection(
+              context,
+              netSales,
+              totalCosts,
+              key: _plKey,
+            ),
             const SizedBox(height: 24),
-
             _buildTotalSalesChart(context, quarterlySales, key: _chartKey),
             const SizedBox(height: 24),
-
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  'Recent Sales',
-                  style: Theme.of(context).textTheme.titleMedium,
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
             _buildRecentSalesList(context, salesActivities),
           ],
         );
@@ -333,35 +329,29 @@ class _DashboardScreenState extends State<DashboardScreen> {
     IconData icon,
     Color color,
   ) {
-    final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.08),
+        color: color.withOpacity(0.08),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: color.withValues(alpha: 0.2)),
+        border: Border.all(color: color.withOpacity(0.2)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, color: color, size: 24),
-          const SizedBox(height: 12),
+          Icon(icon, color: color, size: 20),
+          const SizedBox(height: 8),
           Text(
             title,
-            style: theme.textTheme.bodySmall!.copyWith(
-              fontSize: 13,
-              color: colorScheme.onSurfaceVariant,
-              fontWeight: FontWeight.w600,
+            style: TextStyle(
+              fontSize: 12,
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
             ),
           ),
-          const SizedBox(height: 4),
           FittedBox(
-            fit: BoxFit.scaleDown,
-            alignment: Alignment.centerLeft,
             child: Text(
               amount,
-              style: theme.textTheme.titleSmall!.copyWith(fontSize: 18),
+              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
             ),
           ),
         ],
@@ -369,6 +359,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
+  // Restored the Bar Comparison (Net Sales vs Total Costs)
   Widget _buildProfitAndLossSection(
     BuildContext context,
     double income,
@@ -378,13 +369,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
     double netProfit = income - expenses;
+
+    // Logic for progress bar flex
     int incomeFlex = (income <= 0 && expenses <= 0)
         ? 1
-        : (income * 100).toInt();
+        : (income.abs() * 100).toInt();
     int expenseFlex = (income <= 0 && expenses <= 0)
         ? 1
-        : (expenses * 100).toInt();
-    final NumberFormat compactCurrency = NumberFormat('#,##0', 'en_US');
+        : (expenses.abs() * 100).toInt();
 
     return Container(
       key: key,
@@ -393,96 +385,73 @@ class _DashboardScreenState extends State<DashboardScreen> {
         color: colorScheme.surface,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
-          BoxShadow(
-            color: colorScheme.onSurface.withValues(alpha: 0.04),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
+          BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 10),
         ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Profit & Loss', style: theme.textTheme.titleSmall),
+          const Text(
+            'Profit & Loss',
+            style: TextStyle(fontWeight: FontWeight.bold),
+          ),
           const SizedBox(height: 8),
           FittedBox(
-            fit: BoxFit.scaleDown,
-            alignment: Alignment.centerLeft,
             child: Text(
               _formatAccounting(netProfit),
-              style: theme.textTheme.headlineMedium!.copyWith(fontSize: 28),
+              style: theme.textTheme.headlineMedium!.copyWith(
+                fontSize: 28,
+                fontWeight: FontWeight.bold,
+              ),
             ),
           ),
           const SizedBox(height: 20),
+          // RESTORED: Bar chart visual
           ClipRRect(
             borderRadius: BorderRadius.circular(8),
             child: SizedBox(
-              height: 40,
+              height: 12,
               child: Row(
                 children: [
                   Expanded(
                     flex: incomeFlex,
-                    child: Container(
-                      color: colorScheme.tertiary.withValues(alpha: 0.3),
-                    ),
+                    child: Container(color: Colors.blue.withOpacity(0.6)),
                   ),
                   Expanded(
                     flex: expenseFlex,
-                    child: Container(
-                      color: colorScheme.error.withValues(alpha: 0.2),
-                    ),
+                    child: Container(color: Colors.red.withOpacity(0.4)),
                   ),
                 ],
               ),
             ),
           ),
-          const SizedBox(height: 12),
-          // Moved the numeric values down here for better readability
+          const SizedBox(height: 16),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Income',
-                    style: theme.textTheme.bodySmall!.copyWith(
-                      color: colorScheme.onSurfaceVariant,
-                      fontSize: 12,
-                    ),
-                  ),
-                  Text(
-                    '₱${compactCurrency.format(income)}',
-                    style: theme.textTheme.bodyMedium!.copyWith(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 14,
-                    ),
-                  ),
-                ],
-              ),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Text(
-                    'Expenses',
-                    style: theme.textTheme.bodySmall!.copyWith(
-                      color: colorScheme.onSurfaceVariant,
-                      fontSize: 12,
-                    ),
-                  ),
-                  Text(
-                    '₱${compactCurrency.format(expenses)}',
-                    style: theme.textTheme.bodyMedium!.copyWith(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 14,
-                    ),
-                  ),
-                ],
-              ),
+              _simpleStat('Net Sales', income, Colors.blue),
+              _simpleStat('Total Costs', expenses, Colors.red),
             ],
           ),
         ],
       ),
+    );
+  }
+
+  Widget _simpleStat(String label, double value, Color color) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(label, style: const TextStyle(fontSize: 11, color: Colors.grey)),
+        Text(
+          _formatAccounting(value),
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: 14,
+            color: color,
+          ),
+        ),
+      ],
     );
   }
 
@@ -491,86 +460,41 @@ class _DashboardScreenState extends State<DashboardScreen> {
     List<double> quarterlySales, {
     required Key key,
   }) {
-    final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
     double maxSales = quarterlySales.reduce((a, b) => a > b ? a : b);
     if (maxSales == 0) maxSales = 1;
-    double totalYearSales = quarterlySales.fold(
-      0.0,
-      (prev, element) => prev + element,
-    );
-
-    final now = DateTime.now();
-    final yearStr = now.year.toString().substring(2);
-    int currentQ = (now.month - 1) ~/ 3;
 
     return Container(
       key: key,
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: colorScheme.surface,
+        color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
-          BoxShadow(
-            color: colorScheme.onSurface.withValues(alpha: 0.04),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
+          BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 10),
         ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Total Sales', style: theme.textTheme.titleSmall),
-          const SizedBox(height: 4),
-          FittedBox(
-            fit: BoxFit.scaleDown,
-            alignment: Alignment.centerLeft,
-            child: Text(
-              _formatAccounting(totalYearSales),
-              style: theme.textTheme.titleLarge!.copyWith(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-                color: colorScheme.tertiary,
-              ),
-            ),
+          const Text(
+            'Net Sales per Quarter',
+            style: TextStyle(fontWeight: FontWeight.bold),
           ),
-          const SizedBox(height: 32),
+          const SizedBox(height: 24),
           SizedBox(
-            height: 160,
+            height: 150,
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                _buildVerticalBar(
+              children: List.generate(
+                4,
+                (i) => _buildVerticalBar(
                   context,
-                  quarterlySales[0],
+                  quarterlySales[i],
                   maxSales,
-                  "Q1 '$yearStr",
-                  currentQ == 0,
+                  "Q${i + 1}",
                 ),
-                _buildVerticalBar(
-                  context,
-                  quarterlySales[1],
-                  maxSales,
-                  "Q2 '$yearStr",
-                  currentQ == 1,
-                ),
-                _buildVerticalBar(
-                  context,
-                  quarterlySales[2],
-                  maxSales,
-                  "Q3 '$yearStr",
-                  currentQ == 2,
-                ),
-                _buildVerticalBar(
-                  context,
-                  quarterlySales[3],
-                  maxSales,
-                  "Q4 '$yearStr",
-                  currentQ == 3,
-                ),
-              ],
+              ),
             ),
           ),
         ],
@@ -583,199 +507,124 @@ class _DashboardScreenState extends State<DashboardScreen> {
     double value,
     double max,
     String label,
-    bool isCurrent,
   ) {
-    final colorScheme = Theme.of(context).colorScheme;
-    final theme = Theme.of(context);
-    double heightFactor = value / max;
-    Color barColor = isCurrent
-        ? colorScheme.tertiary
-        : colorScheme.tertiary.withValues(alpha: 0.4);
-    Color textColor = isCurrent
-        ? colorScheme.tertiary
-        : colorScheme.onSurfaceVariant;
-
-    String formatK(double val) {
-      if (val == 0) return '';
-      double inK = val / 1000;
-      String numStr = inK.toStringAsFixed(1);
-      return val < 0 ? '(₱${numStr}k)' : '₱${numStr}k';
-    }
-
+    double factor = value / max;
     return Expanded(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.end,
         children: [
           FittedBox(
-            fit: BoxFit.scaleDown,
             child: Text(
-              formatK(value),
-              style: theme.textTheme.bodySmall!.copyWith(
-                color: textColor,
-                fontWeight: FontWeight.bold,
-                fontSize: 12,
-              ),
+              '₱${(value / 1000).toStringAsFixed(1)}k',
+              style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold),
             ),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 6),
           Container(
-            height: (100 * heightFactor).clamp(4.0, 100.0),
-            margin: const EdgeInsets.symmetric(horizontal: 8),
+            width: 35,
+            height: (100 * factor).clamp(4, 100),
             decoration: BoxDecoration(
-              color: barColor,
+              gradient: LinearGradient(
+                colors: [Colors.green.shade300, Colors.green.shade600],
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+              ),
               borderRadius: const BorderRadius.vertical(
                 top: Radius.circular(6),
               ),
             ),
           ),
           const SizedBox(height: 8),
-          Text(
-            label,
-            style: theme.textTheme.bodySmall!.copyWith(
-              color: textColor,
-              fontSize: 11,
-              fontWeight: isCurrent ? FontWeight.bold : FontWeight.normal,
-            ),
-          ),
+          Text(label, style: const TextStyle(fontSize: 11)),
         ],
       ),
     );
   }
 
-  // --- STRICTLY SALES ACTIVITY LIST ---
   Widget _buildRecentSalesList(
     BuildContext context,
     List<JournalSummary> salesActivities,
   ) {
-    final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
-    if (salesActivities.isEmpty) {
-      return Padding(
-        padding: const EdgeInsets.symmetric(vertical: 24.0),
-        child: Center(
-          child: Text(
-            'No sales found',
-            style: theme.textTheme.bodyMedium!.copyWith(
-              color: colorScheme.onSurfaceVariant,
-            ),
-          ),
-        ),
-      );
-    }
-
-    final visibleActivities = salesActivities.take(_visibleSalesCount).toList();
-
+    final visible = salesActivities.reversed.take(_visibleSalesCount).toList();
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        ...visibleActivities.map((summary) {
-          // Extract the exact sales amount from this specific journal entry
-          double entrySaleAmount = 0.0;
-          for (var detail in summary.details) {
-            final accName = detail.account.name.toLowerCase();
-            if (accName.contains('sales revenue')) {
-              entrySaleAmount +=
-                  (detail.transactionLine.credit -
-                  detail.transactionLine.debit);
-            }
+        const Text(
+          'Recent Sales Activities',
+          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+        ),
+        const SizedBox(height: 12),
+        if (visible.isEmpty)
+          const Padding(
+            padding: EdgeInsets.all(20),
+            child: Center(child: Text('No sales yet.')),
+          ),
+        ...visible.map((s) {
+          double saleAmt = 0;
+          for (var d in s.details) {
+            final name = d.account.name.toLowerCase();
+            if (name == 'sales revenue')
+              saleAmt += (d.transactionLine.credit - d.transactionLine.debit);
+            if (name.contains('discount') || name.contains('return'))
+              saleAmt -= (d.transactionLine.debit - d.transactionLine.credit);
           }
-
-          final dateStr = _dateFormat.format(summary.journal.date);
-
           return _buildSaleItem(
             context,
-            summary.journal.description,
-            dateStr,
-            entrySaleAmount,
+            s.journal.description,
+            _dateFormat.format(s.journal.date),
+            saleAmt,
           );
         }),
-
-        // Dynamic Load More Button
-        if (salesActivities.length > _visibleSalesCount)
-          Padding(
-            padding: const EdgeInsets.only(top: 8.0),
-            child: TextButton(
-              onPressed: () {
-                setState(() {
-                  _visibleSalesCount += 3;
-                });
-              },
-              child: const Text('Load More'),
-            ),
-          ),
       ],
     );
   }
 
   Widget _buildSaleItem(
     BuildContext context,
-    String description,
+    String desc,
     String date,
-    double amount,
+    double amt,
   ) {
-    final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: colorScheme.surface,
+        color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: colorScheme.onSurface.withValues(alpha: 0.03),
-            blurRadius: 5,
-            offset: const Offset(0, 2),
-          ),
-        ],
+        border: Border.all(color: Colors.black.withOpacity(0.05)),
       ),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
+          const CircleAvatar(
+            backgroundColor: Colors.blueAccent,
+            radius: 18,
+            child: Icon(Icons.receipt_long, color: Colors.white, size: 18),
+          ),
+          const SizedBox(width: 12),
           Expanded(
-            child: Row(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: colorScheme.tertiary.withValues(alpha: 0.15),
-                    shape: BoxShape.circle,
+                Text(
+                  desc,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14,
                   ),
-                  child: Icon(Icons.add, color: colorScheme.tertiary, size: 18),
+                  overflow: TextOverflow.ellipsis,
                 ),
-                const SizedBox(width: 14),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        description,
-                        style: theme.textTheme.bodyMedium!.copyWith(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 14,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        date,
-                        style: theme.textTheme.bodySmall!.copyWith(
-                          color: colorScheme.onSurfaceVariant,
-                          fontSize: 12,
-                        ),
-                      ),
-                    ],
-                  ),
+                Text(
+                  date,
+                  style: const TextStyle(fontSize: 12, color: Colors.grey),
                 ),
               ],
             ),
           ),
-          const SizedBox(width: 8),
           Text(
-            _formatAccounting(amount),
-            style: theme.textTheme.bodyMedium!.copyWith(
+            _formatAccounting(amt),
+            style: const TextStyle(
               fontWeight: FontWeight.bold,
-              color: colorScheme.tertiary,
+              color: Colors.green,
             ),
           ),
         ],
@@ -783,54 +632,37 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  // Inside your Dashboard widget
   Widget _buildWelcomeBanner(BuildContext context, {required Key key}) {
-    final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
     return StreamBuilder<User?>(
       stream: _userService.watchUserProfile(),
       builder: (context, snapshot) {
-        final user = snapshot.data;
-
-        // Fallback values while loading or if data is missing
-        final String name = user?.username ?? "User";
-        final String business = user?.business ?? "Your Business";
-
+        final name = snapshot.data?.username ?? "User";
+        final business = snapshot.data?.business ?? "Your Business";
         return Container(
           key: key,
           padding: const EdgeInsets.all(24),
           decoration: BoxDecoration(
-            color: colorScheme.primary,
+            color: Theme.of(context).colorScheme.primary,
             borderRadius: BorderRadius.circular(20),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Welcome, $name',
-                style: theme.textTheme.headlineMedium!.copyWith(
-                  color: colorScheme.onPrimary,
-                  fontSize: 22,
+                'Welcome, $name 👋',
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 24,
                   fontWeight: FontWeight.bold,
                 ),
               ),
-              const SizedBox(height: 6),
-              Row(
-                children: [
-                  Icon(
-                    Icons.business_center,
-                    color: colorScheme.onPrimary.withValues(alpha: 0.8),
-                    size: 16,
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    business,
-                    style: theme.textTheme.bodyMedium!.copyWith(
-                      color: colorScheme.onPrimary.withValues(alpha: 0.8),
-                      fontSize: 14,
-                    ),
-                  ),
-                ],
+              const SizedBox(height: 4),
+              Text(
+                business,
+                style: TextStyle(
+                  color: Colors.white.withOpacity(0.8),
+                  fontSize: 14,
+                ),
               ),
             ],
           ),
