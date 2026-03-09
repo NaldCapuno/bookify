@@ -87,7 +87,9 @@ class _BorrowMoneyViewState extends State<BorrowMoneyView> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Failed to save entry. Please try again.')),
+          const SnackBar(
+            content: Text('Failed to save entry. Please try again.'),
+          ),
         );
       }
     } finally {
@@ -107,7 +109,8 @@ class _BorrowMoneyViewState extends State<BorrowMoneyView> {
         leading: BackButton(color: scheme.primary),
         title: Text(
           BorrowMoneyView._title,
-          style: textTheme.headlineLarge?.copyWith(fontSize: 20) ??
+          style:
+              textTheme.headlineLarge?.copyWith(fontSize: 20) ??
               TextStyle(color: scheme.onSurface, fontWeight: FontWeight.bold),
         ),
       ),
@@ -207,7 +210,9 @@ class _DebtChip extends StatelessWidget {
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(12),
             border: Border.all(
-              color: isSelected ? accentColor : accentColor.withValues(alpha: 0.4),
+              color: isSelected
+                  ? accentColor
+                  : accentColor.withValues(alpha: 0.4),
               width: isSelected ? 1.5 : 1,
             ),
           ),

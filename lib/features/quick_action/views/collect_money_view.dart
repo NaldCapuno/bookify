@@ -52,8 +52,7 @@ class _CollectMoneyViewState extends State<CollectMoneyView> {
 
   Future<void> _save() async {
     final desc = _descController.text.trim();
-    final rawAmount = _amountController.text.replaceAll(',', '').trim();
-    final amount = double.tryParse(rawAmount) ?? 0;
+    final amount = parseAmount(_amountController);
 
     if (desc.isEmpty || amount <= 0) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -105,7 +104,9 @@ class _CollectMoneyViewState extends State<CollectMoneyView> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Failed to save entry. Please try again.')),
+          const SnackBar(
+            content: Text('Failed to save entry. Please try again.'),
+          ),
         );
       }
     } finally {
@@ -117,101 +118,125 @@ class _CollectMoneyViewState extends State<CollectMoneyView> {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
+
     return Scaffold(
       backgroundColor: scheme.surfaceContainerHighest,
       appBar: AppBar(
-        backgroundColor: scheme.surfaceContainerHighest,
+        // Set AppBar color to surface so it blends with the header below
+        backgroundColor: scheme.surface,
         elevation: 0,
+        scrolledUnderElevation: 0,
         leading: BackButton(color: scheme.primary),
         title: Text(
           CollectMoneyView._title,
-          style: textTheme.headlineLarge?.copyWith(fontSize: 20) ??
+          style:
+              textTheme.headlineLarge?.copyWith(fontSize: 20) ??
               TextStyle(color: scheme.onSurface, fontWeight: FontWeight.bold),
         ),
       ),
-      body: StreamBuilder<Map<int, double>>(
-        stream: appDb.ledgerDao.watchBalancesForAccountCodes({
-          QuickActionAccounts.accountsReceivable,
-          QuickActionAccounts.cashOnHand,
-          QuickActionAccounts.cashInBank,
-        }),
-        builder: (context, snap) {
-          final balances = snap.data ??
-              {
-                QuickActionAccounts.accountsReceivable: 0.0,
-                QuickActionAccounts.cashOnHand: 0.0,
-                QuickActionAccounts.cashInBank: 0.0,
-              };
+      body: SafeArea(
+        child: StreamBuilder<Map<int, double>>(
+          stream: appDb.ledgerDao.watchBalancesForAccountCodes({
+            QuickActionAccounts.accountsReceivable,
+            QuickActionAccounts.cashOnHand,
+            QuickActionAccounts.cashInBank,
+          }),
+          builder: (context, snap) {
+            final balances =
+                snap.data ??
+                {
+                  QuickActionAccounts.accountsReceivable: 0.0,
+                  QuickActionAccounts.cashOnHand: 0.0,
+                  QuickActionAccounts.cashInBank: 0.0,
+                };
 
-          final receivablesBefore =
-              balances[QuickActionAccounts.accountsReceivable] ?? 0.0;
-          final amount = parseAmount(_amountController);
-          final receivablesAfter = receivablesBefore - amount;
-          final exceedsReceivables = amount > 0 && amount > receivablesBefore;
+            final receivablesBefore =
+                balances[QuickActionAccounts.accountsReceivable] ?? 0.0;
+            final amount = parseAmount(_amountController);
+            final receivablesAfter = receivablesBefore - amount;
+            final exceedsReceivables = amount > 0 && amount > receivablesBefore;
 
-          return ListView(
-            padding: const EdgeInsets.all(20),
-            children: [
-              BeforeAfterBalanceHeader(
-                label: 'Total Receivables',
-                before: receivablesBefore,
-                after: receivablesAfter,
-              ),
-              const SizedBox(height: 16),
-              QuickActionAmountCard(
-                amountController: _amountController,
-                amountLabel: 'Amount Collected',
-                onAmountChanged: () => setState(() {}),
-              ),
-              if (exceedsReceivables)
-                Padding(
-                  padding: const EdgeInsets.only(top: 8),
-                  child: Row(
+            return Column(
+              children: [
+                // =====================================
+                // 1. PINNED HEADER (Always visible)
+                // =====================================
+                BeforeAfterBalanceHeader(
+                  label: 'Total Receivables',
+                  before: receivablesBefore,
+                  after: receivablesAfter,
+                ),
+
+                // =====================================
+                // 2. SCROLLABLE CONTENT (The Form)
+                // =====================================
+                Expanded(
+                  child: ListView(
+                    padding: const EdgeInsets.all(20),
                     children: [
-                      Icon(Icons.warning_amber_rounded,
-                          size: 20, color: scheme.error),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          'Amount cannot exceed total receivables (₱ ${formatAmount(receivablesBefore)}).',
-                          style: TextStyle(
-                            color: scheme.error,
-                            fontSize: 13,
-                            fontWeight: FontWeight.w500,
+                      QuickActionAmountCard(
+                        amountController: _amountController,
+                        amountLabel: 'Amount Collected',
+                        onAmountChanged: () => setState(() {}),
+                      ),
+                      if (exceedsReceivables)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 8),
+                          child: Row(
+                            children: [
+                              Icon(
+                                Icons.warning_amber_rounded,
+                                size: 20,
+                                color: scheme.error,
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  'Amount cannot exceed total receivables (₱ ${formatAmount(receivablesBefore)}).',
+                                  style: TextStyle(
+                                    color: scheme.error,
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
                         ),
+                      const SizedBox(height: 24),
+                      const QuickActionSectionLabel(
+                        'Received to (Cash / Bank)',
+                      ),
+                      CashBankChips(
+                        value: _cashLocation,
+                        onChanged: (v) => setState(() => _cashLocation = v),
+                      ),
+                      const SizedBox(height: 24),
+                      QuickActionDetailsCard(
+                        descriptionController: _descController,
+                        dateText: _dateController.text,
+                        onDateTap: _pickDate,
                       ),
                     ],
                   ),
                 ),
-              const SizedBox(height: 24),
-              const QuickActionSectionLabel('Received to (Cash / Bank)'),
-              CashBankChips(
-                value: _cashLocation,
-                onChanged: (v) => setState(() => _cashLocation = v),
-              ),
-              const SizedBox(height: 24),
-              QuickActionDetailsCard(
-                descriptionController: _descController,
-                dateText: _dateController.text,
-                onDateTap: _pickDate,
-              ),
-            ],
-          );
-        },
+              ],
+            );
+          },
+        ),
       ),
       bottomNavigationBar: StreamBuilder<Map<int, double>>(
         stream: appDb.ledgerDao.watchBalancesForAccountCodes({
           QuickActionAccounts.accountsReceivable,
         }),
         builder: (context, snap) {
-          final balances = snap.data ?? {
-            QuickActionAccounts.accountsReceivable: 0.0,
-          };
+          final balances =
+              snap.data ?? {QuickActionAccounts.accountsReceivable: 0.0};
           final receivablesBefore =
               balances[QuickActionAccounts.accountsReceivable] ?? 0.0;
           final amount = parseAmount(_amountController);
           final exceedsReceivables = amount > receivablesBefore && amount > 0;
+
           return QuickActionSaveButton(
             onPressed: exceedsReceivables ? null : _save,
             isSaving: _isSaving,

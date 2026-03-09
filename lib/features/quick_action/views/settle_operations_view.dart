@@ -97,7 +97,11 @@ class _SettleOperationsViewState extends State<SettleOperationsView> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Failed to save operations payment. Please try again.')),
+          const SnackBar(
+            content: Text(
+              'Failed to save operations payment. Please try again.',
+            ),
+          ),
         );
       }
     } finally {
@@ -105,10 +109,13 @@ class _SettleOperationsViewState extends State<SettleOperationsView> {
     }
   }
 
-  Stream<double> get _balanceStream =>
-      _paymentMethod == 'cash'
-          ? appDb.ledgerDao.watchBalanceForAccountCode(QuickActionAccounts.cashOnHand)
-          : appDb.ledgerDao.watchBalanceForAccountCode(QuickActionAccounts.cashInBank);
+  Stream<double> get _balanceStream => _paymentMethod == 'cash'
+      ? appDb.ledgerDao.watchBalanceForAccountCode(
+          QuickActionAccounts.cashOnHand,
+        )
+      : appDb.ledgerDao.watchBalanceForAccountCode(
+          QuickActionAccounts.cashInBank,
+        );
 
   String get _balanceLabel =>
       _paymentMethod == 'cash' ? 'Cash balance:' : 'Bank balance:';
@@ -128,7 +135,8 @@ class _SettleOperationsViewState extends State<SettleOperationsView> {
         leading: BackButton(color: scheme.primary),
         title: Text(
           SettleOperationsView._title,
-          style: textTheme.headlineLarge?.copyWith(fontSize: 20) ??
+          style:
+              textTheme.headlineLarge?.copyWith(fontSize: 20) ??
               TextStyle(color: scheme.onSurface, fontWeight: FontWeight.bold),
         ),
       ),
@@ -138,10 +146,12 @@ class _SettleOperationsViewState extends State<SettleOperationsView> {
           QuickActionAccounts.cashInBank,
         }),
         builder: (context, snap) {
-          final balances = snap.data ?? {
-            QuickActionAccounts.cashOnHand: 0.0,
-            QuickActionAccounts.cashInBank: 0.0,
-          };
+          final balances =
+              snap.data ??
+              {
+                QuickActionAccounts.cashOnHand: 0.0,
+                QuickActionAccounts.cashInBank: 0.0,
+              };
           final before = _paymentMethod == 'cash'
               ? (balances[QuickActionAccounts.cashOnHand] ?? 0.0)
               : (balances[QuickActionAccounts.cashInBank] ?? 0.0);
@@ -152,7 +162,9 @@ class _SettleOperationsViewState extends State<SettleOperationsView> {
             padding: const EdgeInsets.all(20),
             children: [
               BeforeAfterBalanceHeader(
-                label: _paymentMethod == 'cash' ? 'Cash balance' : 'Bank balance',
+                label: _paymentMethod == 'cash'
+                    ? 'Cash balance'
+                    : 'Bank balance',
                 before: before,
                 after: after,
               ),
@@ -246,7 +258,13 @@ class _SettleOperationsViewState extends State<SettleOperationsView> {
 }
 
 class _ExpenseChip extends StatelessWidget {
-  const _ExpenseChip(this.label, this.value, this.selected, this.onTap, {required this.accentColor});
+  const _ExpenseChip(
+    this.label,
+    this.value,
+    this.selected,
+    this.onTap, {
+    required this.accentColor,
+  });
 
   final String label;
   final String value;
@@ -269,7 +287,9 @@ class _ExpenseChip extends StatelessWidget {
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(12),
             border: Border.all(
-              color: isSelected ? accentColor : accentColor.withValues(alpha: 0.4),
+              color: isSelected
+                  ? accentColor
+                  : accentColor.withValues(alpha: 0.4),
               width: isSelected ? 1.5 : 1,
             ),
           ),

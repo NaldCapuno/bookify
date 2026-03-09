@@ -98,7 +98,9 @@ class _RefundToCustomersViewState extends State<RefundToCustomersView> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Failed to save refund. Please try again.')),
+          const SnackBar(
+            content: Text('Failed to save refund. Please try again.'),
+          ),
         );
       }
     } finally {
@@ -108,10 +110,14 @@ class _RefundToCustomersViewState extends State<RefundToCustomersView> {
 
   Stream<double>? get _balanceStream {
     if (_method == 'cash') {
-      return appDb.ledgerDao.watchBalanceForAccountCode(QuickActionAccounts.cashOnHand);
+      return appDb.ledgerDao.watchBalanceForAccountCode(
+        QuickActionAccounts.cashOnHand,
+      );
     }
     if (_method == 'bank') {
-      return appDb.ledgerDao.watchBalanceForAccountCode(QuickActionAccounts.cashInBank);
+      return appDb.ledgerDao.watchBalanceForAccountCode(
+        QuickActionAccounts.cashInBank,
+      );
     }
     return null;
   }
@@ -139,7 +145,8 @@ class _RefundToCustomersViewState extends State<RefundToCustomersView> {
         leading: BackButton(color: scheme.primary),
         title: Text(
           RefundToCustomersView._title,
-          style: textTheme.headlineLarge?.copyWith(fontSize: 20) ??
+          style:
+              textTheme.headlineLarge?.copyWith(fontSize: 20) ??
               TextStyle(color: scheme.onSurface, fontWeight: FontWeight.bold),
         ),
       ),
@@ -149,10 +156,12 @@ class _RefundToCustomersViewState extends State<RefundToCustomersView> {
           QuickActionAccounts.cashInBank,
         }),
         builder: (context, snap) {
-          final balances = snap.data ?? {
-            QuickActionAccounts.cashOnHand: 0.0,
-            QuickActionAccounts.cashInBank: 0.0,
-          };
+          final balances =
+              snap.data ??
+              {
+                QuickActionAccounts.cashOnHand: 0.0,
+                QuickActionAccounts.cashInBank: 0.0,
+              };
           final before = _method == 'cash'
               ? (balances[QuickActionAccounts.cashOnHand] ?? 0.0)
               : (balances[QuickActionAccounts.cashInBank] ?? 0.0);
@@ -213,7 +222,8 @@ class _RefundToCustomersViewState extends State<RefundToCustomersView> {
               stream: _balanceStream,
               builder: (context, snap) {
                 final balance = snap.data ?? 0.0;
-                final insufficient = _currentAmount > balance && _currentAmount > 0;
+                final insufficient =
+                    _currentAmount > balance && _currentAmount > 0;
                 return QuickActionSaveButton(
                   onPressed: insufficient ? null : _save,
                   isSaving: _isSaving,

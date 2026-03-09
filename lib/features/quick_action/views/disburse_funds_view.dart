@@ -87,7 +87,9 @@ class _DisburseFundsViewState extends State<DisburseFundsView> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Failed to save disbursement. Please try again.')),
+          const SnackBar(
+            content: Text('Failed to save disbursement. Please try again.'),
+          ),
         );
       }
     } finally {
@@ -95,10 +97,13 @@ class _DisburseFundsViewState extends State<DisburseFundsView> {
     }
   }
 
-  Stream<double> get _balanceStream =>
-      _paymentMethod == 'cash'
-          ? appDb.ledgerDao.watchBalanceForAccountCode(QuickActionAccounts.cashOnHand)
-          : appDb.ledgerDao.watchBalanceForAccountCode(QuickActionAccounts.cashInBank);
+  Stream<double> get _balanceStream => _paymentMethod == 'cash'
+      ? appDb.ledgerDao.watchBalanceForAccountCode(
+          QuickActionAccounts.cashOnHand,
+        )
+      : appDb.ledgerDao.watchBalanceForAccountCode(
+          QuickActionAccounts.cashInBank,
+        );
 
   String get _balanceLabel =>
       _paymentMethod == 'cash' ? 'Cash balance:' : 'Bank balance:';
@@ -118,7 +123,8 @@ class _DisburseFundsViewState extends State<DisburseFundsView> {
         leading: BackButton(color: scheme.primary),
         title: Text(
           DisburseFundsView._title,
-          style: textTheme.headlineLarge?.copyWith(fontSize: 20) ??
+          style:
+              textTheme.headlineLarge?.copyWith(fontSize: 20) ??
               TextStyle(color: scheme.onSurface, fontWeight: FontWeight.bold),
         ),
       ),
@@ -128,7 +134,8 @@ class _DisburseFundsViewState extends State<DisburseFundsView> {
           QuickActionAccounts.cashInBank,
         }),
         builder: (context, snap) {
-          final balances = snap.data ??
+          final balances =
+              snap.data ??
               {
                 QuickActionAccounts.cashOnHand: 0.0,
                 QuickActionAccounts.cashInBank: 0.0,
@@ -145,7 +152,9 @@ class _DisburseFundsViewState extends State<DisburseFundsView> {
             padding: const EdgeInsets.all(20),
             children: [
               BeforeAfterBalanceHeader(
-                label: _paymentMethod == 'cash' ? 'Cash balance' : 'Bank balance',
+                label: _paymentMethod == 'cash'
+                    ? 'Cash balance'
+                    : 'Bank balance',
                 before: before,
                 after: after,
               ),
@@ -185,7 +194,8 @@ class _DisburseFundsViewState extends State<DisburseFundsView> {
           QuickActionAccounts.cashInBank,
         }),
         builder: (context, snap) {
-          final balances = snap.data ??
+          final balances =
+              snap.data ??
               {
                 QuickActionAccounts.cashOnHand: 0.0,
                 QuickActionAccounts.cashInBank: 0.0,

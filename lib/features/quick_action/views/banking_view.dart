@@ -61,10 +61,12 @@ class _BankingViewState extends State<BankingView> {
     }
 
     final isDeposit = widget.type == 'Deposit';
-    final debitCode =
-        isDeposit ? QuickActionAccounts.cashInBank : QuickActionAccounts.cashOnHand;
-    final creditCode =
-        isDeposit ? QuickActionAccounts.cashOnHand : QuickActionAccounts.cashInBank;
+    final debitCode = isDeposit
+        ? QuickActionAccounts.cashInBank
+        : QuickActionAccounts.cashOnHand;
+    final creditCode = isDeposit
+        ? QuickActionAccounts.cashOnHand
+        : QuickActionAccounts.cashInBank;
 
     final lines = <TemplateLine>[
       TemplateLine(accountCode: debitCode, isDebit: true, amount: amount),
@@ -83,7 +85,9 @@ class _BankingViewState extends State<BankingView> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Failed to record transfer. Please try again.')),
+          const SnackBar(
+            content: Text('Failed to record transfer. Please try again.'),
+          ),
         );
       }
     } finally {
@@ -107,10 +111,12 @@ class _BankingViewState extends State<BankingView> {
       appBar: AppBar(
         backgroundColor: scheme.surfaceContainerHighest,
         elevation: 0,
+        scrolledUnderElevation: 0,
         leading: BackButton(color: scheme.primary),
         title: Text(
           widget.type == 'Deposit' ? 'Deposit to Bank' : 'Withdraw from Bank',
-          style: textTheme.headlineLarge?.copyWith(fontSize: 20) ??
+          style:
+              textTheme.headlineLarge?.copyWith(fontSize: 20) ??
               TextStyle(color: scheme.onSurface, fontWeight: FontWeight.bold),
         ),
       ),
@@ -120,10 +126,12 @@ class _BankingViewState extends State<BankingView> {
           QuickActionAccounts.cashInBank,
         }),
         builder: (context, snap) {
-          final balances = snap.data ?? {
-            QuickActionAccounts.cashOnHand: 0.0,
-            QuickActionAccounts.cashInBank: 0.0,
-          };
+          final balances =
+              snap.data ??
+              {
+                QuickActionAccounts.cashOnHand: 0.0,
+                QuickActionAccounts.cashInBank: 0.0,
+              };
           final cash = balances[QuickActionAccounts.cashOnHand] ?? 0.0;
           final bank = balances[QuickActionAccounts.cashInBank] ?? 0.0;
           final amount = _currentAmount;
@@ -134,36 +142,45 @@ class _BankingViewState extends State<BankingView> {
           final sourceBalance = isDeposit ? cash : bank;
           final insufficient = amount > 0 && amount > sourceBalance;
 
-          return ListView(
-            padding: const EdgeInsets.all(20),
-            children: [
-              BeforeAfterBalanceHeader(
-                label: isDeposit ? 'Cash balance' : 'Bank balance',
-                before: balanceBefore,
-                after: balanceAfter,
-              ),
-              const SizedBox(height: 16),
-              QuickActionAmountCard(
-                amountController: _amountController,
-                amountLabel: _amountLabel,
-                onAmountChanged: () => setState(() {}),
-              ),
-              if (insufficient)
-                Padding(
-                  padding: const EdgeInsets.only(top: 8),
-                  child: InsufficientBalanceNotice(
-                    amount: amount,
-                    currentBalance: sourceBalance,
-                    isOutflow: true,
+          return SafeArea(
+            child: Column(
+              children: [
+                BeforeAfterBalanceHeader(
+                  label: isDeposit ? 'Cash balance' : 'Bank balance',
+                  before: balanceBefore,
+                  after: balanceAfter,
+                ),
+                Expanded(
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.all(20),
+                    child: Column(
+                      children: [
+                        QuickActionAmountCard(
+                          amountController: _amountController,
+                          amountLabel: _amountLabel,
+                          onAmountChanged: () => setState(() {}),
+                        ),
+                        if (insufficient)
+                          Padding(
+                            padding: const EdgeInsets.only(top: 8),
+                            child: InsufficientBalanceNotice(
+                              amount: amount,
+                              currentBalance: sourceBalance,
+                              isOutflow: true,
+                            ),
+                          ),
+                        const SizedBox(height: 24),
+                        QuickActionDetailsCard(
+                          descriptionController: _descController,
+                          dateText: _dateController.text,
+                          onDateTap: _pickDate,
+                        ),
+                      ],
+                    ),
                   ),
                 ),
-              const SizedBox(height: 24),
-              QuickActionDetailsCard(
-                descriptionController: _descController,
-                dateText: _dateController.text,
-                onDateTap: _pickDate,
-              ),
-            ],
+              ],
+            ),
           );
         },
       ),
@@ -173,14 +190,17 @@ class _BankingViewState extends State<BankingView> {
           QuickActionAccounts.cashInBank,
         }),
         builder: (context, snap) {
-          final balances = snap.data ?? {
-            QuickActionAccounts.cashOnHand: 0.0,
-            QuickActionAccounts.cashInBank: 0.0,
-          };
+          final balances =
+              snap.data ??
+              {
+                QuickActionAccounts.cashOnHand: 0.0,
+                QuickActionAccounts.cashInBank: 0.0,
+              };
           final sourceBalance = isDeposit
               ? (balances[QuickActionAccounts.cashOnHand] ?? 0.0)
               : (balances[QuickActionAccounts.cashInBank] ?? 0.0);
-          final insufficient = _currentAmount > sourceBalance && _currentAmount > 0;
+          final insufficient =
+              _currentAmount > sourceBalance && _currentAmount > 0;
           return QuickActionSaveButton(
             onPressed: insufficient ? null : _save,
             isSaving: _isSaving,

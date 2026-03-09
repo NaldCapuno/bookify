@@ -72,11 +72,7 @@ class _PayWorkersViewState extends State<PayWorkersView> {
         : QuickActionAccounts.salariesAndWagesExpense;
 
     final lines = <TemplateLine>[
-      TemplateLine(
-        accountCode: debitCode,
-        isDebit: true,
-        amount: amount,
-      ),
+      TemplateLine(accountCode: debitCode, isDebit: true, amount: amount),
       TemplateLine(accountCode: creditCode, isDebit: false, amount: amount),
     ];
 
@@ -92,7 +88,9 @@ class _PayWorkersViewState extends State<PayWorkersView> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Failed to save payment. Please try again.')),
+          const SnackBar(
+            content: Text('Failed to save payment. Please try again.'),
+          ),
         );
       }
     } finally {
@@ -115,7 +113,8 @@ class _PayWorkersViewState extends State<PayWorkersView> {
         leading: BackButton(color: scheme.primary),
         title: Text(
           PayWorkersView._title,
-          style: textTheme.headlineLarge?.copyWith(fontSize: 20) ??
+          style:
+              textTheme.headlineLarge?.copyWith(fontSize: 20) ??
               TextStyle(color: scheme.onSurface, fontWeight: FontWeight.bold),
         ),
       ),
@@ -126,7 +125,8 @@ class _PayWorkersViewState extends State<PayWorkersView> {
           QuickActionAccounts.directLabor,
         }),
         builder: (context, snap) {
-          final balances = snap.data ??
+          final balances =
+              snap.data ??
               {
                 QuickActionAccounts.cashOnHand: 0.0,
                 QuickActionAccounts.cashInBank: 0.0,
@@ -184,9 +184,7 @@ class _PayWorkersViewState extends State<PayWorkersView> {
               ),
               const SizedBox(height: 10),
               if (_employeeType == 'workers')
-                _PostingHintCard(
-                  directLaborBalance: directLabor.abs(),
-                ),
+                _PostingHintCard(directLaborBalance: directLabor.abs()),
               const SizedBox(height: 20),
               const QuickActionSectionLabel('Paid via'),
               CashBankChips(
@@ -212,7 +210,8 @@ class _PayWorkersViewState extends State<PayWorkersView> {
           QuickActionAccounts.cashInBank,
         }),
         builder: (context, snap) {
-          final balances = snap.data ??
+          final balances =
+              snap.data ??
               {
                 QuickActionAccounts.cashOnHand: 0.0,
                 QuickActionAccounts.cashInBank: 0.0,
@@ -235,9 +234,7 @@ class _PayWorkersViewState extends State<PayWorkersView> {
 }
 
 class _PostingHintCard extends StatelessWidget {
-  const _PostingHintCard({
-    required this.directLaborBalance,
-  });
+  const _PostingHintCard({required this.directLaborBalance});
 
   final double directLaborBalance;
 
@@ -290,9 +287,7 @@ class _TypeChip extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     return Material(
-      color: isSelected
-          ? accentColor.withValues(alpha: 0.15)
-          : scheme.surface,
+      color: isSelected ? accentColor.withValues(alpha: 0.15) : scheme.surface,
       borderRadius: BorderRadius.circular(12),
       child: InkWell(
         onTap: onTap,
@@ -302,7 +297,9 @@ class _TypeChip extends StatelessWidget {
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(12),
             border: Border.all(
-              color: isSelected ? accentColor : accentColor.withValues(alpha: 0.4),
+              color: isSelected
+                  ? accentColor
+                  : accentColor.withValues(alpha: 0.4),
               width: isSelected ? 1.5 : 1,
             ),
           ),

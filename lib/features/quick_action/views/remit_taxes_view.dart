@@ -87,7 +87,9 @@ class _RemitTaxesViewState extends State<RemitTaxesView> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Failed to save tax remittance. Please try again.')),
+          const SnackBar(
+            content: Text('Failed to save tax remittance. Please try again.'),
+          ),
         );
       }
     } finally {
@@ -95,10 +97,13 @@ class _RemitTaxesViewState extends State<RemitTaxesView> {
     }
   }
 
-  Stream<double> get _balanceStream =>
-      _paymentMethod == 'cash'
-          ? appDb.ledgerDao.watchBalanceForAccountCode(QuickActionAccounts.cashOnHand)
-          : appDb.ledgerDao.watchBalanceForAccountCode(QuickActionAccounts.cashInBank);
+  Stream<double> get _balanceStream => _paymentMethod == 'cash'
+      ? appDb.ledgerDao.watchBalanceForAccountCode(
+          QuickActionAccounts.cashOnHand,
+        )
+      : appDb.ledgerDao.watchBalanceForAccountCode(
+          QuickActionAccounts.cashInBank,
+        );
 
   String get _balanceLabel =>
       _paymentMethod == 'cash' ? 'Cash balance:' : 'Bank balance:';
@@ -118,7 +123,8 @@ class _RemitTaxesViewState extends State<RemitTaxesView> {
         leading: BackButton(color: scheme.primary),
         title: Text(
           RemitTaxesView._title,
-          style: textTheme.headlineLarge?.copyWith(fontSize: 20) ??
+          style:
+              textTheme.headlineLarge?.copyWith(fontSize: 20) ??
               TextStyle(color: scheme.onSurface, fontWeight: FontWeight.bold),
         ),
       ),
@@ -128,10 +134,12 @@ class _RemitTaxesViewState extends State<RemitTaxesView> {
           QuickActionAccounts.cashInBank,
         }),
         builder: (context, snap) {
-          final balances = snap.data ?? {
-            QuickActionAccounts.cashOnHand: 0.0,
-            QuickActionAccounts.cashInBank: 0.0,
-          };
+          final balances =
+              snap.data ??
+              {
+                QuickActionAccounts.cashOnHand: 0.0,
+                QuickActionAccounts.cashInBank: 0.0,
+              };
           final before = _paymentMethod == 'cash'
               ? (balances[QuickActionAccounts.cashOnHand] ?? 0.0)
               : (balances[QuickActionAccounts.cashInBank] ?? 0.0);
@@ -142,7 +150,9 @@ class _RemitTaxesViewState extends State<RemitTaxesView> {
             padding: const EdgeInsets.all(20),
             children: [
               BeforeAfterBalanceHeader(
-                label: _paymentMethod == 'cash' ? 'Cash balance' : 'Bank balance',
+                label: _paymentMethod == 'cash'
+                    ? 'Cash balance'
+                    : 'Bank balance',
                 before: before,
                 after: after,
               ),

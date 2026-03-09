@@ -1,19 +1,30 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 
 /// Format amount for display (e.g. "5,000.00").
 String formatAmount(double value) {
-  if (value == value.truncateToDouble()) {
-    return value.toInt().toString();
-  }
-  return value.toStringAsFixed(2);
+  return NumberFormat('#,##0.00').format(value);
 }
 
 double parseAmount(TextEditingController c) {
   return double.tryParse(c.text.replaceAll(',', '').trim()) ?? 0.0;
 }
 
+// Add new utility for input field formatting
+void formatAmountInput(TextEditingController controller) {
+  if (controller.text.isEmpty) return;
+  String cleanText = controller.text.replaceAll(',', '');
+  double? parsedValue = double.tryParse(cleanText);
+
+  if (parsedValue != null && parsedValue >= 0) {
+    controller.text = NumberFormat('#,##0.00').format(parsedValue);
+  }
+}
+
 /// Before/After balance header shown above the amount card.
 /// Uses consistent labels: 'CURRENT' and 'AFTER' across all quick action forms.
+/// Before/After balance header shown above the amount card.
+/// Designed to stick to the top of the screen right under the AppBar.
 class BeforeAfterBalanceHeader extends StatelessWidget {
   const BeforeAfterBalanceHeader({
     super.key,
@@ -33,12 +44,15 @@ class BeforeAfterBalanceHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+
     return Container(
-      padding: const EdgeInsets.all(14),
+      // Padding adjusted for a full-width flush look
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
       decoration: BoxDecoration(
+        // Match the AppBar's surface color
         color: scheme.surface,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: scheme.outlineVariant),
+        // Only apply a bottom border to separate it from the scrolling content below
+        border: Border(bottom: BorderSide(color: scheme.outlineVariant)),
       ),
       child: Row(
         children: [
@@ -48,6 +62,13 @@ class BeforeAfterBalanceHeader extends StatelessWidget {
               label: label,
               value: before,
             ),
+          ),
+          // Optional: Add a subtle vertical divider between the two columns
+          Container(
+            height: 30,
+            width: 1,
+            color: scheme.outlineVariant.withValues(alpha: 0.5),
+            margin: const EdgeInsets.symmetric(horizontal: 16),
           ),
           Expanded(
             child: _BeforeAfterColumn(
@@ -76,28 +97,41 @@ class _BeforeAfterColumn extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    final textTheme = Theme.of(context).textTheme;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        // 1. TITLES (CURRENT/AFTER)
         Text(
           title,
           style: TextStyle(
-            fontSize: 11,
-            color: scheme.onSurfaceVariant,
-            fontWeight: FontWeight.bold,
+            fontSize: 10, // REDUCED from 11
+            color: scheme.onSurfaceVariant.withValues(alpha: 0.8),
+            fontWeight: FontWeight.w500,
+            letterSpacing: 0.3,
           ),
         ),
-        const SizedBox(height: 4),
+
+        // 2. LABEL (Cash/Bank)
         Text(
           label,
-          style: TextStyle(fontSize: 12, color: scheme.onSurfaceVariant),
+          style: TextStyle(
+            fontSize: 11, // REDUCED from 12
+            color: scheme.onSurfaceVariant,
+            height: 1.2, // Tighter line height
+          ),
         ),
-        const SizedBox(height: 2),
+        const SizedBox(height: 4), // REDUCED SPACING
+        // 3. EXACT BALANCE
         Text(
           '₱ ${formatAmount(value)}',
-          style: textTheme.titleSmall?.copyWith(fontSize: 14) ??
-              const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+          style: TextStyle(
+            fontSize:
+                15, // REDUCED from 18, but still much larger than the labels
+            fontWeight: FontWeight.w800,
+            color: scheme.onSurface,
+            letterSpacing: -0.5,
+          ),
         ),
       ],
     );
@@ -159,10 +193,7 @@ class QuickActionAmountCard extends StatelessWidget {
           TextField(
             controller: amountController,
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
-            style: const TextStyle(
-              fontSize: 28,
-              fontWeight: FontWeight.bold,
-            ),
+            style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
             decoration: InputDecoration(
               prefixText: currencyPrefix,
               hintText: '0.00',
@@ -170,7 +201,12 @@ class QuickActionAmountCard extends StatelessWidget {
               isDense: true,
               contentPadding: EdgeInsets.zero,
             ),
-            onChanged: (_) => onAmountChanged?.call(),
+            onChanged: (_) {
+              onAmountChanged?.call();
+            },
+            // ✅ Add this formatting on focus loss
+            onSubmitted: (_) => formatAmountInput(amountController),
+            onTapOutside: (_) => formatAmountInput(amountController),
           ),
         ],
       ),
@@ -193,7 +229,8 @@ class InsufficientBalanceNotice extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (!isOutflow || amount <= 0 || amount <= currentBalance) return const SizedBox.shrink();
+    if (!isOutflow || amount <= 0 || amount <= currentBalance)
+      return const SizedBox.shrink();
     final scheme = Theme.of(context).colorScheme;
     return Padding(
       padding: const EdgeInsets.only(top: 8),
@@ -238,9 +275,11 @@ class PaymentMethodChips extends StatelessWidget {
   final double? cashBalance;
   final double? bankBalance;
 
-  static const Color _cashColor = Color(0xFF2E7D32);   // Green
-  static const Color _bankColor = Color(0xFF1976D2);  // Blue
-  static const Color _creditColor = Color(0xFFE65100); // Orange/amber for Pay Later
+  static const Color _cashColor = Color(0xFF2E7D32); // Green
+  static const Color _bankColor = Color(0xFF1976D2); // Blue
+  static const Color _creditColor = Color(
+    0xFFE65100,
+  ); // Orange/amber for Pay Later
 
   @override
   Widget build(BuildContext context) {
@@ -368,8 +407,8 @@ class CashBankChips extends StatelessWidget {
   final double? cashBalance;
   final double? bankBalance;
 
-  static const Color _cashColor = Color(0xFF2E7D32);  // Green
-  static const Color _bankColor = Color(0xFF1976D2);  // Blue
+  static const Color _cashColor = Color(0xFF2E7D32); // Green
+  static const Color _bankColor = Color(0xFF1976D2); // Blue
 
   @override
   Widget build(BuildContext context) {
@@ -464,7 +503,10 @@ class QuickActionDetailsCard extends StatelessWidget {
             decoration: InputDecoration(
               labelText: descriptionLabel,
               hintText: descriptionHint,
-              prefixIcon: Icon(Icons.description_outlined, color: scheme.onSurface),
+              prefixIcon: Icon(
+                Icons.description_outlined,
+                color: scheme.onSurface,
+              ),
               border: const UnderlineInputBorder(),
               contentPadding: const EdgeInsets.symmetric(vertical: 12),
             ),
@@ -476,7 +518,10 @@ class QuickActionDetailsCard extends StatelessWidget {
             child: InputDecorator(
               decoration: InputDecoration(
                 labelText: 'Date',
-                prefixIcon: Icon(Icons.calendar_today_outlined, color: scheme.onSurface),
+                prefixIcon: Icon(
+                  Icons.calendar_today_outlined,
+                  color: scheme.onSurface,
+                ),
                 border: const UnderlineInputBorder(),
                 contentPadding: const EdgeInsets.symmetric(vertical: 12),
               ),
@@ -525,11 +570,9 @@ class QuickActionSaveButton extends StatelessWidget {
           ),
           child: Text(
             isSaving ? 'Saving...' : label,
-            style: textTheme.labelLarge?.copyWith(fontSize: 16) ??
-                const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                ),
+            style:
+                textTheme.labelLarge?.copyWith(fontSize: 16) ??
+                const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
           ),
         ),
       ),

@@ -87,7 +87,9 @@ class _InvestToBusinessViewState extends State<InvestToBusinessView> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Failed to save entry. Please try again.')),
+          const SnackBar(
+            content: Text('Failed to save entry. Please try again.'),
+          ),
         );
       }
     } finally {
@@ -107,7 +109,8 @@ class _InvestToBusinessViewState extends State<InvestToBusinessView> {
         leading: BackButton(color: scheme.primary),
         title: Text(
           InvestToBusinessView._title,
-          style: textTheme.headlineLarge?.copyWith(fontSize: 20) ??
+          style:
+              textTheme.headlineLarge?.copyWith(fontSize: 20) ??
               TextStyle(color: scheme.onSurface, fontWeight: FontWeight.bold),
         ),
       ),

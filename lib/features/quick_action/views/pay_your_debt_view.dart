@@ -63,15 +63,17 @@ class _PayYourDebtViewState extends State<PayYourDebtView> {
       return;
     }
 
-    final int debitCode =
-        _debtType == 'ap' ? QuickActionAccounts.accountsPayable : QuickActionAccounts.longTermLoans;
+    final int debitCode = _debtType == 'ap'
+        ? QuickActionAccounts.accountsPayable
+        : QuickActionAccounts.longTermLoans;
 
     final creditCode = _paymentMethod == 'cash'
         ? QuickActionAccounts.cashOnHand
         : QuickActionAccounts.cashInBank;
 
-    final debtBefore =
-        await appDb.ledgerDao.watchBalanceForAccountCode(debitCode).first;
+    final debtBefore = await appDb.ledgerDao
+        .watchBalanceForAccountCode(debitCode)
+        .first;
     if (amount > debtBefore) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -118,7 +120,9 @@ class _PayYourDebtViewState extends State<PayYourDebtView> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Failed to save payment. Please try again.')),
+          const SnackBar(
+            content: Text('Failed to save payment. Please try again.'),
+          ),
         );
       }
     } finally {
@@ -138,7 +142,8 @@ class _PayYourDebtViewState extends State<PayYourDebtView> {
         leading: BackButton(color: scheme.primary),
         title: Text(
           PayYourDebtView._title,
-          style: textTheme.headlineLarge?.copyWith(fontSize: 20) ??
+          style:
+              textTheme.headlineLarge?.copyWith(fontSize: 20) ??
               TextStyle(color: scheme.onSurface, fontWeight: FontWeight.bold),
         ),
       ),
@@ -150,12 +155,14 @@ class _PayYourDebtViewState extends State<PayYourDebtView> {
           QuickActionAccounts.longTermLoans,
         }),
         builder: (context, snap) {
-          final balances = snap.data ?? {
-            QuickActionAccounts.cashOnHand: 0.0,
-            QuickActionAccounts.cashInBank: 0.0,
-            QuickActionAccounts.accountsPayable: 0.0,
-            QuickActionAccounts.longTermLoans: 0.0,
-          };
+          final balances =
+              snap.data ??
+              {
+                QuickActionAccounts.cashOnHand: 0.0,
+                QuickActionAccounts.cashInBank: 0.0,
+                QuickActionAccounts.accountsPayable: 0.0,
+                QuickActionAccounts.longTermLoans: 0.0,
+              };
           final cash = balances[QuickActionAccounts.cashOnHand] ?? 0.0;
           final bank = balances[QuickActionAccounts.cashInBank] ?? 0.0;
           final amount = parseAmount(_amountController);
@@ -164,7 +171,8 @@ class _PayYourDebtViewState extends State<PayYourDebtView> {
           final cashOrBankBefore = isCash ? cash : bank;
           final cashOrBankAfter = cashOrBankBefore - amount;
 
-          final payableDebt = balances[QuickActionAccounts.accountsPayable] ?? 0.0;
+          final payableDebt =
+              balances[QuickActionAccounts.accountsPayable] ?? 0.0;
           final loanDebt = balances[QuickActionAccounts.longTermLoans] ?? 0.0;
 
           final selectedDebtBefore = _debtType == 'ap' ? payableDebt : loanDebt;
@@ -195,8 +203,11 @@ class _PayYourDebtViewState extends State<PayYourDebtView> {
                   padding: const EdgeInsets.only(top: 8),
                   child: Row(
                     children: [
-                      Icon(Icons.warning_amber_rounded,
-                          size: 18, color: scheme.error),
+                      Icon(
+                        Icons.warning_amber_rounded,
+                        size: 18,
+                        color: scheme.error,
+                      ),
                       const SizedBox(width: 8),
                       Expanded(
                         child: Text(
@@ -270,12 +281,14 @@ class _PayYourDebtViewState extends State<PayYourDebtView> {
           QuickActionAccounts.longTermLoans,
         }),
         builder: (context, snap) {
-          final balances = snap.data ?? {
-            QuickActionAccounts.cashOnHand: 0.0,
-            QuickActionAccounts.cashInBank: 0.0,
-            QuickActionAccounts.accountsPayable: 0.0,
-            QuickActionAccounts.longTermLoans: 0.0,
-          };
+          final balances =
+              snap.data ??
+              {
+                QuickActionAccounts.cashOnHand: 0.0,
+                QuickActionAccounts.cashInBank: 0.0,
+                QuickActionAccounts.accountsPayable: 0.0,
+                QuickActionAccounts.longTermLoans: 0.0,
+              };
 
           final cash = balances[QuickActionAccounts.cashOnHand] ?? 0.0;
           final bank = balances[QuickActionAccounts.cashInBank] ?? 0.0;
@@ -333,7 +346,9 @@ class _DebtChip extends StatelessWidget {
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(12),
             border: Border.all(
-              color: isSelected ? accentColor : accentColor.withValues(alpha: 0.4),
+              color: isSelected
+                  ? accentColor
+                  : accentColor.withValues(alpha: 0.4),
               width: isSelected ? 1.5 : 1,
             ),
           ),
