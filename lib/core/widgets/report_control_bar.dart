@@ -1,3 +1,4 @@
+import 'package:bookkeeping/core/widgets/app_toast.dart';
 import 'package:bookkeeping/features/cashflow/cash_flow_statement.dart';
 import 'package:flutter/material.dart';
 import 'package:bookkeeping/core/utils/date_utils.dart';
@@ -96,11 +97,7 @@ class ReportControlBar extends StatelessWidget {
               if (currentData is IncomeStatement) {
                 PdfExportService.exportIncomeStatement(currentData!);
               } else if (currentData is BalanceSheet) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text("Cash Flow PDF Export coming soon!"),
-                  ),
-                );
+                AppToast.show(context, message: "Cash Flow PDF Export coming soon!");
                 PdfExportService.exportBalanceSheet(
                   currentData!,
                   startDate ?? DateTime.now(),
@@ -115,11 +112,7 @@ class ReportControlBar extends StatelessWidget {
                 );
               }
             } else {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text("No data available to download yet."),
-                ),
-              );
+              AppToast.show(context, message: "No data available to download yet.");
             }
           },
           style: OutlinedButton.styleFrom(

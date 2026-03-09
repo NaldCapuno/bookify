@@ -1,4 +1,5 @@
 import 'package:bookkeeping/core/database/app_database.dart';
+import 'package:bookkeeping/core/widgets/app_toast.dart';
 import 'package:bookkeeping/core/theme/app_theme.dart';
 import 'package:bookkeeping/features/quick_action/quick_action_journal_service.dart';
 import 'package:bookkeeping/features/quick_action/widgets/quick_action_shared_ui.dart';
@@ -16,7 +17,6 @@ class RecordPurchaseView extends StatefulWidget {
 
 class _RecordPurchaseViewState extends State<RecordPurchaseView> {
   String _selectedPaymentMethod = 'bank';
-  late String _currentCategory;
   final _amountController = TextEditingController();
   final _descController = TextEditingController();
   final _dateController = TextEditingController();
@@ -26,7 +26,6 @@ class _RecordPurchaseViewState extends State<RecordPurchaseView> {
   @override
   void initState() {
     super.initState();
-    _currentCategory = widget.initialCategory;
     _dateController.text = DateFormat('MM/dd/yyyy').format(_selectedDate);
   }
 
@@ -78,21 +77,13 @@ class _RecordPurchaseViewState extends State<RecordPurchaseView> {
     final amount = double.tryParse(rawAmount) ?? 0;
 
     if (desc.isEmpty || amount <= 0) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Description and amount are required.')),
-      );
+      AppToast.show(context, message: 'Description and amount are required.');
       return;
     }
 
-    final assetCode = _assetAccountForCategory(_currentCategory);
+    final assetCode = _assetAccountForCategory(widget.initialCategory);
     if (assetCode == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'Quick Purchase currently supports Supplies, Equipment, and Furniture only.',
-          ),
-        ),
-      );
+      AppToast.show(context, message: 'Quick Purchase currently supports Supplies, Equipment, and Furniture only.');
       return;
     }
 
@@ -127,9 +118,7 @@ class _RecordPurchaseViewState extends State<RecordPurchaseView> {
       if (mounted) Navigator.pop(context, true);
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Failed to save purchase. Please try again.')),
-        );
+        AppToast.show(context, message: 'Failed to save purchase. Please try again.', isError: true);
       }
     } finally {
       if (mounted) setState(() => _isSaving = false);
@@ -138,10 +127,14 @@ class _RecordPurchaseViewState extends State<RecordPurchaseView> {
 
   Stream<double>? get _balanceStream {
     if (_selectedPaymentMethod == 'cash') {
-      return appDb.ledgerDao.watchBalanceForAccountCode(QuickActionAccounts.cashOnHand);
+      return appDb.ledgerDao.watchBalanceForAccountCode(
+        QuickActionAccounts.cashOnHand,
+      );
     }
     if (_selectedPaymentMethod == 'bank') {
-      return appDb.ledgerDao.watchBalanceForAccountCode(QuickActionAccounts.cashInBank);
+      return appDb.ledgerDao.watchBalanceForAccountCode(
+        QuickActionAccounts.cashInBank,
+      );
     }
     return null;
   }
@@ -152,7 +145,8 @@ class _RecordPurchaseViewState extends State<RecordPurchaseView> {
     return null;
   }
 
-  bool get _isOutflow => _selectedPaymentMethod == 'cash' || _selectedPaymentMethod == 'bank';
+  bool get _isOutflow =>
+      _selectedPaymentMethod == 'cash' || _selectedPaymentMethod == 'bank';
 
   double get _currentAmount =>
       double.tryParse(_amountController.text.replaceAll(',', '').trim()) ?? 0;
@@ -170,8 +164,9 @@ class _RecordPurchaseViewState extends State<RecordPurchaseView> {
         elevation: 0,
         leading: BackButton(color: scheme.primary),
         title: Text(
-          'Record Purchase',
-          style: textTheme.headlineLarge?.copyWith(fontSize: 20) ??
+          'Purchase ${widget.initialCategory}',
+          style:
+              textTheme.headlineLarge?.copyWith(fontSize: 20) ??
               TextStyle(color: scheme.onSurface, fontWeight: FontWeight.bold),
         ),
       ),
@@ -181,10 +176,12 @@ class _RecordPurchaseViewState extends State<RecordPurchaseView> {
           QuickActionAccounts.cashInBank,
         }),
         builder: (context, snap) {
-          final balances = snap.data ?? {
-            QuickActionAccounts.cashOnHand: 0.0,
-            QuickActionAccounts.cashInBank: 0.0,
-          };
+          final balances =
+              snap.data ??
+              {
+                QuickActionAccounts.cashOnHand: 0.0,
+                QuickActionAccounts.cashInBank: 0.0,
+              };
           final cashBalance = balances[QuickActionAccounts.cashOnHand] ?? 0.0;
           final bankBalance = balances[QuickActionAccounts.cashInBank] ?? 0.0;
           final amount = _currentAmount;
@@ -230,52 +227,36 @@ class _RecordPurchaseViewState extends State<RecordPurchaseView> {
                 cashBalance: balances[QuickActionAccounts.cashOnHand],
                 bankBalance: balances[QuickActionAccounts.cashInBank],
               ),
-          if (isUnpaid)
-            Padding(
-              padding: const EdgeInsets.only(top: 12),
-              child: Row(
-                children: [
-                  Icon(Icons.warning_amber_rounded, size: 18, color: context.warning),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      'Will be recorded as Accounts Payable (Debt).',
-                      style: TextStyle(color: context.warning, fontSize: 13),
-                    ),
+              if (isUnpaid)
+                Padding(
+                  padding: const EdgeInsets.only(top: 12),
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.warning_amber_rounded,
+                        size: 18,
+                        color: context.warning,
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          'Will be recorded as Accounts Payable (Debt).',
+                          style: TextStyle(
+                            color: context.warning,
+                            fontSize: 13,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
-                ],
+                ),
+              const SizedBox(height: 24),
+              QuickActionDetailsCard(
+                descriptionController: _descController,
+                dateText: _dateController.text,
+                onDateTap: _pickDate,
+                descriptionHint: 'e.g. 2 Laptops for office',
               ),
-            ),
-          const SizedBox(height: 24),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            decoration: BoxDecoration(
-              color: scheme.surface,
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: scheme.outlineVariant),
-            ),
-            child: DropdownButtonFormField<String>(
-              value: _currentCategory,
-              items: ['Supplies', 'Equipment', 'Furniture', 'Land', 'Building', 'Vehicle']
-                  .map((c) => DropdownMenuItem(value: c, child: Text(c)))
-                  .toList(),
-              onChanged: (v) {
-                if (v != null) setState(() => _currentCategory = v);
-              },
-              decoration: const InputDecoration(
-                labelText: 'Asset Category',
-                prefixIcon: Icon(Icons.category_outlined),
-                border: UnderlineInputBorder(),
-              ),
-            ),
-          ),
-          const SizedBox(height: 24),
-          QuickActionDetailsCard(
-            descriptionController: _descController,
-            dateText: _dateController.text,
-            onDateTap: _pickDate,
-            descriptionHint: 'e.g. 2 Laptops for office',
-          ),
             ],
           );
         },
@@ -285,7 +266,8 @@ class _RecordPurchaseViewState extends State<RecordPurchaseView> {
               stream: _balanceStream,
               builder: (context, snap) {
                 final balance = snap.data ?? 0.0;
-                final insufficient = _currentAmount > balance && _currentAmount > 0;
+                final insufficient =
+                    _currentAmount > balance && _currentAmount > 0;
                 return QuickActionSaveButton(
                   onPressed: insufficient ? null : _save,
                   isSaving: _isSaving,

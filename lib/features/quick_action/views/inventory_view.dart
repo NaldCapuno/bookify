@@ -1,4 +1,5 @@
 import 'package:bookkeeping/core/database/app_database.dart';
+import 'package:bookkeeping/core/widgets/app_toast.dart';
 import 'package:bookkeeping/features/quick_action/quick_action_journal_service.dart';
 import 'package:bookkeeping/features/quick_action/widgets/quick_action_shared_ui.dart';
 import 'package:flutter/material.dart';
@@ -58,9 +59,7 @@ class _InventoryViewState extends State<InventoryView> {
     final desc = _descController.text.trim();
 
     if (desc.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Description is required.')),
-      );
+      AppToast.show(context, message: 'Description is required.');
       return;
     }
 
@@ -68,9 +67,7 @@ class _InventoryViewState extends State<InventoryView> {
       final rawAmount = _amountController.text.replaceAll(',', '').trim();
       final amount = double.tryParse(rawAmount) ?? 0;
       if (amount <= 0) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Amount is required.')),
-        );
+        AppToast.show(context, message: 'Amount is required.');
         return;
       }
 
@@ -106,20 +103,12 @@ class _InventoryViewState extends State<InventoryView> {
       final labor = double.tryParse(rawLabor) ?? 0;
 
       if (rawUsed <= 0) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Enter the amount of Raw Materials used.'),
-          ),
-        );
+        AppToast.show(context, message: 'Enter the amount of Raw Materials used.');
         return;
       }
 
       if (labor < 0) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Direct Labor cannot be negative.'),
-          ),
-        );
+        AppToast.show(context, message: 'Direct Labor cannot be negative.');
         return;
       }
 
@@ -160,9 +149,7 @@ class _InventoryViewState extends State<InventoryView> {
       if (mounted) Navigator.pop(context, true);
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Failed to save inventory entry. Please try again.')),
-        );
+        AppToast.show(context, message: 'Failed to save inventory entry. Please try again.', isError: true);
       }
     } finally {
       if (mounted) setState(() => _isSaving = false);
@@ -263,11 +250,7 @@ class _InventoryViewState extends State<InventoryView> {
                   bankBalance: bank,
                 ),
               ] else ...[
-            QuickActionAmountCard(
-              amountController: _rawUsedController,
-              amountLabel: 'Raw Materials Used',
-              onAmountChanged: () => setState(() {}),
-            ),
+            // Raw Materials Used — card with grouped remaining detail inside
             StreamBuilder<double>(
               stream: appDb.ledgerDao.watchBalanceForAccountCode(
                 QuickActionAccounts.inventoryRawMaterials,
@@ -279,53 +262,40 @@ class _InventoryViewState extends State<InventoryView> {
                     0.0;
                 final remaining = balance - rawUsed;
                 final displayRemaining = remaining.clamp(0.0, double.infinity);
-                return Padding(
-                  padding: const EdgeInsets.only(top: 10),
-                  child: Align(
-                    alignment: Alignment.centerLeft,
-                    child: Text(
-                      'Raw materials remaining: ${formatAmount(displayRemaining)}',
-                      style: TextStyle(
-                        fontSize: 13,
-                        color: remaining < 0 ? scheme.error : scheme.onSurfaceVariant,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
+                return QuickActionAmountCard(
+                  amountController: _rawUsedController,
+                  amountLabel: 'Raw Materials Used',
+                  onAmountChanged: () => setState(() {}),
+                  footer: Text(
+                    'Raw materials remaining: ${formatAmount(displayRemaining)}',
+                    style: remaining < 0
+                        ? TextStyle(color: scheme.error, fontSize: 12, fontWeight: FontWeight.w500)
+                        : null,
                   ),
                 );
               },
             ),
             const SizedBox(height: 16),
+            // Direct Labor — card with grouped total detail inside
             QuickActionAmountCard(
               amountController: _laborController,
               amountLabel: 'Direct Labor',
               onAmountChanged: () => setState(() {}),
-            ),
-            Padding(
-              padding: const EdgeInsets.only(top: 10),
-              child: Align(
-                alignment: Alignment.centerLeft,
-                child: Builder(
-                  builder: (context) {
-                    final rawUsed = double.tryParse(
-                          _rawUsedController.text.replaceAll(',', '').trim(),
-                        ) ??
-                        0.0;
-                    final labor = double.tryParse(
-                          _laborController.text.replaceAll(',', '').trim(),
-                        ) ??
-                        0.0;
-                    final totalFinishedGoods = rawUsed + labor;
-                    return Text(
-                      'Total finished goods: ${formatAmount(totalFinishedGoods)}',
-                      style: TextStyle(
-                        fontSize: 13,
-                        color: scheme.onSurfaceVariant,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    );
-                  },
-                ),
+              footer: Builder(
+                builder: (context) {
+                  final rawUsed = double.tryParse(
+                        _rawUsedController.text.replaceAll(',', '').trim(),
+                      ) ??
+                      0.0;
+                  final labor = double.tryParse(
+                        _laborController.text.replaceAll(',', '').trim(),
+                      ) ??
+                      0.0;
+                  final totalFinishedGoods = rawUsed + labor;
+                  return Text(
+                    'Total finished goods: ${formatAmount(totalFinishedGoods)}',
+                  );
+                },
               ),
             ),
               ],

@@ -117,6 +117,8 @@ class QuickActionAmountCard extends StatelessWidget {
     this.checkInsufficient = false,
     this.currencyPrefix = '₱ ',
     this.onAmountChanged,
+    /// Optional footer shown inside the card with lower hierarchy (e.g. "remaining" or total).
+    this.footer,
   });
 
   final TextEditingController amountController;
@@ -126,6 +128,7 @@ class QuickActionAmountCard extends StatelessWidget {
   final bool checkInsufficient;
   final String currencyPrefix;
   final VoidCallback? onAmountChanged;
+  final Widget? footer;
 
   @override
   Widget build(BuildContext context) {
@@ -146,6 +149,7 @@ class QuickActionAmountCard extends StatelessWidget {
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
         children: [
           Text(
             amountLabel.toUpperCase(),
@@ -172,6 +176,17 @@ class QuickActionAmountCard extends StatelessWidget {
             ),
             onChanged: (_) => onAmountChanged?.call(),
           ),
+          if (footer != null) ...[
+            const SizedBox(height: 8),
+            DefaultTextStyle(
+              style: TextStyle(
+                fontSize: 12,
+                color: scheme.onSurfaceVariant,
+                fontWeight: FontWeight.w500,
+              ),
+              child: footer!,
+            ),
+          ],
         ],
       ),
     );
@@ -244,40 +259,43 @@ class PaymentMethodChips extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Expanded(
-          child: _Chip(
-            label: cashLabel,
-            icon: Icons.money,
-            isSelected: value == 'cash',
-            onTap: () => onChanged('cash'),
-            balance: cashBalance,
-            accentColor: _cashColor,
+    return IntrinsicHeight(
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Expanded(
+            child: _Chip(
+              label: cashLabel,
+              icon: Icons.money,
+              isSelected: value == 'cash',
+              onTap: () => onChanged('cash'),
+              balance: cashBalance,
+              accentColor: _cashColor,
+            ),
           ),
-        ),
-        const SizedBox(width: 8),
-        Expanded(
-          child: _Chip(
-            label: bankLabel,
-            icon: Icons.account_balance,
-            isSelected: value == 'bank',
-            onTap: () => onChanged('bank'),
-            balance: bankBalance,
-            accentColor: _bankColor,
+          const SizedBox(width: 8),
+          Expanded(
+            child: _Chip(
+              label: bankLabel,
+              icon: Icons.account_balance,
+              isSelected: value == 'bank',
+              onTap: () => onChanged('bank'),
+              balance: bankBalance,
+              accentColor: _bankColor,
+            ),
           ),
-        ),
-        const SizedBox(width: 8),
-        Expanded(
-          child: _Chip(
-            label: creditLabel,
-            icon: creditIcon,
-            isSelected: value == 'credit',
-            onTap: () => onChanged('credit'),
-            accentColor: _creditColor,
+          const SizedBox(width: 8),
+          Expanded(
+            child: _Chip(
+              label: creditLabel,
+              icon: creditIcon,
+              isSelected: value == 'credit',
+              onTap: () => onChanged('credit'),
+              accentColor: _creditColor,
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 }
@@ -319,6 +337,8 @@ class _Chip extends StatelessWidget {
             ),
           ),
           child: Column(
+            mainAxisSize: MainAxisSize.max,
+            mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Icon(
                 icon,

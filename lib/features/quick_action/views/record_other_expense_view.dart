@@ -1,4 +1,5 @@
 import 'package:bookkeeping/core/database/app_database.dart';
+import 'package:bookkeeping/core/widgets/app_toast.dart';
 import 'package:bookkeeping/features/quick_action/quick_action_journal_service.dart';
 import 'package:bookkeeping/features/quick_action/widgets/quick_action_shared_ui.dart';
 import 'package:flutter/material.dart';
@@ -51,6 +52,13 @@ class _RecordOtherExpenseViewState extends State<RecordOtherExpenseView> {
     }
   }
 
+  static const Map<String, String> _expenseTypeLabels = {
+    'bankFees': 'Bank Fees',
+    'tax': 'Tax',
+    'interest': 'Interest',
+    'misc': 'Miscellaneous',
+  };
+
   int _expenseAccountForType(String type) {
     switch (type) {
       case 'tax':
@@ -65,15 +73,68 @@ class _RecordOtherExpenseViewState extends State<RecordOtherExpenseView> {
     }
   }
 
+  Future<void> _showExpenseTypePicker() async {
+    final picked = await showModalBottomSheet<String>(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (BuildContext context) {
+        final scheme = Theme.of(context).colorScheme;
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.only(top: 24.0, bottom: 8.0),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 40,
+                  height: 4,
+                  margin: const EdgeInsets.only(bottom: 20),
+                  decoration: BoxDecoration(
+                    color: scheme.outlineVariant,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
+                Text(
+                  'Select Expense Type',
+                  style: Theme.of(context).textTheme.titleMedium,
+                ),
+                const SizedBox(height: 16),
+                ..._expenseTypeLabels.entries.map((e) {
+                  final isSelected = _expenseType == e.key;
+                  return ListTile(
+                    title: Text(
+                      e.value,
+                      style: Theme.of(context).textTheme.bodyLarge!.copyWith(
+                        fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                      ),
+                    ),
+                    trailing: isSelected
+                        ? Icon(Icons.check_circle, color: scheme.primary)
+                        : null,
+                    onTap: () => Navigator.pop(context, e.key),
+                  );
+                }),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+    if (picked != null && mounted) {
+      setState(() => _expenseType = picked);
+    }
+  }
+
   Future<void> _save() async {
     final desc = _descController.text.trim();
     final rawAmount = _amountController.text.replaceAll(',', '').trim();
     final amount = double.tryParse(rawAmount) ?? 0;
 
     if (desc.isEmpty || amount <= 0) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Description and amount are required.')),
-      );
+      AppToast.show(context, message: 'Description and amount are required.');
       return;
     }
 
@@ -98,11 +159,7 @@ class _RecordOtherExpenseViewState extends State<RecordOtherExpenseView> {
       if (mounted) Navigator.pop(context, true);
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Failed to save expense. Please try again.'),
-          ),
-        );
+        AppToast.show(context, message: 'Failed to save expense. Please try again.', isError: true);
       }
     } finally {
       if (mounted) setState(() => _isSaving = false);
@@ -190,52 +247,30 @@ class _RecordOtherExpenseViewState extends State<RecordOtherExpenseView> {
               ),
               const SizedBox(height: 24),
               const QuickActionSectionLabel('Expense Type'),
-              Row(
-                children: [
-                  Expanded(
-                    child: _ExpenseChip(
-                      'Bank Fees',
-                      'bankFees',
-                      _expenseType,
-                      () => setState(() => _expenseType = 'bankFees'),
-                      accentColor: const Color(0xFF1976D2), // Blue
-                    ),
+              InkWell(
+                onTap: _showExpenseTypePicker,
+                borderRadius: BorderRadius.circular(16),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                  decoration: BoxDecoration(
+                    color: scheme.surface,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: scheme.outlineVariant),
                   ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: _ExpenseChip(
-                      'Tax',
-                      'tax',
-                      _expenseType,
-                      () => setState(() => _expenseType = 'tax'),
-                      accentColor: const Color(0xFF00897B), // Teal
-                    ),
+                  child: Row(
+                    children: [
+                      Icon(Icons.receipt_long_outlined, color: scheme.onSurfaceVariant),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          _expenseTypeLabels[_expenseType] ?? _expenseType,
+                          style: Theme.of(context).textTheme.bodyLarge,
+                        ),
+                      ),
+                      Icon(Icons.keyboard_arrow_down, color: scheme.onSurfaceVariant),
+                    ],
                   ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: _ExpenseChip(
-                      'Interest',
-                      'interest',
-                      _expenseType,
-                      () => setState(() => _expenseType = 'interest'),
-                      accentColor: const Color(0xFF7B1FA2), // Purple
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 8),
-              Row(
-                children: [
-                  Expanded(
-                    child: _ExpenseChip(
-                      'Miscellaneous',
-                      'misc',
-                      _expenseType,
-                      () => setState(() => _expenseType = 'misc'),
-                      accentColor: const Color(0xFF546E7A), // Blue grey
-                    ),
-                  ),
-                ],
+                ),
               ),
               const SizedBox(height: 20),
               const QuickActionSectionLabel('Paid via'),
@@ -266,58 +301,6 @@ class _RecordOtherExpenseViewState extends State<RecordOtherExpenseView> {
             label: 'Save Entry',
           );
         },
-      ),
-    );
-  }
-}
-
-class _ExpenseChip extends StatelessWidget {
-  const _ExpenseChip(
-    this.label,
-    this.value,
-    this.selected,
-    this.onTap, {
-    required this.accentColor,
-  });
-
-  final String label;
-  final String value;
-  final String selected;
-  final VoidCallback onTap;
-  final Color accentColor;
-
-  @override
-  Widget build(BuildContext context) {
-    final isSelected = selected == value;
-    final scheme = Theme.of(context).colorScheme;
-    return Material(
-      color: isSelected ? accentColor.withValues(alpha: 0.15) : scheme.surface,
-      borderRadius: BorderRadius.circular(12),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
-        child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 14),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(
-              color: isSelected
-                  ? accentColor
-                  : accentColor.withValues(alpha: 0.4),
-              width: isSelected ? 1.5 : 1,
-            ),
-          ),
-          child: Center(
-            child: Text(
-              label,
-              style: TextStyle(
-                fontSize: 13,
-                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                color: isSelected ? accentColor : scheme.onSurfaceVariant,
-              ),
-            ),
-          ),
-        ),
       ),
     );
   }
