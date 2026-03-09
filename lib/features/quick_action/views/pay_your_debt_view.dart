@@ -1,4 +1,5 @@
 import 'package:bookkeeping/core/database/app_database.dart';
+import 'package:bookkeeping/core/widgets/app_toast.dart';
 import 'package:bookkeeping/features/quick_action/quick_action_journal_service.dart';
 import 'package:bookkeeping/features/quick_action/widgets/quick_action_shared_ui.dart';
 import 'package:flutter/material.dart';
@@ -57,9 +58,7 @@ class _PayYourDebtViewState extends State<PayYourDebtView> {
     final amount = double.tryParse(rawAmount) ?? 0;
 
     if (desc.isEmpty || amount <= 0) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Description and amount are required.')),
-      );
+      AppToast.show(context, message: 'Description and amount are required.');
       return;
     }
 
@@ -76,13 +75,7 @@ class _PayYourDebtViewState extends State<PayYourDebtView> {
         .first;
     if (amount > debtBefore) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text(
-              'Payment amount cannot exceed the recorded debt. Reduce the amount.',
-            ),
-          ),
-        );
+        AppToast.show(context, message: 'Payment amount cannot exceed the recorded debt. Reduce the amount.');
       }
       return;
     }
@@ -92,13 +85,7 @@ class _PayYourDebtViewState extends State<PayYourDebtView> {
         .first;
     if (amount > cashOrBankBefore) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text(
-              'Insufficient balance in selected payment method. Reduce the amount.',
-            ),
-          ),
-        );
+        AppToast.show(context, message: 'Insufficient balance in selected payment method. Reduce the amount.');
       }
       return;
     }
@@ -119,11 +106,15 @@ class _PayYourDebtViewState extends State<PayYourDebtView> {
       if (mounted) Navigator.pop(context, true);
     } catch (e) {
       if (mounted) {
+<<<<<<< HEAD
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Failed to save payment. Please try again.'),
           ),
         );
+=======
+        AppToast.show(context, message: 'Failed to save payment. Please try again.', isError: true);
+>>>>>>> 49feba258613adace58ba3d301b80e351928abf3
       }
     } finally {
       if (mounted) setState(() => _isSaving = false);

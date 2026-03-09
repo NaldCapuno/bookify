@@ -638,20 +638,21 @@ class _DashboardScreenState extends State<DashboardScreen> {
       builder: (context, snapshot) {
         final name = snapshot.data?.username ?? "User";
         final business = snapshot.data?.business ?? "Your Business";
+        final scheme = Theme.of(context).colorScheme;
         return Container(
           key: key,
           padding: const EdgeInsets.all(24),
           decoration: BoxDecoration(
-            color: Theme.of(context).colorScheme.primary,
+            color: scheme.primary,
             borderRadius: BorderRadius.circular(20),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Welcome, $name 👋',
-                style: const TextStyle(
-                  color: Colors.white,
+                'Welcome, $name',
+                style: TextStyle(
+                  color: scheme.onPrimary,
                   fontSize: 24,
                   fontWeight: FontWeight.bold,
                 ),
@@ -660,7 +661,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               Text(
                 business,
                 style: TextStyle(
-                  color: Colors.white.withOpacity(0.8),
+                  color: scheme.onPrimary.withOpacity(0.8),
                   fontSize: 14,
                 ),
               ),

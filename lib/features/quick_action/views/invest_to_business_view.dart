@@ -1,3 +1,4 @@
+import 'package:bookkeeping/core/widgets/app_toast.dart';
 import 'package:bookkeeping/features/quick_action/quick_action_journal_service.dart';
 import 'package:bookkeeping/features/quick_action/widgets/quick_action_shared_ui.dart';
 import 'package:flutter/material.dart';
@@ -55,9 +56,7 @@ class _InvestToBusinessViewState extends State<InvestToBusinessView> {
     final amount = double.tryParse(rawAmount) ?? 0;
 
     if (desc.isEmpty || amount <= 0) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Description and amount are required.')),
-      );
+      AppToast.show(context, message: 'Description and amount are required.');
       return;
     }
 
@@ -86,11 +85,15 @@ class _InvestToBusinessViewState extends State<InvestToBusinessView> {
       if (mounted) Navigator.pop(context, true);
     } catch (e) {
       if (mounted) {
+<<<<<<< HEAD
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Failed to save entry. Please try again.'),
           ),
         );
+=======
+        AppToast.show(context, message: 'Failed to save entry. Please try again.', isError: true);
+>>>>>>> 49feba258613adace58ba3d301b80e351928abf3
       }
     } finally {
       if (mounted) setState(() => _isSaving = false);

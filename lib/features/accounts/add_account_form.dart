@@ -1,6 +1,7 @@
 import 'package:bookkeeping/core/database/tables/accounts_table.dart';
 import 'package:flutter/material.dart';
 import 'package:bookkeeping/core/database/app_database.dart';
+import 'package:bookkeeping/core/widgets/app_toast.dart';
 import 'package:drift/drift.dart' as drift;
 
 class AddAccountForm extends StatefulWidget {
@@ -158,7 +159,7 @@ class _AddAccountFormState extends State<AddAccountForm> {
       if (mounted) Navigator.pop(context);
     } catch (e) {
       setState(() => _isSaving = false);
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+      AppToast.show(context, message: 'Error: $e', isError: true);
     }
   }
 }

@@ -1,4 +1,5 @@
 import 'package:bookkeeping/core/database/app_database.dart';
+import 'package:bookkeeping/core/widgets/app_toast.dart';
 import 'package:bookkeeping/core/theme/app_theme.dart';
 import 'package:bookkeeping/features/quick_action/quick_action_journal_service.dart';
 import 'package:bookkeeping/features/quick_action/widgets/quick_action_shared_ui.dart';
@@ -71,20 +72,18 @@ class _SellProductsViewState extends State<SellProductsView> {
     final cogs = parseAmount(_cogsController);
 
     if (desc.isEmpty || total <= 0) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('What was sold and selling price are required.'),
-        ),
+      AppToast.show(
+        context,
+        message: 'What was sold and selling price are required.',
       );
       return;
     }
 
     final netCash = total - discount;
     if (netCash <= 0) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Discount cannot be equal to or exceed total amount.'),
-        ),
+      AppToast.show(
+        context,
+        message: 'Discount cannot be equal to or exceed total amount.',
       );
       return;
     }
@@ -146,10 +145,10 @@ class _SellProductsViewState extends State<SellProductsView> {
       if (mounted) Navigator.pop(context, true);
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Failed to save entry. Please try again.'),
-          ),
+        AppToast.show(
+          context,
+          message: 'Failed to save entry. Please try again.',
+          isError: true,
         );
       }
     } finally {

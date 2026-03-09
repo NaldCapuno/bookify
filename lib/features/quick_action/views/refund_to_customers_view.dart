@@ -1,4 +1,5 @@
 import 'package:bookkeeping/core/database/app_database.dart';
+import 'package:bookkeeping/core/widgets/app_toast.dart';
 import 'package:bookkeeping/features/quick_action/quick_action_journal_service.dart';
 import 'package:bookkeeping/features/quick_action/widgets/quick_action_shared_ui.dart';
 import 'package:flutter/material.dart';
@@ -56,9 +57,7 @@ class _RefundToCustomersViewState extends State<RefundToCustomersView> {
     final amount = double.tryParse(rawAmount) ?? 0;
 
     if (desc.isEmpty || amount <= 0) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Description and amount are required.')),
-      );
+      AppToast.show(context, message: 'Description and amount are required.');
       return;
     }
 
@@ -97,10 +96,10 @@ class _RefundToCustomersViewState extends State<RefundToCustomersView> {
       if (mounted) Navigator.pop(context, true);
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Failed to save refund. Please try again.'),
-          ),
+        AppToast.show(
+          context,
+          message: 'Failed to save refund. Please try again.',
+          isError: true,
         );
       }
     } finally {

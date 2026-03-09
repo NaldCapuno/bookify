@@ -1,4 +1,5 @@
 import 'package:bookkeeping/core/database/app_database.dart';
+import 'package:bookkeeping/core/widgets/app_toast.dart';
 import 'package:bookkeeping/core/theme/app_theme.dart';
 import 'package:bookkeeping/features/quick_action/quick_action_journal_service.dart';
 import 'package:bookkeeping/features/quick_action/widgets/quick_action_shared_ui.dart';
@@ -16,7 +17,6 @@ class RecordPurchaseView extends StatefulWidget {
 
 class _RecordPurchaseViewState extends State<RecordPurchaseView> {
   String _selectedPaymentMethod = 'bank';
-  late String _currentCategory;
   final _amountController = TextEditingController();
   final _descController = TextEditingController();
   final _dateController = TextEditingController();
@@ -26,7 +26,6 @@ class _RecordPurchaseViewState extends State<RecordPurchaseView> {
   @override
   void initState() {
     super.initState();
-    _currentCategory = widget.initialCategory;
     _dateController.text = DateFormat('MM/dd/yyyy').format(_selectedDate);
   }
 
@@ -78,20 +77,16 @@ class _RecordPurchaseViewState extends State<RecordPurchaseView> {
     final amount = double.tryParse(rawAmount) ?? 0;
 
     if (desc.isEmpty || amount <= 0) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Description and amount are required.')),
-      );
+      AppToast.show(context, message: 'Description and amount are required.');
       return;
     }
 
-    final assetCode = _assetAccountForCategory(_currentCategory);
+    final assetCode = _assetAccountForCategory(widget.initialCategory);
     if (assetCode == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
+      AppToast.show(
+        context,
+        message:
             'Quick Purchase currently supports Supplies, Equipment, and Furniture only.',
-          ),
-        ),
       );
       return;
     }
@@ -127,10 +122,10 @@ class _RecordPurchaseViewState extends State<RecordPurchaseView> {
       if (mounted) Navigator.pop(context, true);
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Failed to save purchase. Please try again.'),
-          ),
+        AppToast.show(
+          context,
+          message: 'Failed to save purchase. Please try again.',
+          isError: true,
         );
       }
     } finally {
@@ -149,6 +144,12 @@ class _RecordPurchaseViewState extends State<RecordPurchaseView> {
         QuickActionAccounts.cashInBank,
       );
     }
+    return null;
+  }
+
+  String? get _balanceLabel {
+    if (_selectedPaymentMethod == 'cash') return 'Cash balance:';
+    if (_selectedPaymentMethod == 'bank') return 'Bank balance:';
     return null;
   }
 
@@ -173,148 +174,102 @@ class _RecordPurchaseViewState extends State<RecordPurchaseView> {
         scrolledUnderElevation: 0,
         leading: BackButton(color: scheme.primary),
         title: Text(
-          'Record Purchase',
+          'Purchase ${widget.initialCategory}',
           style:
               textTheme.headlineLarge?.copyWith(fontSize: 20) ??
               TextStyle(color: scheme.onSurface, fontWeight: FontWeight.bold),
         ),
       ),
-      body: SafeArea(
-        child: StreamBuilder<Map<int, double>>(
-          stream: appDb.ledgerDao.watchBalancesForAccountCodes({
-            QuickActionAccounts.cashOnHand,
-            QuickActionAccounts.cashInBank,
-          }),
-          builder: (context, snap) {
-            final balances =
-                snap.data ??
-                {
-                  QuickActionAccounts.cashOnHand: 0.0,
-                  QuickActionAccounts.cashInBank: 0.0,
-                };
-            final cashBalance = balances[QuickActionAccounts.cashOnHand] ?? 0.0;
-            final bankBalance = balances[QuickActionAccounts.cashInBank] ?? 0.0;
-            final amount = _currentAmount;
-            final isCash = _selectedPaymentMethod == 'cash';
+      body: StreamBuilder<Map<int, double>>(
+        stream: appDb.ledgerDao.watchBalancesForAccountCodes({
+          QuickActionAccounts.cashOnHand,
+          QuickActionAccounts.cashInBank,
+        }),
+        builder: (context, snap) {
+          final balances =
+              snap.data ??
+              {
+                QuickActionAccounts.cashOnHand: 0.0,
+                QuickActionAccounts.cashInBank: 0.0,
+              };
+          final cashBalance = balances[QuickActionAccounts.cashOnHand] ?? 0.0;
+          final bankBalance = balances[QuickActionAccounts.cashInBank] ?? 0.0;
+          final amount = _currentAmount;
+          final isCash = _selectedPaymentMethod == 'cash';
 
-            final currentBalance = isCash ? cashBalance : bankBalance;
-
-            return Column(
-              children: [
-                // =====================================
-                // 1. PINNED HEADER (Conditionally visible)
-                // =====================================
-                if (_isOutflow)
-                  BeforeAfterBalanceHeader(
-                    label: isCash ? 'Cash balance' : 'Bank balance',
-                    before: currentBalance,
-                    after: currentBalance - amount,
-                  ),
-
-                // =====================================
-                // 2. SCROLLABLE CONTENT (The Form)
-                // =====================================
-                Expanded(
-                  child: ListView(
-                    padding: const EdgeInsets.all(20),
+          return ListView(
+            padding: const EdgeInsets.all(20),
+            children: [
+              if (_isOutflow) ...[
+                BeforeAfterBalanceHeader(
+                  label: isCash ? 'Cash balance' : 'Bank balance',
+                  before: isCash ? cashBalance : bankBalance,
+                  after: (isCash ? cashBalance : bankBalance) - amount,
+                ),
+                const SizedBox(height: 16),
+              ],
+              QuickActionAmountCard(
+                amountController: _amountController,
+                amountLabel: 'Amount',
+                balanceStream: _balanceStream,
+                balanceLabel: _balanceLabel,
+                checkInsufficient: _isOutflow,
+                onAmountChanged: () => setState(() {}),
+              ),
+              if (_isOutflow && _balanceStream != null)
+                StreamBuilder<double>(
+                  stream: _balanceStream,
+                  builder: (context, snap) {
+                    final balance = snap.data ?? 0.0;
+                    return InsufficientBalanceNotice(
+                      amount: _currentAmount,
+                      currentBalance: balance,
+                      isOutflow: true,
+                    );
+                  },
+                ),
+              const SizedBox(height: 24),
+              const QuickActionSectionLabel('Paid via'),
+              PaymentMethodChips(
+                value: _selectedPaymentMethod,
+                onChanged: (v) => setState(() => _selectedPaymentMethod = v),
+                creditLabel: 'Pay Later',
+                cashBalance: balances[QuickActionAccounts.cashOnHand],
+                bankBalance: balances[QuickActionAccounts.cashInBank],
+              ),
+              if (isUnpaid)
+                Padding(
+                  padding: const EdgeInsets.only(top: 12),
+                  child: Row(
                     children: [
-                      QuickActionAmountCard(
-                        amountController: _amountController,
-                        amountLabel: 'Amount',
-                        onAmountChanged: () => setState(() {}),
+                      Icon(
+                        Icons.warning_amber_rounded,
+                        size: 18,
+                        color: context.warning,
                       ),
-                      if (_isOutflow && amount > currentBalance && amount > 0)
-                        InsufficientBalanceNotice(
-                          amount: amount,
-                          currentBalance: currentBalance,
-                          isOutflow: true,
-                        ),
-                      const SizedBox(height: 24),
-                      const QuickActionSectionLabel('Paid via'),
-                      PaymentMethodChips(
-                        value: _selectedPaymentMethod,
-                        onChanged: (v) =>
-                            setState(() => _selectedPaymentMethod = v),
-                        creditLabel: 'Pay Later',
-                        cashBalance: cashBalance,
-                        bankBalance: bankBalance,
-                      ),
-                      if (isUnpaid)
-                        Padding(
-                          padding: const EdgeInsets.only(top: 12),
-                          child: Row(
-                            children: [
-                              Icon(
-                                Icons.warning_amber_rounded,
-                                size: 18,
-                                color: context.warning,
-                              ),
-                              const SizedBox(width: 8),
-                              Expanded(
-                                child: Text(
-                                  'Will be recorded as Accounts Payable (Debt).',
-                                  style: TextStyle(
-                                    color: context.warning,
-                                    fontSize: 13,
-                                  ),
-                                ),
-                              ),
-                            ],
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          'Will be recorded as Accounts Payable (Debt).',
+                          style: TextStyle(
+                            color: context.warning,
+                            fontSize: 13,
                           ),
                         ),
-                      const SizedBox(height: 24),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 8,
-                        ),
-                        decoration: BoxDecoration(
-                          color: scheme.surface,
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border.all(color: scheme.outlineVariant),
-                        ),
-                        child: DropdownButtonFormField<String>(
-                          value: _currentCategory,
-                          items:
-                              [
-                                    'Supplies',
-                                    'Equipment',
-                                    'Furniture',
-                                    'Land',
-                                    'Building',
-                                    'Vehicle',
-                                  ]
-                                  .map(
-                                    (c) => DropdownMenuItem(
-                                      value: c,
-                                      child: Text(c),
-                                    ),
-                                  )
-                                  .toList(),
-                          onChanged: (v) {
-                            if (v != null) setState(() => _currentCategory = v);
-                          },
-                          decoration: const InputDecoration(
-                            labelText: 'Asset Category',
-                            prefixIcon: Icon(Icons.category_outlined),
-                            border: UnderlineInputBorder(),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 24),
-                      QuickActionDetailsCard(
-                        descriptionController: _descController,
-                        dateText: _dateController.text,
-                        onDateTap: _pickDate,
-                        descriptionHint: 'e.g. 2 Laptops for office',
                       ),
                     ],
                   ),
                 ),
-              ],
-            );
-          },
-        ),
+              const SizedBox(height: 24),
+              QuickActionDetailsCard(
+                descriptionController: _descController,
+                dateText: _dateController.text,
+                onDateTap: _pickDate,
+                descriptionHint: 'e.g. 2 Laptops for office',
+              ),
+            ],
+          );
+        },
       ),
       bottomNavigationBar: _isOutflow && _balanceStream != null
           ? StreamBuilder<double>(
