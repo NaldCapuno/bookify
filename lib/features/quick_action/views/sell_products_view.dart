@@ -3,6 +3,7 @@ import 'package:bookkeeping/core/theme/app_theme.dart';
 import 'package:bookkeeping/features/quick_action/quick_action_journal_service.dart';
 import 'package:bookkeeping/features/quick_action/widgets/quick_action_shared_ui.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart'; // Required for TextInputFormatter
 import 'package:intl/intl.dart';
 
 class SellProductsView extends StatefulWidget {
@@ -21,14 +22,28 @@ class _SellProductsViewState extends State<SellProductsView> {
   final _cogsController = TextEditingController();
   final _descController = TextEditingController();
 
+  final _cogsFocus = FocusNode();
+  final _priceFocus = FocusNode();
+  final _discountFocus = FocusNode();
+
   bool _giveDiscount = false;
   bool _isSaving = false;
   double _currentInventory = 3000.0;
+
+  final NumberFormat _currencyFormatter = NumberFormat.currency(
+    locale: 'en_PH',
+    symbol: '₱',
+    decimalDigits: 2,
+  );
 
   @override
   void initState() {
     super.initState();
     _dateController.text = DateFormat('MM/dd/yyyy').format(_selectedDate);
+
+    _cogsFocus.addListener(() => setState(() {}));
+    _priceFocus.addListener(() => setState(() {}));
+    _discountFocus.addListener(() => setState(() {}));
   }
 
   @override
@@ -38,17 +53,25 @@ class _SellProductsViewState extends State<SellProductsView> {
     _discountController.dispose();
     _cogsController.dispose();
     _descController.dispose();
+    _cogsFocus.dispose();
+    _priceFocus.dispose();
+    _discountFocus.dispose();
     super.dispose();
   }
 
-  double get _sellingPrice => parseAmount(_sellingPriceController);
+  // Helper to parse the comma-separated text back to double
+  double _parseDisplayAmount(String value) {
+    return double.tryParse(value.replaceAll(',', '')) ?? 0.0;
+  }
+
+  double get _sellingPrice => _parseDisplayAmount(_sellingPriceController.text);
   double get _discount =>
-      _giveDiscount ? parseAmount(_discountController) : 0.0;
+      _giveDiscount ? _parseDisplayAmount(_discountController.text) : 0.0;
   double get _totalAmount => (_sellingPrice - _discount);
-  double get _cogs => parseAmount(_cogsController);
+  double get _cogs => _parseDisplayAmount(_cogsController.text);
 
   String? get _activeError {
-    if (_cogs > 0 && _cogs > _currentInventory) {
+    if (_cogs > 0 && _currentInventory > 0 && _cogs > _currentInventory) {
       return "You don't have enough stock for this sale.";
     }
     if (_giveDiscount && _discount > 0 && _discount > _sellingPrice) {
@@ -56,12 +79,6 @@ class _SellProductsViewState extends State<SellProductsView> {
     }
     return null;
   }
-
-  bool get _isValid =>
-      _activeError == null &&
-      _sellingPrice > 0 &&
-      _cogs > 0 &&
-      _descController.text.trim().isNotEmpty;
 
   Future<void> _pickDate() async {
     final picked = await showDatePicker(
@@ -80,16 +97,12 @@ class _SellProductsViewState extends State<SellProductsView> {
 
   Future<void> _save() async {
     final desc = _descController.text.trim();
-
     if (desc.isEmpty || _sellingPrice <= 0 || _cogs <= 0) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please fill in all details before saving.'),
-        ),
+        const SnackBar(content: Text('Please fill in all details.')),
       );
       return;
     }
-
     if (_activeError != null) return;
 
     int paymentAccountCode;
@@ -176,45 +189,50 @@ class _SellProductsViewState extends State<SellProductsView> {
           ListView(
             padding: const EdgeInsets.fromLTRB(20, 16, 20, 320),
             children: [
-              _buildHeroCard(scheme),
-              const SizedBox(height: 28),
-              _buildLabelledField(
+              _buildInventoryNotice(scheme),
+              const SizedBox(height: 32),
+
+              _buildModernInput(
                 "How much goods do you wish to sell?",
                 _cogsController,
-                icon: Icons.inventory_2_outlined,
+                _cogsFocus,
+                hint: "0.00",
               ),
-              const SizedBox(height: 20),
-              _buildLabelledField(
-                "How much is the selling price?",
+              const SizedBox(height: 24),
+              _buildModernInput(
+                "Selling price",
                 _sellingPriceController,
-                customIconText: "₱",
-                hideIconOnInput: false,
+                _priceFocus,
+                hint: "0.00",
               ),
+
               const SizedBox(height: 24),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   const Text(
-                    "Give discount to customer?",
+                    "Give discount?",
                     style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
                   ),
                   _buildObviousToggle(scheme),
                 ],
               ),
+
               if (_giveDiscount) ...[
-                const SizedBox(height: 20),
-                _buildLabelledField(
-                  "Discount Amount",
+                const SizedBox(height: 24),
+                _buildModernInput(
+                  "Discount amount",
                   _discountController,
-                  icon: Icons.local_offer_outlined,
-                  prefix: "₱",
+                  _discountFocus,
+                  hint: "0.00",
                 ),
               ],
-              const SizedBox(height: 28),
+
+              const SizedBox(height: 32),
               const Text(
                 "Payment Method",
                 style: TextStyle(
-                  fontSize: 15,
+                  fontSize: 14,
                   fontWeight: FontWeight.bold,
                   color: Colors.grey,
                 ),
@@ -224,19 +242,21 @@ class _SellProductsViewState extends State<SellProductsView> {
                 value: _selectedPaymentMethod,
                 onChanged: (v) => setState(() => _selectedPaymentMethod = v),
               ),
-              const SizedBox(height: 28),
-              _buildLabelledField(
+
+              const SizedBox(height: 32),
+              _buildModernInput(
                 "What did you sell?",
                 _descController,
-                icon: Icons.description_outlined,
+                null,
                 isNumeric: false,
-                hint: "e.g. 5pcs Coffee Beans",
+                hint: "e.g. Arabica Coffee Beans",
               ),
-              const SizedBox(height: 28),
+
+              const SizedBox(height: 32),
               const Text(
                 "Date",
                 style: TextStyle(
-                  fontSize: 15,
+                  fontSize: 14,
                   fontWeight: FontWeight.bold,
                   color: Colors.grey,
                 ),
@@ -248,12 +268,15 @@ class _SellProductsViewState extends State<SellProductsView> {
                   child: TextField(
                     controller: _dateController,
                     decoration: InputDecoration(
-                      prefixIcon: const Icon(Icons.calendar_month_outlined),
                       filled: true,
                       fillColor: scheme.surfaceContainerLow,
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(16),
                         borderSide: BorderSide.none,
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 16,
                       ),
                     ),
                   ),
@@ -270,7 +293,7 @@ class _SellProductsViewState extends State<SellProductsView> {
     );
   }
 
-  Widget _buildHeroCard(ColorScheme scheme) {
+  Widget _buildInventoryNotice(ColorScheme scheme) {
     return StreamBuilder<double>(
       stream: appDb.ledgerDao.watchBalanceForAccountCode(
         QuickActionAccounts.inventoryFinishedGoods,
@@ -278,55 +301,104 @@ class _SellProductsViewState extends State<SellProductsView> {
       builder: (context, snap) {
         _currentInventory = snap.data ?? 3000.0;
         return Container(
-          padding: const EdgeInsets.all(24),
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
           decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: [scheme.primary, scheme.primary.withOpacity(0.8)],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-            borderRadius: BorderRadius.circular(28),
-            boxShadow: [
-              BoxShadow(
-                color: scheme.primary.withOpacity(0.3),
-                blurRadius: 15,
-                offset: const Offset(0, 8),
-              ),
-            ],
+            color: const Color(0xFFE3F2FD),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: const Color(0xFF2196F3), width: 1),
           ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'CURRENT INVENTORY',
-                style: TextStyle(
-                  color: scheme.onPrimary.withOpacity(0.7),
-                  letterSpacing: 1.2,
-                  fontSize: 11,
-                  fontWeight: FontWeight.bold,
-                ),
+          child: Center(
+            child: RichText(
+              textAlign: TextAlign.center,
+              text: TextSpan(
+                style: const TextStyle(color: Colors.black87, fontSize: 14),
+                children: [
+                  const TextSpan(text: "You currently have "),
+                  TextSpan(
+                    text: _currencyFormatter.format(_currentInventory),
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF1976D2),
+                      fontSize: 16,
+                    ),
+                  ),
+                  const TextSpan(text: " Finished Goods."),
+                ],
               ),
-              const SizedBox(height: 12),
-              Text(
-                '₱${formatAmount(_currentInventory)}',
-                style: TextStyle(
-                  color: scheme.onPrimary,
-                  fontSize: 34,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                'Worth of Finished Goods',
-                style: TextStyle(
-                  color: scheme.onPrimary.withOpacity(0.9),
-                  fontSize: 14,
-                ),
-              ),
-            ],
+            ),
           ),
         );
       },
+    );
+  }
+
+  Widget _buildModernInput(
+    String label,
+    TextEditingController controller,
+    FocusNode? focusNode, {
+    bool isNumeric = true,
+    String? hint,
+  }) {
+    final scheme = Theme.of(context).colorScheme;
+    final isFocused = focusNode?.hasFocus ?? false;
+    final hasText = controller.text.isNotEmpty;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: const TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.bold,
+            color: Colors.black87,
+          ),
+        ),
+        const SizedBox(height: 8),
+        TextField(
+          controller: controller,
+          focusNode: focusNode,
+          onChanged: (val) => setState(() {}),
+          inputFormatters: isNumeric
+              ? [
+                  FilteringTextInputFormatter.digitsOnly,
+                  _CurrencyInputFormatter(),
+                ]
+              : [],
+          keyboardType: isNumeric ? TextInputType.number : TextInputType.text,
+          style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
+          decoration: InputDecoration(
+            // Peso Sign Fix: Scale and Baseline alignment
+            prefixText: (isNumeric && (isFocused || hasText)) ? "₱ " : null,
+            prefixStyle: TextStyle(
+              color: scheme.primary,
+              fontWeight: FontWeight.bold,
+              fontSize: 20,
+              height: 0.85, // Pulls the Peso sign up to align with numbers
+            ),
+            hintText: hint,
+            hintStyle: TextStyle(
+              color: Colors.grey.withOpacity(0.7),
+              fontWeight: FontWeight.normal,
+            ),
+            filled: true,
+            fillColor: scheme.surfaceContainerLow,
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(16),
+              borderSide: BorderSide.none,
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(16),
+              borderSide: BorderSide(color: scheme.primary, width: 1.5),
+            ),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 16,
+              vertical: 16,
+            ),
+          ),
+        ),
+      ],
     );
   }
 
@@ -334,8 +406,7 @@ class _SellProductsViewState extends State<SellProductsView> {
     return Container(
       decoration: BoxDecoration(
         color: scheme.surfaceContainerHighest,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: scheme.outlineVariant.withOpacity(0.5)),
+        borderRadius: BorderRadius.circular(12),
       ),
       padding: const EdgeInsets.all(4),
       child: Row(
@@ -356,95 +427,22 @@ class _SellProductsViewState extends State<SellProductsView> {
         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
         decoration: BoxDecoration(
           color: active ? scheme.primary : Colors.transparent,
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(8),
         ),
         child: Text(
           label,
           style: TextStyle(
             fontSize: 14,
-            color: active
-                ? scheme.onPrimary
-                : scheme.onSurfaceVariant.withOpacity(0.6),
-            fontWeight: active ? FontWeight.bold : FontWeight.normal,
+            color: active ? scheme.onPrimary : scheme.onSurfaceVariant,
+            fontWeight: FontWeight.bold,
           ),
         ),
       ),
     );
   }
 
-  Widget _buildLabelledField(
-    String label,
-    TextEditingController controller, {
-    IconData? icon,
-    String? customIconText,
-    bool isNumeric = true,
-    String? prefix,
-    String? hint,
-    bool hideIconOnInput = false,
-  }) {
-    final scheme = Theme.of(context).colorScheme;
-    final hasInput = controller.text.isNotEmpty;
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: const EdgeInsets.only(left: 4, bottom: 8),
-          child: Text(
-            label,
-            style: const TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.bold,
-              color: Colors.grey,
-            ),
-          ),
-        ),
-        TextField(
-          controller: controller,
-          onChanged: (_) => setState(() {}),
-          keyboardType: isNumeric
-              ? const TextInputType.numberWithOptions(decimal: true)
-              : TextInputType.text,
-          style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
-          decoration: InputDecoration(
-            prefixIcon: (hideIconOnInput && hasInput)
-                ? null
-                : (customIconText != null
-                      ? Container(
-                          width: 48,
-                          alignment: Alignment.center,
-                          child: Text(
-                            customIconText,
-                            style: TextStyle(
-                              fontSize: 20,
-                              color: scheme.primary,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        )
-                      : Icon(icon, size: 20, color: scheme.primary)),
-            prefixText: prefix != null ? "$prefix " : null,
-            prefixStyle: TextStyle(
-              color: scheme.primary,
-              fontWeight: FontWeight.bold,
-            ),
-            hintText: hint,
-            filled: true,
-            fillColor: scheme.surfaceContainerLow,
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(18),
-              borderSide: BorderSide.none,
-            ),
-            contentPadding: const EdgeInsets.all(18),
-          ),
-        ),
-      ],
-    );
-  }
-
   Widget _buildGracefulSheet(ColorScheme scheme) {
     final activeError = _activeError;
-
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.fromLTRB(28, 20, 28, 12),
@@ -453,7 +451,7 @@ class _SellProductsViewState extends State<SellProductsView> {
         borderRadius: const BorderRadius.vertical(top: Radius.circular(40)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.1),
+            color: Colors.black12,
             blurRadius: 20,
             offset: const Offset(0, -5),
           ),
@@ -469,7 +467,6 @@ class _SellProductsViewState extends State<SellProductsView> {
               decoration: BoxDecoration(
                 color: scheme.errorContainer.withOpacity(0.4),
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: scheme.error.withOpacity(0.3)),
               ),
               child: Row(
                 children: [
@@ -501,13 +498,10 @@ class _SellProductsViewState extends State<SellProductsView> {
           ),
           _summaryLine("Total", _totalAmount, scheme, isBold: true),
           const SizedBox(height: 12),
-          Padding(
-            padding: EdgeInsets.zero,
-            child: QuickActionSaveButton(
-              onPressed: (activeError != null) ? null : _save,
-              isSaving: _isSaving,
-              label: 'Save Transaction',
-            ),
+          QuickActionSaveButton(
+            onPressed: (activeError != null) ? null : _save,
+            isSaving: _isSaving,
+            label: 'Save Transaction',
           ),
         ],
       ),
@@ -527,14 +521,14 @@ class _SellProductsViewState extends State<SellProductsView> {
         Text(
           label,
           style: TextStyle(
-            fontSize: isBold ? 18 : 15,
+            fontSize: 15,
             fontWeight: isBold ? FontWeight.bold : FontWeight.w500,
           ),
         ),
         Text(
-          "${isNegative && amt > 0 ? '-' : ''}₱${formatAmount(amt.abs())}",
+          "${isNegative && amt > 0 ? '-' : ''}${_currencyFormatter.format(amt.abs())}",
           style: TextStyle(
-            fontSize: isBold ? 20 : 15,
+            fontSize: 18,
             fontWeight: isBold ? FontWeight.bold : FontWeight.w600,
             color: isNegative && amt > 0
                 ? Colors.redAccent
@@ -542,6 +536,26 @@ class _SellProductsViewState extends State<SellProductsView> {
           ),
         ),
       ],
+    );
+  }
+}
+
+// Custom Formatter to handle Real-time commas and .00 decimals
+class _CurrencyInputFormatter extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
+    if (newValue.selection.baseOffset == 0) return newValue;
+
+    double value = double.parse(newValue.text);
+    final formatter = NumberFormat("#,##0.00", "en_US");
+    String newText = formatter.format(value / 100);
+
+    return newValue.copyWith(
+      text: newText,
+      selection: TextSelection.collapsed(offset: newText.length),
     );
   }
 }
