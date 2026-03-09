@@ -21,6 +21,7 @@ class _DisburseFundsViewState extends State<DisburseFundsView> {
   String _paymentMethod = 'bank';
   DateTime _selectedDate = DateTime.now();
   bool _isSaving = false;
+  bool _attemptedSubmit = false;
 
   @override
   void initState() {
@@ -57,7 +58,7 @@ class _DisburseFundsViewState extends State<DisburseFundsView> {
     final amount = double.tryParse(rawAmount) ?? 0;
 
     if (desc.isEmpty || amount <= 0) {
-      AppToast.show(context, message: 'Description and amount are required.');
+      setState(() => _attemptedSubmit = true);
       return;
     }
 
@@ -151,6 +152,9 @@ class _DisburseFundsViewState extends State<DisburseFundsView> {
                 amountController: _amountController,
                 amountLabel: 'Amount',
                 onAmountChanged: () => setState(() {}),
+                errorText: _attemptedSubmit && parseAmount(_amountController) <= 0
+                    ? 'Amount is required.'
+                    : null,
               ),
               InsufficientBalanceNotice(
                 amount: amount,
@@ -170,6 +174,11 @@ class _DisburseFundsViewState extends State<DisburseFundsView> {
                 descriptionController: _descController,
                 dateText: _dateController.text,
                 onDateTap: _pickDate,
+                descriptionErrorText: _attemptedSubmit &&
+                        _descController.text.trim().isEmpty
+                    ? 'Description is required.'
+                    : null,
+                onDescriptionChanged: () => setState(() {}),
               ),
               const SizedBox(height: 90),
             ],

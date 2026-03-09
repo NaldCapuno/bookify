@@ -19,6 +19,7 @@ class _BankingViewState extends State<BankingView> {
   final _dateController = TextEditingController();
   DateTime _selectedDate = DateTime.now();
   bool _isSaving = false;
+  bool _attemptedSubmit = false;
 
   @override
   void initState() {
@@ -55,7 +56,7 @@ class _BankingViewState extends State<BankingView> {
     final amount = double.tryParse(rawAmount) ?? 0;
 
     if (desc.isEmpty || amount <= 0) {
-      AppToast.show(context, message: 'Description and amount are required.');
+      setState(() => _attemptedSubmit = true);
       return;
     }
 
@@ -144,6 +145,9 @@ class _BankingViewState extends State<BankingView> {
                 amountController: _amountController,
                 amountLabel: _amountLabel,
                 onAmountChanged: () => setState(() {}),
+                errorText: _attemptedSubmit && parseAmount(_amountController) <= 0
+                    ? 'Amount is required.'
+                    : null,
               ),
               if (insufficient)
                 Padding(
@@ -159,6 +163,11 @@ class _BankingViewState extends State<BankingView> {
                 descriptionController: _descController,
                 dateText: _dateController.text,
                 onDateTap: _pickDate,
+                descriptionErrorText: _attemptedSubmit &&
+                        _descController.text.trim().isEmpty
+                    ? 'Description is required.'
+                    : null,
+                onDescriptionChanged: () => setState(() {}),
               ),
             ],
           );

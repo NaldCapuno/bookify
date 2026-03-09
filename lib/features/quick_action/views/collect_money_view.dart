@@ -21,6 +21,7 @@ class _CollectMoneyViewState extends State<CollectMoneyView> {
   String _cashLocation = 'cash';
   DateTime _selectedDate = DateTime.now();
   bool _isSaving = false;
+  bool _attemptedSubmit = false;
 
   @override
   void initState() {
@@ -57,7 +58,7 @@ class _CollectMoneyViewState extends State<CollectMoneyView> {
     final amount = double.tryParse(rawAmount) ?? 0;
 
     if (desc.isEmpty || amount <= 0) {
-      AppToast.show(context, message: 'Description and amount are required.');
+      setState(() => _attemptedSubmit = true);
       return;
     }
 
@@ -66,9 +67,6 @@ class _CollectMoneyViewState extends State<CollectMoneyView> {
         .watchBalanceForAccountCode(QuickActionAccounts.accountsReceivable)
         .first;
     if (amount > receivablesBalance) {
-      if (mounted) {
-        AppToast.show(context, message: 'Amount collected cannot exceed total receivables. Reduce the amount.');
-      }
       return;
     }
 
@@ -153,6 +151,9 @@ class _CollectMoneyViewState extends State<CollectMoneyView> {
                 amountController: _amountController,
                 amountLabel: 'Amount Collected',
                 onAmountChanged: () => setState(() {}),
+                errorText: _attemptedSubmit && parseAmount(_amountController) <= 0
+                    ? 'Amount is required.'
+                    : null,
               ),
               if (exceedsReceivables)
                 Padding(
@@ -186,6 +187,11 @@ class _CollectMoneyViewState extends State<CollectMoneyView> {
                 descriptionController: _descController,
                 dateText: _dateController.text,
                 onDateTap: _pickDate,
+                descriptionErrorText:
+                    _attemptedSubmit && _descController.text.trim().isEmpty
+                        ? 'Description is required.'
+                        : null,
+                onDescriptionChanged: () => setState(() {}),
               ),
             ],
           );

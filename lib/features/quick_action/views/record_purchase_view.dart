@@ -22,6 +22,7 @@ class _RecordPurchaseViewState extends State<RecordPurchaseView> {
   final _dateController = TextEditingController();
   DateTime _selectedDate = DateTime.now();
   bool _isSaving = false;
+  bool _attemptedSubmit = false;
 
   @override
   void initState() {
@@ -77,13 +78,18 @@ class _RecordPurchaseViewState extends State<RecordPurchaseView> {
     final amount = double.tryParse(rawAmount) ?? 0;
 
     if (desc.isEmpty || amount <= 0) {
-      AppToast.show(context, message: 'Description and amount are required.');
+      setState(() => _attemptedSubmit = true);
       return;
     }
 
     final assetCode = _assetAccountForCategory(widget.initialCategory);
     if (assetCode == null) {
-      AppToast.show(context, message: 'Quick Purchase currently supports Supplies, Equipment, and Furniture only.');
+      AppToast.show(
+        context,
+        message:
+            'This category is not supported yet for Quick Purchase.',
+        isError: true,
+      );
       return;
     }
 
@@ -205,6 +211,9 @@ class _RecordPurchaseViewState extends State<RecordPurchaseView> {
                 balanceLabel: _balanceLabel,
                 checkInsufficient: _isOutflow,
                 onAmountChanged: () => setState(() {}),
+                errorText: _attemptedSubmit && _currentAmount <= 0
+                    ? 'Amount is required.'
+                    : null,
               ),
               if (_isOutflow && _balanceStream != null)
                 StreamBuilder<double>(
@@ -256,6 +265,11 @@ class _RecordPurchaseViewState extends State<RecordPurchaseView> {
                 dateText: _dateController.text,
                 onDateTap: _pickDate,
                 descriptionHint: 'e.g. 2 Laptops for office',
+                descriptionErrorText: _attemptedSubmit &&
+                        _descController.text.trim().isEmpty
+                    ? 'Description is required.'
+                    : null,
+                onDescriptionChanged: () => setState(() {}),
               ),
             ],
           );

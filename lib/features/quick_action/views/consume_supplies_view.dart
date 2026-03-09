@@ -20,6 +20,7 @@ class _ConsumeSuppliesViewState extends State<ConsumeSuppliesView> {
   final _dateController = TextEditingController();
   DateTime _selectedDate = DateTime.now();
   bool _isSaving = false;
+  bool _attemptedSubmit = false;
 
   @override
   void initState() {
@@ -56,7 +57,7 @@ class _ConsumeSuppliesViewState extends State<ConsumeSuppliesView> {
     final amount = double.tryParse(rawAmount) ?? 0;
 
     if (desc.isEmpty || amount <= 0) {
-      AppToast.show(context, message: 'Description and amount are required.');
+      setState(() => _attemptedSubmit = true);
       return;
     }
 
@@ -114,6 +115,9 @@ class _ConsumeSuppliesViewState extends State<ConsumeSuppliesView> {
             amountController: _amountController,
             amountLabel: 'Amount (value of supplies used)',
             onAmountChanged: () => setState(() {}),
+            errorText: _attemptedSubmit && parseAmount(_amountController) <= 0
+                ? 'Amount is required.'
+                : null,
           ),
           StreamBuilder<double>(
             stream: appDb.ledgerDao
@@ -147,6 +151,11 @@ class _ConsumeSuppliesViewState extends State<ConsumeSuppliesView> {
             descriptionController: _descController,
             dateText: _dateController.text,
             onDateTap: _pickDate,
+            descriptionErrorText: _attemptedSubmit &&
+                    _descController.text.trim().isEmpty
+                ? 'Description is required.'
+                : null,
+            onDescriptionChanged: () => setState(() {}),
           ),
         ],
       ),

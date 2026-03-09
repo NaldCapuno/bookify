@@ -20,6 +20,7 @@ class _InvestToBusinessViewState extends State<InvestToBusinessView> {
   String _cashLocation = 'cash';
   DateTime _selectedDate = DateTime.now();
   bool _isSaving = false;
+  bool _attemptedSubmit = false;
 
   @override
   void initState() {
@@ -56,7 +57,7 @@ class _InvestToBusinessViewState extends State<InvestToBusinessView> {
     final amount = double.tryParse(rawAmount) ?? 0;
 
     if (desc.isEmpty || amount <= 0) {
-      AppToast.show(context, message: 'Description and amount are required.');
+      setState(() => _attemptedSubmit = true);
       return;
     }
 
@@ -115,6 +116,9 @@ class _InvestToBusinessViewState extends State<InvestToBusinessView> {
             amountController: _amountController,
             amountLabel: 'Amount Invested',
             onAmountChanged: () => setState(() {}),
+            errorText: _attemptedSubmit && parseAmount(_amountController) <= 0
+                ? 'Amount is required.'
+                : null,
           ),
           const SizedBox(height: 24),
           const QuickActionSectionLabel('Invested as (Cash / Bank)'),
@@ -127,6 +131,11 @@ class _InvestToBusinessViewState extends State<InvestToBusinessView> {
             descriptionController: _descController,
             dateText: _dateController.text,
             onDateTap: _pickDate,
+            descriptionErrorText:
+                _attemptedSubmit && _descController.text.trim().isEmpty
+                    ? 'Description is required.'
+                    : null,
+            onDescriptionChanged: () => setState(() {}),
           ),
         ],
       ),

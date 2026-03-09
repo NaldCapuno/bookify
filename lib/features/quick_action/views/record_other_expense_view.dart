@@ -22,6 +22,7 @@ class _RecordOtherExpenseViewState extends State<RecordOtherExpenseView> {
   String _paymentMethod = 'cash';
   DateTime _selectedDate = DateTime.now();
   bool _isSaving = false;
+  bool _attemptedSubmit = false;
 
   @override
   void initState() {
@@ -134,7 +135,7 @@ class _RecordOtherExpenseViewState extends State<RecordOtherExpenseView> {
     final amount = double.tryParse(rawAmount) ?? 0;
 
     if (desc.isEmpty || amount <= 0) {
-      AppToast.show(context, message: 'Description and amount are required.');
+      setState(() => _attemptedSubmit = true);
       return;
     }
 
@@ -233,6 +234,9 @@ class _RecordOtherExpenseViewState extends State<RecordOtherExpenseView> {
                 balanceLabel: _balanceLabel,
                 checkInsufficient: true,
                 onAmountChanged: () => setState(() {}),
+                errorText: _attemptedSubmit && _currentAmount <= 0
+                    ? 'Amount is required.'
+                    : null,
               ),
               StreamBuilder<double>(
                 stream: _balanceStream,
@@ -285,6 +289,11 @@ class _RecordOtherExpenseViewState extends State<RecordOtherExpenseView> {
                 descriptionController: _descController,
                 dateText: _dateController.text,
                 onDateTap: _pickDate,
+                descriptionErrorText: _attemptedSubmit &&
+                        _descController.text.trim().isEmpty
+                    ? 'Description is required.'
+                    : null,
+                onDescriptionChanged: () => setState(() {}),
               ),
             ],
           );

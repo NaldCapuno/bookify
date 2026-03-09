@@ -22,6 +22,7 @@ class _SellProductsViewState extends State<SellProductsView> {
   final _cogsController = TextEditingController();
   final _descController = TextEditingController();
   bool _isSaving = false;
+  bool _attemptedSubmit = false;
 
   @override
   void initState() {
@@ -68,13 +69,13 @@ class _SellProductsViewState extends State<SellProductsView> {
     final cogs = parseAmount(_cogsController);
 
     if (desc.isEmpty || total <= 0) {
-      AppToast.show(context, message: 'What was sold and selling price are required.');
+      setState(() => _attemptedSubmit = true);
       return;
     }
 
     final netCash = total - discount;
     if (netCash <= 0) {
-      AppToast.show(context, message: 'Discount cannot be equal to or exceed total amount.');
+      setState(() => _attemptedSubmit = true);
       return;
     }
 
@@ -209,6 +210,9 @@ class _SellProductsViewState extends State<SellProductsView> {
             label: 'Selling price',
             icon: Icons.sell_outlined,
             onChanged: () => setState(() {}),
+            errorText: _attemptedSubmit && _sellingPrice <= 0
+                ? 'Selling price is required.'
+                : null,
           ),
           const SizedBox(height: 16),
           _buildExtraField(
@@ -217,6 +221,11 @@ class _SellProductsViewState extends State<SellProductsView> {
             label: 'Is there a discount? (optional amount)',
             icon: Icons.percent,
             onChanged: () => setState(() {}),
+            errorText: _attemptedSubmit &&
+                    _sellingPrice > 0 &&
+                    (_sellingPrice - _discount) <= 0
+                ? 'Discount cannot be equal to or exceed the selling price.'
+                : null,
           ),
           const SizedBox(height: 16),
           Container(
@@ -284,6 +293,11 @@ class _SellProductsViewState extends State<SellProductsView> {
             onDateTap: _pickDate,
             descriptionLabel: 'What was sold?',
             descriptionHint: 'e.g. product name, quantity sold, discount if any',
+            descriptionErrorText:
+                _attemptedSubmit && _descController.text.trim().isEmpty
+                    ? 'This field is required.'
+                    : null,
+            onDescriptionChanged: () => setState(() {}),
           ),
         ],
       ),
@@ -301,22 +315,31 @@ class _SellProductsViewState extends State<SellProductsView> {
     required String label,
     required IconData icon,
     VoidCallback? onChanged,
+    String? errorText,
   }) {
     final scheme = Theme.of(context).colorScheme;
+    final hasError = errorText != null && errorText.trim().isNotEmpty;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       decoration: BoxDecoration(
         color: scheme.surface,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: scheme.outlineVariant),
+        border: Border.all(color: hasError ? scheme.error : scheme.outlineVariant),
       ),
       child: TextField(
         controller: controller,
         keyboardType: const TextInputType.numberWithOptions(decimal: true),
         decoration: InputDecoration(
           labelText: label,
-          prefixIcon: Icon(icon, color: scheme.onSurface),
+          errorText: hasError ? errorText : null,
+          prefixIcon: Icon(icon, color: hasError ? scheme.error : scheme.onSurface),
           border: const UnderlineInputBorder(),
+          errorBorder: UnderlineInputBorder(
+            borderSide: BorderSide(color: scheme.error),
+          ),
+          focusedErrorBorder: UnderlineInputBorder(
+            borderSide: BorderSide(color: scheme.error, width: 2),
+          ),
           contentPadding: const EdgeInsets.symmetric(vertical: 12),
         ),
         onChanged: onChanged != null ? (_) => onChanged() : null,

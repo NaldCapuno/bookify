@@ -21,6 +21,7 @@ class _RefundToCustomersViewState extends State<RefundToCustomersView> {
   String _method = 'cash';
   DateTime _selectedDate = DateTime.now();
   bool _isSaving = false;
+  bool _attemptedSubmit = false;
 
   @override
   void initState() {
@@ -57,7 +58,7 @@ class _RefundToCustomersViewState extends State<RefundToCustomersView> {
     final amount = double.tryParse(rawAmount) ?? 0;
 
     if (desc.isEmpty || amount <= 0) {
-      AppToast.show(context, message: 'Description and amount are required.');
+      setState(() => _attemptedSubmit = true);
       return;
     }
 
@@ -173,6 +174,9 @@ class _RefundToCustomersViewState extends State<RefundToCustomersView> {
                 balanceLabel: _balanceLabel,
                 checkInsufficient: _isOutflow,
                 onAmountChanged: () => setState(() {}),
+                errorText: _attemptedSubmit && _currentAmount <= 0
+                    ? 'Amount is required.'
+                    : null,
               ),
               if (_isOutflow && _balanceStream != null)
                 StreamBuilder<double>(
@@ -200,6 +204,11 @@ class _RefundToCustomersViewState extends State<RefundToCustomersView> {
                 descriptionController: _descController,
                 dateText: _dateController.text,
                 onDateTap: _pickDate,
+                descriptionErrorText: _attemptedSubmit &&
+                        _descController.text.trim().isEmpty
+                    ? 'Description is required.'
+                    : null,
+                onDescriptionChanged: () => setState(() {}),
               ),
             ],
           );

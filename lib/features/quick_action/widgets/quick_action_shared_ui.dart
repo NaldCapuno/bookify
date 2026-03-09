@@ -117,6 +117,7 @@ class QuickActionAmountCard extends StatelessWidget {
     this.checkInsufficient = false,
     this.currencyPrefix = '₱ ',
     this.onAmountChanged,
+    this.errorText,
     /// Optional footer shown inside the card with lower hierarchy (e.g. "remaining" or total).
     this.footer,
   });
@@ -128,17 +129,19 @@ class QuickActionAmountCard extends StatelessWidget {
   final bool checkInsufficient;
   final String currencyPrefix;
   final VoidCallback? onAmountChanged;
+  final String? errorText;
   final Widget? footer;
 
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    final hasError = errorText != null && errorText!.trim().isNotEmpty;
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
       decoration: BoxDecoration(
         color: scheme.surface,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: scheme.outlineVariant),
+        border: Border.all(color: hasError ? scheme.error : scheme.outlineVariant),
         boxShadow: [
           BoxShadow(
             color: scheme.onSurface.withValues(alpha: 0.04),
@@ -155,7 +158,7 @@ class QuickActionAmountCard extends StatelessWidget {
             amountLabel.toUpperCase(),
             style: TextStyle(
               fontSize: 12,
-              color: scheme.onSurfaceVariant,
+              color: hasError ? scheme.error : scheme.onSurfaceVariant,
               fontWeight: FontWeight.bold,
             ),
           ),
@@ -176,6 +179,17 @@ class QuickActionAmountCard extends StatelessWidget {
             ),
             onChanged: (_) => onAmountChanged?.call(),
           ),
+          if (hasError) ...[
+            const SizedBox(height: 6),
+            Text(
+              errorText!,
+              style: TextStyle(
+                fontSize: 12,
+                color: scheme.error,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
           if (footer != null) ...[
             const SizedBox(height: 8),
             DefaultTextStyle(
@@ -452,6 +466,8 @@ class QuickActionDetailsCard extends StatelessWidget {
     required this.onDateTap,
     this.descriptionLabel = 'Description',
     this.descriptionHint,
+    this.descriptionErrorText,
+    this.onDescriptionChanged,
   });
 
   final TextEditingController descriptionController;
@@ -459,10 +475,14 @@ class QuickActionDetailsCard extends StatelessWidget {
   final VoidCallback onDateTap;
   final String descriptionLabel;
   final String? descriptionHint;
+  final String? descriptionErrorText;
+  final VoidCallback? onDescriptionChanged;
 
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    final hasDescError =
+        descriptionErrorText != null && descriptionErrorText!.trim().isNotEmpty;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       decoration: BoxDecoration(
@@ -484,11 +504,22 @@ class QuickActionDetailsCard extends StatelessWidget {
             decoration: InputDecoration(
               labelText: descriptionLabel,
               hintText: descriptionHint,
-              prefixIcon: Icon(Icons.description_outlined, color: scheme.onSurface),
+              errorText: hasDescError ? descriptionErrorText : null,
+              prefixIcon: Icon(
+                Icons.description_outlined,
+                color: hasDescError ? scheme.error : scheme.onSurface,
+              ),
               border: const UnderlineInputBorder(),
+              errorBorder: UnderlineInputBorder(
+                borderSide: BorderSide(color: scheme.error),
+              ),
+              focusedErrorBorder: UnderlineInputBorder(
+                borderSide: BorderSide(color: scheme.error, width: 2),
+              ),
               contentPadding: const EdgeInsets.symmetric(vertical: 12),
             ),
             maxLines: 2,
+            onChanged: (_) => onDescriptionChanged?.call(),
           ),
           const Divider(height: 24),
           InkWell(

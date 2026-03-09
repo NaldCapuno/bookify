@@ -22,6 +22,7 @@ class _PayYourDebtViewState extends State<PayYourDebtView> {
   String _paymentMethod = 'cash';
   DateTime _selectedDate = DateTime.now();
   bool _isSaving = false;
+  bool _attemptedSubmit = false;
 
   @override
   void initState() {
@@ -58,7 +59,7 @@ class _PayYourDebtViewState extends State<PayYourDebtView> {
     final amount = double.tryParse(rawAmount) ?? 0;
 
     if (desc.isEmpty || amount <= 0) {
-      AppToast.show(context, message: 'Description and amount are required.');
+      setState(() => _attemptedSubmit = true);
       return;
     }
 
@@ -72,9 +73,6 @@ class _PayYourDebtViewState extends State<PayYourDebtView> {
     final debtBefore =
         await appDb.ledgerDao.watchBalanceForAccountCode(debitCode).first;
     if (amount > debtBefore) {
-      if (mounted) {
-        AppToast.show(context, message: 'Payment amount cannot exceed the recorded debt. Reduce the amount.');
-      }
       return;
     }
 
@@ -82,9 +80,6 @@ class _PayYourDebtViewState extends State<PayYourDebtView> {
         .watchBalanceForAccountCode(creditCode)
         .first;
     if (amount > cashOrBankBefore) {
-      if (mounted) {
-        AppToast.show(context, message: 'Insufficient balance in selected payment method. Reduce the amount.');
-      }
       return;
     }
 
@@ -169,6 +164,9 @@ class _PayYourDebtViewState extends State<PayYourDebtView> {
                 amountController: _amountController,
                 amountLabel: 'Amount',
                 onAmountChanged: () => setState(() {}),
+                errorText: _attemptedSubmit && parseAmount(_amountController) <= 0
+                    ? 'Amount is required.'
+                    : null,
               ),
               InsufficientBalanceNotice(
                 amount: amount,
@@ -242,6 +240,11 @@ class _PayYourDebtViewState extends State<PayYourDebtView> {
                 descriptionController: _descController,
                 dateText: _dateController.text,
                 onDateTap: _pickDate,
+                descriptionErrorText:
+                    _attemptedSubmit && _descController.text.trim().isEmpty
+                        ? 'Description is required.'
+                        : null,
+                onDescriptionChanged: () => setState(() {}),
               ),
             ],
           );

@@ -22,6 +22,7 @@ class _InventoryViewState extends State<InventoryView> {
   String _paymentMethod = 'cash';
   DateTime _selectedDate = DateTime.now();
   bool _isSaving = false;
+  bool _attemptedSubmit = false;
 
   @override
   void initState() {
@@ -59,7 +60,7 @@ class _InventoryViewState extends State<InventoryView> {
     final desc = _descController.text.trim();
 
     if (desc.isEmpty) {
-      AppToast.show(context, message: 'Description is required.');
+      setState(() => _attemptedSubmit = true);
       return;
     }
 
@@ -67,7 +68,7 @@ class _InventoryViewState extends State<InventoryView> {
       final rawAmount = _amountController.text.replaceAll(',', '').trim();
       final amount = double.tryParse(rawAmount) ?? 0;
       if (amount <= 0) {
-        AppToast.show(context, message: 'Amount is required.');
+        setState(() => _attemptedSubmit = true);
         return;
       }
 
@@ -103,12 +104,12 @@ class _InventoryViewState extends State<InventoryView> {
       final labor = double.tryParse(rawLabor) ?? 0;
 
       if (rawUsed <= 0) {
-        AppToast.show(context, message: 'Enter the amount of Raw Materials used.');
+        setState(() => _attemptedSubmit = true);
         return;
       }
 
       if (labor < 0) {
-        AppToast.show(context, message: 'Direct Labor cannot be negative.');
+        setState(() => _attemptedSubmit = true);
         return;
       }
 
@@ -227,6 +228,9 @@ class _InventoryViewState extends State<InventoryView> {
                   balanceLabel: _balanceLabel,
                   checkInsufficient: _paymentMethod != 'credit',
                   onAmountChanged: () => setState(() {}),
+                  errorText: _attemptedSubmit && _currentAmount <= 0
+                      ? 'Amount is required.'
+                      : null,
                 ),
                 if (_balanceStream != null)
                   StreamBuilder<double>(
@@ -266,6 +270,10 @@ class _InventoryViewState extends State<InventoryView> {
                   amountController: _rawUsedController,
                   amountLabel: 'Raw Materials Used',
                   onAmountChanged: () => setState(() {}),
+                  errorText: _attemptedSubmit &&
+                          parseAmount(_rawUsedController) <= 0
+                      ? 'Raw materials used is required.'
+                      : null,
                   footer: Text(
                     'Raw materials remaining: ${formatAmount(displayRemaining)}',
                     style: remaining < 0
@@ -281,6 +289,17 @@ class _InventoryViewState extends State<InventoryView> {
               amountController: _laborController,
               amountLabel: 'Direct Labor',
               onAmountChanged: () => setState(() {}),
+              errorText: _attemptedSubmit &&
+                      double.tryParse(
+                            _laborController.text.replaceAll(',', '').trim(),
+                          ) !=
+                          null &&
+                      double.tryParse(
+                            _laborController.text.replaceAll(',', '').trim(),
+                          )! <
+                          0
+                  ? 'Direct Labor cannot be negative.'
+                  : null,
               footer: Builder(
                 builder: (context) {
                   final rawUsed = double.tryParse(
@@ -304,6 +323,11 @@ class _InventoryViewState extends State<InventoryView> {
                 descriptionController: _descController,
                 dateText: _dateController.text,
                 onDateTap: _pickDate,
+                descriptionErrorText:
+                    _attemptedSubmit && _descController.text.trim().isEmpty
+                        ? 'Description is required.'
+                        : null,
+                onDescriptionChanged: () => setState(() {}),
               ),
             ],
           );
