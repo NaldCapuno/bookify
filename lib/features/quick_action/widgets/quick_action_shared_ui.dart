@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 
 /// Format amount for display (e.g. "5,000.00").
@@ -162,6 +163,10 @@ class QuickActionAmountCard extends StatelessWidget {
     this.currencyPrefix = '₱ ',
     this.onAmountChanged,
     this.errorText,
+    this.focusNode,
+    this.inputFormatters,
+    this.textInputAction,
+    this.onSubmitted,
 
     /// Optional footer shown inside the card with lower hierarchy (e.g. "remaining" or total).
     this.footer,
@@ -175,6 +180,10 @@ class QuickActionAmountCard extends StatelessWidget {
   final String currencyPrefix;
   final VoidCallback? onAmountChanged;
   final String? errorText;
+  final FocusNode? focusNode;
+  final List<TextInputFormatter>? inputFormatters;
+  final TextInputAction? textInputAction;
+  final ValueChanged<String>? onSubmitted;
   final Widget? footer;
 
   @override
@@ -209,7 +218,10 @@ class QuickActionAmountCard extends StatelessWidget {
           const SizedBox(height: 8),
           TextField(
             controller: amountController,
+            focusNode: focusNode,
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            inputFormatters: inputFormatters,
+            textInputAction: textInputAction,
             style: const TextStyle(fontSize: 34, fontWeight: FontWeight.w800),
             decoration: InputDecoration(
               filled: true,
@@ -260,6 +272,7 @@ class QuickActionAmountCard extends StatelessWidget {
               onAmountChanged?.call();
               FocusScope.of(context).unfocus();
             },
+            onSubmitted: onSubmitted,
           ),
           if (hasError) ...[
             const SizedBox(height: 6),
@@ -304,8 +317,9 @@ class InsufficientBalanceNotice extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (!isOutflow || amount <= 0 || amount <= currentBalance)
+    if (!isOutflow || amount <= 0 || amount <= currentBalance) {
       return const SizedBox.shrink();
+    }
     final scheme = Theme.of(context).colorScheme;
     return Padding(
       padding: const EdgeInsets.only(top: 8),

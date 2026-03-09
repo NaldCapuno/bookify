@@ -428,13 +428,6 @@ class _AddJournalEntryFormState extends State<AddJournalEntryForm> {
             ),
             const SizedBox(height: 16),
             _buildModernField(
-              label: "Reference No.",
-              hint: "Optional",
-              icon: Icons.tag,
-              controller: _refNoController,
-            ),
-            const SizedBox(height: 16),
-            _buildModernField(
               label: "Description *",
               hint: "Transaction description",
               icon: Icons.edit_note,
@@ -749,7 +742,7 @@ class _AddJournalEntryFormState extends State<AddJournalEntryForm> {
 
   Widget _buildTableFooter() {
     final colorScheme = Theme.of(context).colorScheme;
-    
+
     bool isBalanced = (totalDebit - totalCredit).abs() < 0.01 && totalDebit > 0;
     double diff = (totalDebit - totalCredit).abs();
     bool hasAmounts = totalDebit > 0 || totalCredit > 0;
@@ -798,7 +791,9 @@ class _AddJournalEntryFormState extends State<AddJournalEntryForm> {
                 Row(
                   children: [
                     Icon(
-                      isBalanced ? Icons.check_circle_rounded : Icons.error_outline_rounded,
+                      isBalanced
+                          ? Icons.check_circle_rounded
+                          : Icons.error_outline_rounded,
                       size: 20,
                       color: textColor,
                     ),
