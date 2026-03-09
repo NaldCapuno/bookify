@@ -96,17 +96,6 @@ class _DisburseFundsViewState extends State<DisburseFundsView> {
     }
   }
 
-  Stream<double> get _balanceStream => _paymentMethod == 'cash'
-      ? appDb.ledgerDao.watchBalanceForAccountCode(
-          QuickActionAccounts.cashOnHand,
-        )
-      : appDb.ledgerDao.watchBalanceForAccountCode(
-          QuickActionAccounts.cashInBank,
-        );
-
-  String get _balanceLabel =>
-      _paymentMethod == 'cash' ? 'Cash balance:' : 'Bank balance:';
-
   double get _currentAmount =>
       double.tryParse(_amountController.text.replaceAll(',', '').trim()) ?? 0;
 
@@ -114,11 +103,14 @@ class _DisburseFundsViewState extends State<DisburseFundsView> {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
+
     return Scaffold(
       backgroundColor: scheme.surfaceContainerHighest,
       appBar: AppBar(
-        backgroundColor: scheme.surfaceContainerHighest,
+        // Blend AppBar color into the pinned header
+        backgroundColor: scheme.surface,
         elevation: 0,
+        scrolledUnderElevation: 0,
         leading: BackButton(color: scheme.primary),
         title: Text(
           DisburseFundsView._title,
@@ -127,65 +119,85 @@ class _DisburseFundsViewState extends State<DisburseFundsView> {
               TextStyle(color: scheme.onSurface, fontWeight: FontWeight.bold),
         ),
       ),
-      body: StreamBuilder<Map<int, double>>(
-        stream: appDb.ledgerDao.watchBalancesForAccountCodes({
-          QuickActionAccounts.cashOnHand,
-          QuickActionAccounts.cashInBank,
-        }),
-        builder: (context, snap) {
-          final balances =
-              snap.data ??
-              {
-                QuickActionAccounts.cashOnHand: 0.0,
-                QuickActionAccounts.cashInBank: 0.0,
-              };
+      body: SafeArea(
+        child: StreamBuilder<Map<int, double>>(
+          stream: appDb.ledgerDao.watchBalancesForAccountCodes({
+            QuickActionAccounts.cashOnHand,
+            QuickActionAccounts.cashInBank,
+          }),
+          builder: (context, snap) {
+            final balances =
+                snap.data ??
+                {
+                  QuickActionAccounts.cashOnHand: 0.0,
+                  QuickActionAccounts.cashInBank: 0.0,
+                };
 
-          final before = _paymentMethod == 'cash'
-              ? (balances[QuickActionAccounts.cashOnHand] ?? 0.0)
-              : (balances[QuickActionAccounts.cashInBank] ?? 0.0);
-          final amount = parseAmount(_amountController);
-          final after = before - amount;
-          final insufficient = amount > 0 && amount > before;
+            final before = _paymentMethod == 'cash'
+                ? (balances[QuickActionAccounts.cashOnHand] ?? 0.0)
+                : (balances[QuickActionAccounts.cashInBank] ?? 0.0);
+            final amount = parseAmount(_amountController);
+            final after = before - amount;
 
-          return ListView(
-            padding: const EdgeInsets.all(20),
-            children: [
-              BeforeAfterBalanceHeader(
-                label: _paymentMethod == 'cash'
-                    ? 'Cash balance'
-                    : 'Bank balance',
-                before: before,
-                after: after,
-              ),
-              const SizedBox(height: 16),
-              QuickActionAmountCard(
-                amountController: _amountController,
-                amountLabel: 'Amount',
-                onAmountChanged: () => setState(() {}),
-              ),
-              InsufficientBalanceNotice(
-                amount: amount,
-                currentBalance: before,
-                isOutflow: true,
-              ),
-              const SizedBox(height: 24),
-              const QuickActionSectionLabel('Taken from'),
-              CashBankChips(
-                value: _paymentMethod,
-                onChanged: (v) => setState(() => _paymentMethod = v),
-                cashBalance: balances[QuickActionAccounts.cashOnHand],
-                bankBalance: balances[QuickActionAccounts.cashInBank],
-              ),
-              const SizedBox(height: 24),
-              QuickActionDetailsCard(
-                descriptionController: _descController,
-                dateText: _dateController.text,
-                onDateTap: _pickDate,
-              ),
-              const SizedBox(height: 90),
-            ],
-          );
-        },
+            // Only used for UI rendering logic below
+            final insufficient = amount > 0 && amount > before;
+
+            return Column(
+              children: [
+                // =====================================
+                // 1. PINNED HEADER (Always visible)
+                // =====================================
+                BeforeAfterBalanceHeader(
+                  label: _paymentMethod == 'cash'
+                      ? 'Cash balance'
+                      : 'Bank balance',
+                  before: before,
+                  after: after,
+                ),
+
+                // =====================================
+                // 2. SCROLLABLE CONTENT
+                // =====================================
+                Expanded(
+                  child: ListView(
+                    padding: const EdgeInsets.all(20),
+                    children: [
+                      QuickActionAmountCard(
+                        amountController: _amountController,
+                        amountLabel: 'Amount',
+                        onAmountChanged: () => setState(() {}),
+                      ),
+                      if (insufficient)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 8),
+                          child: InsufficientBalanceNotice(
+                            amount: amount,
+                            currentBalance: before,
+                            isOutflow: true,
+                          ),
+                        ),
+                      const SizedBox(height: 24),
+                      const QuickActionSectionLabel('Taken from'),
+                      CashBankChips(
+                        value: _paymentMethod,
+                        onChanged: (v) => setState(() => _paymentMethod = v),
+                        cashBalance: balances[QuickActionAccounts.cashOnHand],
+                        bankBalance: balances[QuickActionAccounts.cashInBank],
+                      ),
+                      const SizedBox(height: 24),
+                      QuickActionDetailsCard(
+                        descriptionController: _descController,
+                        dateText: _dateController.text,
+                        onDateTap: _pickDate,
+                      ),
+                      const SizedBox(height: 90),
+                    ],
+                  ),
+                ),
+              ],
+            );
+          },
+        ),
       ),
       bottomNavigationBar: StreamBuilder<Map<int, double>>(
         stream: appDb.ledgerDao.watchBalancesForAccountCodes({

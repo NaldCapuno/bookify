@@ -105,10 +105,12 @@ class _BankingViewState extends State<BankingView> {
     final isDeposit = widget.type == 'Deposit';
     final scheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
+
     return Scaffold(
       backgroundColor: scheme.surfaceContainerHighest,
       appBar: AppBar(
-        backgroundColor: scheme.surfaceContainerHighest,
+        // Set AppBar color to surface so it blends seamlessly with the header
+        backgroundColor: scheme.surface,
         elevation: 0,
         scrolledUnderElevation: 0,
         leading: BackButton(color: scheme.primary),
@@ -119,69 +121,74 @@ class _BankingViewState extends State<BankingView> {
               TextStyle(color: scheme.onSurface, fontWeight: FontWeight.bold),
         ),
       ),
-      body: StreamBuilder<Map<int, double>>(
-        stream: appDb.ledgerDao.watchBalancesForAccountCodes({
-          QuickActionAccounts.cashOnHand,
-          QuickActionAccounts.cashInBank,
-        }),
-        builder: (context, snap) {
-          final balances =
-              snap.data ??
-              {
-                QuickActionAccounts.cashOnHand: 0.0,
-                QuickActionAccounts.cashInBank: 0.0,
-              };
-          final cash = balances[QuickActionAccounts.cashOnHand] ?? 0.0;
-          final bank = balances[QuickActionAccounts.cashInBank] ?? 0.0;
-          final amount = _currentAmount;
+      body: SafeArea(
+        child: StreamBuilder<Map<int, double>>(
+          stream: appDb.ledgerDao.watchBalancesForAccountCodes({
+            QuickActionAccounts.cashOnHand,
+            QuickActionAccounts.cashInBank,
+          }),
+          builder: (context, snap) {
+            final balances =
+                snap.data ??
+                {
+                  QuickActionAccounts.cashOnHand: 0.0,
+                  QuickActionAccounts.cashInBank: 0.0,
+                };
+            final cash = balances[QuickActionAccounts.cashOnHand] ?? 0.0;
+            final bank = balances[QuickActionAccounts.cashInBank] ?? 0.0;
+            final amount = _currentAmount;
 
-          // Deposit: show cash balance (source). Withdraw: show bank balance (source).
-          final balanceBefore = isDeposit ? cash : bank;
-          final balanceAfter = isDeposit ? cash - amount : bank - amount;
-          final sourceBalance = isDeposit ? cash : bank;
-          final insufficient = amount > 0 && amount > sourceBalance;
+            // Deposit: show cash balance (source). Withdraw: show bank balance (source).
+            final balanceBefore = isDeposit ? cash : bank;
+            final balanceAfter = isDeposit ? cash - amount : bank - amount;
+            final sourceBalance = isDeposit ? cash : bank;
+            final insufficient = amount > 0 && amount > sourceBalance;
 
-          return SafeArea(
-            child: Column(
+            return Column(
               children: [
+                // =====================================
+                // 1. PINNED HEADER (Always visible)
+                // =====================================
                 BeforeAfterBalanceHeader(
                   label: isDeposit ? 'Cash balance' : 'Bank balance',
                   before: balanceBefore,
                   after: balanceAfter,
                 ),
+
+                // =====================================
+                // 2. SCROLLABLE CONTENT (The Form)
+                // =====================================
                 Expanded(
-                  child: SingleChildScrollView(
+                  child: ListView(
                     padding: const EdgeInsets.all(20),
-                    child: Column(
-                      children: [
-                        QuickActionAmountCard(
-                          amountController: _amountController,
-                          amountLabel: _amountLabel,
-                          onAmountChanged: () => setState(() {}),
-                        ),
-                        if (insufficient)
-                          Padding(
-                            padding: const EdgeInsets.only(top: 8),
-                            child: InsufficientBalanceNotice(
-                              amount: amount,
-                              currentBalance: sourceBalance,
-                              isOutflow: true,
-                            ),
+                    children: [
+                      QuickActionAmountCard(
+                        amountController: _amountController,
+                        amountLabel: _amountLabel,
+                        onAmountChanged: () => setState(() {}),
+                      ),
+                      if (insufficient)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 8),
+                          child: InsufficientBalanceNotice(
+                            amount: amount,
+                            currentBalance: sourceBalance,
+                            isOutflow: true,
                           ),
-                        const SizedBox(height: 24),
-                        QuickActionDetailsCard(
-                          descriptionController: _descController,
-                          dateText: _dateController.text,
-                          onDateTap: _pickDate,
                         ),
-                      ],
-                    ),
+                      const SizedBox(height: 24),
+                      QuickActionDetailsCard(
+                        descriptionController: _descController,
+                        dateText: _dateController.text,
+                        onDateTap: _pickDate,
+                      ),
+                    ],
                   ),
                 ),
               ],
-            ),
-          );
-        },
+            );
+          },
+        ),
       ),
       bottomNavigationBar: StreamBuilder<Map<int, double>>(
         stream: appDb.ledgerDao.watchBalancesForAccountCodes({
@@ -200,6 +207,7 @@ class _BankingViewState extends State<BankingView> {
               : (balances[QuickActionAccounts.cashInBank] ?? 0.0);
           final insufficient =
               _currentAmount > sourceBalance && _currentAmount > 0;
+
           return QuickActionSaveButton(
             onPressed: insufficient ? null : _save,
             isSaving: _isSaving,

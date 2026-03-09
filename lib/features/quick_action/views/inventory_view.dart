@@ -178,13 +178,6 @@ class _InventoryViewState extends State<InventoryView> {
     return null;
   }
 
-  String? get _balanceLabel {
-    if (widget.actionType != 'Acquire') return null;
-    if (_paymentMethod == 'cash') return 'Cash balance:';
-    if (_paymentMethod == 'bank') return 'Bank balance:';
-    return null;
-  }
-
   double get _currentAmount =>
       double.tryParse(_amountController.text.replaceAll(',', '').trim()) ?? 0;
 
@@ -197,8 +190,10 @@ class _InventoryViewState extends State<InventoryView> {
     return Scaffold(
       backgroundColor: scheme.surfaceContainerHighest,
       appBar: AppBar(
-        backgroundColor: scheme.surfaceContainerHighest,
+        // Blend AppBar color into the pinned header
+        backgroundColor: scheme.surface,
         elevation: 0,
+        scrolledUnderElevation: 0,
         leading: BackButton(color: scheme.primary),
         title: Text(
           isAcquire ? 'Acquire Raw Materials' : 'Produce Finished Goods',
@@ -207,26 +202,48 @@ class _InventoryViewState extends State<InventoryView> {
               TextStyle(color: scheme.onSurface, fontWeight: FontWeight.bold),
         ),
       ),
-      body: StreamBuilder<Map<int, double>>(
-        stream: appDb.ledgerDao.watchBalancesForAccountCodes({
-          QuickActionAccounts.cashOnHand,
-          QuickActionAccounts.cashInBank,
-        }),
-        builder: (context, snap) {
-          final balances =
-              snap.data ??
-              {
-                QuickActionAccounts.cashOnHand: 0.0,
-                QuickActionAccounts.cashInBank: 0.0,
-              };
-          final cash = balances[QuickActionAccounts.cashOnHand] ?? 0.0;
-          final bank = balances[QuickActionAccounts.cashInBank] ?? 0.0;
+      body: SafeArea(
+        child: StreamBuilder<Map<int, double>>(
+          stream: appDb.ledgerDao.watchBalancesForAccountCodes({
+            QuickActionAccounts.cashOnHand,
+            QuickActionAccounts.cashInBank,
+            QuickActionAccounts
+                .inventoryRawMaterials, // Added to watch raw materials globally
+          }),
+          builder: (context, snap) {
+            final balances =
+                snap.data ??
+                {
+                  QuickActionAccounts.cashOnHand: 0.0,
+                  QuickActionAccounts.cashInBank: 0.0,
+                  QuickActionAccounts.inventoryRawMaterials: 0.0,
+                };
 
-          return ListView(
-            padding: const EdgeInsets.all(20),
-            children: [
-              if (isAcquire) ...[
-                if (_paymentMethod != 'credit') ...[
+            // Extract Balances
+            final cash = balances[QuickActionAccounts.cashOnHand] ?? 0.0;
+            final bank = balances[QuickActionAccounts.cashInBank] ?? 0.0;
+            final rawMaterials =
+                balances[QuickActionAccounts.inventoryRawMaterials] ?? 0.0;
+
+            // Form inputs
+            final rawUsed =
+                double.tryParse(
+                  _rawUsedController.text.replaceAll(',', '').trim(),
+                ) ??
+                0.0;
+            final labor =
+                double.tryParse(
+                  _laborController.text.replaceAll(',', '').trim(),
+                ) ??
+                0.0;
+            final totalFinishedGoods = rawUsed + labor;
+
+            return Column(
+              children: [
+                // =====================================
+                // 1. PINNED HEADER (Dynamic)
+                // =====================================
+                if (isAcquire && _paymentMethod != 'credit')
                   BeforeAfterBalanceHeader(
                     label: _paymentMethod == 'cash'
                         ? 'Cash balance'
@@ -235,108 +252,130 @@ class _InventoryViewState extends State<InventoryView> {
                     after:
                         (_paymentMethod == 'cash' ? cash : bank) -
                         _currentAmount,
+                  )
+                else if (!isAcquire)
+                  BeforeAfterBalanceHeader(
+                    label: 'Raw Materials',
+                    before: rawMaterials,
+                    after: rawMaterials - rawUsed,
                   ),
-                  const SizedBox(height: 16),
-                ],
-                QuickActionAmountCard(
-                  amountController: _amountController,
-                  amountLabel: 'Amount',
-                  balanceStream: _balanceStream,
-                  balanceLabel: _balanceLabel,
-                  checkInsufficient: _paymentMethod != 'credit',
-                  onAmountChanged: () => setState(() {}),
-                ),
-                if (_balanceStream != null)
-                  StreamBuilder<double>(
-                    stream: _balanceStream,
-                    builder: (context, snap) {
-                      final balance = snap.data ?? 0.0;
-                      return InsufficientBalanceNotice(
-                        amount: _currentAmount,
-                        currentBalance: balance,
-                        isOutflow: true,
-                      );
-                    },
-                  ),
-                const SizedBox(height: 24),
-                const QuickActionSectionLabel('Paid via'),
-                PaymentMethodChips(
-                  value: _paymentMethod,
-                  onChanged: (v) => setState(() => _paymentMethod = v),
-                  creditLabel: 'Pay Later',
-                  cashBalance: cash,
-                  bankBalance: bank,
-                ),
-              ] else ...[
-                // Raw Materials Used — card with grouped remaining detail inside
-                StreamBuilder<double>(
-                  stream: appDb.ledgerDao.watchBalanceForAccountCode(
-                    QuickActionAccounts.inventoryRawMaterials,
-                  ),
-                  builder: (context, snap) {
-                    final balance = snap.data ?? 0.0;
-                    final rawUsed =
-                        double.tryParse(
-                          _rawUsedController.text.replaceAll(',', '').trim(),
-                        ) ??
-                        0.0;
-                    final remaining = balance - rawUsed;
-                    final displayRemaining = remaining.clamp(
-                      0.0,
-                      double.infinity,
-                    );
-                    return QuickActionAmountCard(
-                      amountController: _rawUsedController,
-                      amountLabel: 'Raw Materials Used',
-                      onAmountChanged: () => setState(() {}),
-                      footer: Text(
-                        'Raw materials remaining: ${formatAmount(displayRemaining)}',
-                        style: remaining < 0
-                            ? TextStyle(
-                                color: scheme.error,
-                                fontSize: 12,
-                                fontWeight: FontWeight.w500,
-                              )
-                            : null,
+
+                // =====================================
+                // 2. SCROLLABLE CONTENT
+                // =====================================
+                Expanded(
+                  child: ListView(
+                    padding: const EdgeInsets.all(20),
+                    children: [
+                      if (isAcquire) ...[
+                        QuickActionAmountCard(
+                          amountController: _amountController,
+                          amountLabel: 'Amount',
+                          onAmountChanged: () => setState(() {}),
+                        ),
+                        if (_paymentMethod != 'credit' &&
+                            _currentAmount >
+                                (_paymentMethod == 'cash' ? cash : bank) &&
+                            _currentAmount > 0)
+                          Padding(
+                            padding: const EdgeInsets.only(top: 8),
+                            child: InsufficientBalanceNotice(
+                              amount: _currentAmount,
+                              currentBalance: _paymentMethod == 'cash'
+                                  ? cash
+                                  : bank,
+                              isOutflow: true,
+                            ),
+                          ),
+                        const SizedBox(height: 24),
+                        const QuickActionSectionLabel('Paid via'),
+                        PaymentMethodChips(
+                          value: _paymentMethod,
+                          onChanged: (v) => setState(() => _paymentMethod = v),
+                          creditLabel: 'Pay Later',
+                          cashBalance: cash,
+                          bankBalance: bank,
+                        ),
+                      ] else ...[
+                        QuickActionAmountCard(
+                          amountController: _rawUsedController,
+                          amountLabel: 'Raw Materials Used',
+                          onAmountChanged: () => setState(() {}),
+                        ),
+                        if (rawUsed > rawMaterials && rawUsed > 0)
+                          Padding(
+                            padding: const EdgeInsets.only(top: 8),
+                            child: Row(
+                              children: [
+                                Icon(
+                                  Icons.warning_amber_rounded,
+                                  size: 18,
+                                  color: scheme.error,
+                                ),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: Text(
+                                    'Insufficient raw materials.',
+                                    style: TextStyle(
+                                      color: scheme.error,
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        const SizedBox(height: 16),
+                        QuickActionAmountCard(
+                          amountController: _laborController,
+                          amountLabel: 'Direct Labor',
+                          onAmountChanged: () => setState(() {}),
+                        ),
+                        const SizedBox(height: 16),
+                        // Clean "Total Finished Goods" Box to replace previous footer
+                        Container(
+                          padding: const EdgeInsets.all(14),
+                          decoration: BoxDecoration(
+                            color: scheme.surface,
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(color: scheme.outlineVariant),
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                'Total Finished Goods',
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  color: scheme.onSurfaceVariant,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                              Text(
+                                '${formatAmount(totalFinishedGoods)}',
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 15,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                      const SizedBox(height: 24),
+                      QuickActionDetailsCard(
+                        descriptionController: _descController,
+                        dateText: _dateController.text,
+                        onDateTap: _pickDate,
                       ),
-                    );
-                  },
-                ),
-                const SizedBox(height: 16),
-                // Direct Labor — card with grouped total detail inside
-                QuickActionAmountCard(
-                  amountController: _laborController,
-                  amountLabel: 'Direct Labor',
-                  onAmountChanged: () => setState(() {}),
-                  footer: Builder(
-                    builder: (context) {
-                      final rawUsed =
-                          double.tryParse(
-                            _rawUsedController.text.replaceAll(',', '').trim(),
-                          ) ??
-                          0.0;
-                      final labor =
-                          double.tryParse(
-                            _laborController.text.replaceAll(',', '').trim(),
-                          ) ??
-                          0.0;
-                      final totalFinishedGoods = rawUsed + labor;
-                      return Text(
-                        'Total finished goods: ${formatAmount(totalFinishedGoods)}',
-                      );
-                    },
+                    ],
                   ),
                 ),
               ],
-              const SizedBox(height: 24),
-              QuickActionDetailsCard(
-                descriptionController: _descController,
-                dateText: _dateController.text,
-                onDateTap: _pickDate,
-              ),
-            ],
-          );
-        },
+            );
+          },
+        ),
       ),
       bottomNavigationBar: isAcquire && _balanceStream != null
           ? StreamBuilder<double>(

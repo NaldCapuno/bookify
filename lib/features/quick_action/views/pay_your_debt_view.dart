@@ -75,7 +75,11 @@ class _PayYourDebtViewState extends State<PayYourDebtView> {
         .first;
     if (amount > debtBefore) {
       if (mounted) {
-        AppToast.show(context, message: 'Payment amount cannot exceed the recorded debt. Reduce the amount.');
+        AppToast.show(
+          context,
+          message:
+              'Payment amount cannot exceed the recorded debt. Reduce the amount.',
+        );
       }
       return;
     }
@@ -85,7 +89,11 @@ class _PayYourDebtViewState extends State<PayYourDebtView> {
         .first;
     if (amount > cashOrBankBefore) {
       if (mounted) {
-        AppToast.show(context, message: 'Insufficient balance in selected payment method. Reduce the amount.');
+        AppToast.show(
+          context,
+          message:
+              'Insufficient balance in selected payment method. Reduce the amount.',
+        );
       }
       return;
     }
@@ -106,15 +114,11 @@ class _PayYourDebtViewState extends State<PayYourDebtView> {
       if (mounted) Navigator.pop(context, true);
     } catch (e) {
       if (mounted) {
-<<<<<<< HEAD
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Failed to save payment. Please try again.'),
-          ),
+        AppToast.show(
+          context,
+          message: 'Failed to save payment. Please try again.',
+          isError: true,
         );
-=======
-        AppToast.show(context, message: 'Failed to save payment. Please try again.', isError: true);
->>>>>>> 49feba258613adace58ba3d301b80e351928abf3
       }
     } finally {
       if (mounted) setState(() => _isSaving = false);
@@ -125,11 +129,14 @@ class _PayYourDebtViewState extends State<PayYourDebtView> {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
+
     return Scaffold(
       backgroundColor: scheme.surfaceContainerHighest,
       appBar: AppBar(
-        backgroundColor: scheme.surfaceContainerHighest,
+        // Blend AppBar color into the pinned header
+        backgroundColor: scheme.surface,
         elevation: 0,
+        scrolledUnderElevation: 0,
         leading: BackButton(color: scheme.primary),
         title: Text(
           PayYourDebtView._title,
@@ -138,131 +145,150 @@ class _PayYourDebtViewState extends State<PayYourDebtView> {
               TextStyle(color: scheme.onSurface, fontWeight: FontWeight.bold),
         ),
       ),
-      body: StreamBuilder<Map<int, double>>(
-        stream: appDb.ledgerDao.watchBalancesForAccountCodes({
-          QuickActionAccounts.cashOnHand,
-          QuickActionAccounts.cashInBank,
-          QuickActionAccounts.accountsPayable,
-          QuickActionAccounts.longTermLoans,
-        }),
-        builder: (context, snap) {
-          final balances =
-              snap.data ??
-              {
-                QuickActionAccounts.cashOnHand: 0.0,
-                QuickActionAccounts.cashInBank: 0.0,
-                QuickActionAccounts.accountsPayable: 0.0,
-                QuickActionAccounts.longTermLoans: 0.0,
-              };
-          final cash = balances[QuickActionAccounts.cashOnHand] ?? 0.0;
-          final bank = balances[QuickActionAccounts.cashInBank] ?? 0.0;
-          final amount = parseAmount(_amountController);
+      body: SafeArea(
+        child: StreamBuilder<Map<int, double>>(
+          stream: appDb.ledgerDao.watchBalancesForAccountCodes({
+            QuickActionAccounts.cashOnHand,
+            QuickActionAccounts.cashInBank,
+            QuickActionAccounts.accountsPayable,
+            QuickActionAccounts.longTermLoans,
+          }),
+          builder: (context, snap) {
+            final balances =
+                snap.data ??
+                {
+                  QuickActionAccounts.cashOnHand: 0.0,
+                  QuickActionAccounts.cashInBank: 0.0,
+                  QuickActionAccounts.accountsPayable: 0.0,
+                  QuickActionAccounts.longTermLoans: 0.0,
+                };
+            final cash = balances[QuickActionAccounts.cashOnHand] ?? 0.0;
+            final bank = balances[QuickActionAccounts.cashInBank] ?? 0.0;
+            final amount = parseAmount(_amountController);
 
-          final isCash = _paymentMethod == 'cash';
-          final cashOrBankBefore = isCash ? cash : bank;
-          final cashOrBankAfter = cashOrBankBefore - amount;
+            final isCash = _paymentMethod == 'cash';
+            final cashOrBankBefore = isCash ? cash : bank;
+            final cashOrBankAfter = cashOrBankBefore - amount;
 
-          final payableDebt =
-              balances[QuickActionAccounts.accountsPayable] ?? 0.0;
-          final loanDebt = balances[QuickActionAccounts.longTermLoans] ?? 0.0;
+            final payableDebt =
+                balances[QuickActionAccounts.accountsPayable] ?? 0.0;
+            final loanDebt = balances[QuickActionAccounts.longTermLoans] ?? 0.0;
 
-          final selectedDebtBefore = _debtType == 'ap' ? payableDebt : loanDebt;
+            final selectedDebtBefore = _debtType == 'ap'
+                ? payableDebt
+                : loanDebt;
 
-          final exceedsDebt = amount > 0 && amount > selectedDebtBefore;
+            final exceedsDebt = amount > 0 && amount > selectedDebtBefore;
 
-          return ListView(
-            padding: const EdgeInsets.all(20),
-            children: [
-              BeforeAfterBalanceHeader(
-                label: isCash ? 'Cash balance' : 'Bank balance',
-                before: cashOrBankBefore,
-                after: cashOrBankAfter,
-              ),
-              const SizedBox(height: 16),
-              QuickActionAmountCard(
-                amountController: _amountController,
-                amountLabel: 'Amount',
-                onAmountChanged: () => setState(() {}),
-              ),
-              InsufficientBalanceNotice(
-                amount: amount,
-                currentBalance: cashOrBankBefore,
-                isOutflow: true,
-              ),
-              if (exceedsDebt)
-                Padding(
-                  padding: const EdgeInsets.only(top: 8),
-                  child: Row(
+            return Column(
+              children: [
+                // =====================================
+                // 1. PINNED HEADER (Always visible)
+                // =====================================
+                BeforeAfterBalanceHeader(
+                  label: isCash ? 'Cash balance' : 'Bank balance',
+                  before: cashOrBankBefore,
+                  after: cashOrBankAfter,
+                ),
+
+                // =====================================
+                // 2. SCROLLABLE CONTENT
+                // =====================================
+                Expanded(
+                  child: ListView(
+                    padding: const EdgeInsets.all(20),
                     children: [
-                      Icon(
-                        Icons.warning_amber_rounded,
-                        size: 18,
-                        color: scheme.error,
+                      QuickActionAmountCard(
+                        amountController: _amountController,
+                        amountLabel: 'Amount',
+                        onAmountChanged: () => setState(() {}),
                       ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          'Amount cannot exceed recorded debt (${formatAmount(selectedDebtBefore)}).',
-                          style: TextStyle(
-                            color: scheme.error,
-                            fontSize: 13,
-                            fontWeight: FontWeight.w600,
+                      InsufficientBalanceNotice(
+                        amount: amount,
+                        currentBalance: cashOrBankBefore,
+                        isOutflow: true,
+                      ),
+                      if (exceedsDebt)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 8),
+                          child: Row(
+                            children: [
+                              Icon(
+                                Icons.warning_amber_rounded,
+                                size: 18,
+                                color: scheme.error,
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  'Amount cannot exceed recorded debt (${formatAmount(selectedDebtBefore)}).',
+                                  style: TextStyle(
+                                    color: scheme.error,
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
                         ),
+                      const SizedBox(height: 24),
+                      const QuickActionSectionLabel('Debt Account'),
+                      Column(
+                        children: [
+                          Row(
+                            children: [
+                              Expanded(
+                                child: _DebtChip(
+                                  label: 'Payable',
+                                  isSelected: _debtType == 'ap',
+                                  onTap: () => setState(() => _debtType = 'ap'),
+                                  accentColor: const Color(0xFF1976D2), // Blue
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: _DebtChip(
+                                  label: 'Loan',
+                                  isSelected: _debtType == 'loan',
+                                  onTap: () =>
+                                      setState(() => _debtType = 'loan'),
+                                  accentColor: const Color(
+                                    0xFF7B1FA2,
+                                  ), // Purple
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 10),
+                      _SelectedDebtBalanceCard(
+                        debtType: _debtType,
+                        payableDebt: payableDebt,
+                        loanDebt: loanDebt,
+                      ),
+                      const SizedBox(height: 20),
+                      const QuickActionSectionLabel('Paid via'),
+                      CashBankChips(
+                        value: _paymentMethod,
+                        onChanged: (v) => setState(() => _paymentMethod = v),
+                        cashBalance: cash,
+                        bankBalance: bank,
+                      ),
+                      const SizedBox(height: 24),
+                      QuickActionDetailsCard(
+                        descriptionController: _descController,
+                        dateText: _dateController.text,
+                        onDateTap: _pickDate,
                       ),
                     ],
                   ),
                 ),
-              const SizedBox(height: 24),
-              const QuickActionSectionLabel('Debt Account'),
-              Column(
-                children: [
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _DebtChip(
-                          label: 'Payable',
-                          isSelected: _debtType == 'ap',
-                          onTap: () => setState(() => _debtType = 'ap'),
-                          accentColor: const Color(0xFF1976D2), // Blue
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: _DebtChip(
-                          label: 'Loan',
-                          isSelected: _debtType == 'loan',
-                          onTap: () => setState(() => _debtType = 'loan'),
-                          accentColor: const Color(0xFF7B1FA2), // Purple
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-              const SizedBox(height: 10),
-              _SelectedDebtBalanceCard(
-                debtType: _debtType,
-                payableDebt: payableDebt,
-                loanDebt: loanDebt,
-              ),
-              const SizedBox(height: 20),
-              const QuickActionSectionLabel('Paid via'),
-              CashBankChips(
-                value: _paymentMethod,
-                onChanged: (v) => setState(() => _paymentMethod = v),
-                cashBalance: cash,
-                bankBalance: bank,
-              ),
-              const SizedBox(height: 24),
-              QuickActionDetailsCard(
-                descriptionController: _descController,
-                dateText: _dateController.text,
-                onDateTap: _pickDate,
-              ),
-            ],
-          );
-        },
+              ],
+            );
+          },
+        ),
       ),
       bottomNavigationBar: StreamBuilder<Map<int, double>>(
         stream: appDb.ledgerDao.watchBalancesForAccountCodes({

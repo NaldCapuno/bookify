@@ -85,15 +85,11 @@ class _InvestToBusinessViewState extends State<InvestToBusinessView> {
       if (mounted) Navigator.pop(context, true);
     } catch (e) {
       if (mounted) {
-<<<<<<< HEAD
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Failed to save entry. Please try again.'),
-          ),
+        AppToast.show(
+          context,
+          message: 'Failed to save entry. Please try again.',
+          isError: true,
         );
-=======
-        AppToast.show(context, message: 'Failed to save entry. Please try again.', isError: true);
->>>>>>> 49feba258613adace58ba3d301b80e351928abf3
       }
     } finally {
       if (mounted) setState(() => _isSaving = false);

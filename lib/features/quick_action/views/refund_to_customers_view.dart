@@ -1,4 +1,5 @@
 import 'package:bookkeeping/core/database/app_database.dart';
+import 'package:bookkeeping/core/theme/app_theme.dart';
 import 'package:bookkeeping/core/widgets/app_toast.dart';
 import 'package:bookkeeping/features/quick_action/quick_action_journal_service.dart';
 import 'package:bookkeeping/features/quick_action/widgets/quick_action_shared_ui.dart';
@@ -121,12 +122,6 @@ class _RefundToCustomersViewState extends State<RefundToCustomersView> {
     return null;
   }
 
-  String? get _balanceLabel {
-    if (_method == 'cash') return 'Cash balance:';
-    if (_method == 'bank') return 'Bank balance:';
-    return null;
-  }
-
   bool get _isOutflow => _method == 'cash' || _method == 'bank';
 
   double get _currentAmount =>
@@ -136,11 +131,15 @@ class _RefundToCustomersViewState extends State<RefundToCustomersView> {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
+    final isUnpaid = _method == 'credit';
+
     return Scaffold(
       backgroundColor: scheme.surfaceContainerHighest,
       appBar: AppBar(
-        backgroundColor: scheme.surfaceContainerHighest,
+        // Blends smoothly into the pinned header
+        backgroundColor: scheme.surface,
         elevation: 0,
+        scrolledUnderElevation: 0,
         leading: BackButton(color: scheme.primary),
         title: Text(
           RefundToCustomersView._title,
@@ -149,72 +148,105 @@ class _RefundToCustomersViewState extends State<RefundToCustomersView> {
               TextStyle(color: scheme.onSurface, fontWeight: FontWeight.bold),
         ),
       ),
-      body: StreamBuilder<Map<int, double>>(
-        stream: appDb.ledgerDao.watchBalancesForAccountCodes({
-          QuickActionAccounts.cashOnHand,
-          QuickActionAccounts.cashInBank,
-        }),
-        builder: (context, snap) {
-          final balances =
-              snap.data ??
-              {
-                QuickActionAccounts.cashOnHand: 0.0,
-                QuickActionAccounts.cashInBank: 0.0,
-              };
-          final before = _method == 'cash'
-              ? (balances[QuickActionAccounts.cashOnHand] ?? 0.0)
-              : (balances[QuickActionAccounts.cashInBank] ?? 0.0);
-          final amount = parseAmount(_amountController);
-          final after = before - amount;
+      body: SafeArea(
+        child: StreamBuilder<Map<int, double>>(
+          stream: appDb.ledgerDao.watchBalancesForAccountCodes({
+            QuickActionAccounts.cashOnHand,
+            QuickActionAccounts.cashInBank,
+          }),
+          builder: (context, snap) {
+            final balances =
+                snap.data ??
+                {
+                  QuickActionAccounts.cashOnHand: 0.0,
+                  QuickActionAccounts.cashInBank: 0.0,
+                };
+            final cashBalance = balances[QuickActionAccounts.cashOnHand] ?? 0.0;
+            final bankBalance = balances[QuickActionAccounts.cashInBank] ?? 0.0;
 
-          return ListView(
-            padding: const EdgeInsets.all(20),
-            children: [
-              if (_isOutflow)
-                BeforeAfterBalanceHeader(
-                  label: _method == 'cash' ? 'Cash balance' : 'Bank balance',
-                  before: before,
-                  after: after,
+            final before = _method == 'cash' ? cashBalance : bankBalance;
+            final amount = parseAmount(_amountController);
+            final after = before - amount;
+            final insufficient = amount > 0 && amount > before;
+
+            return Column(
+              children: [
+                // =====================================
+                // 1. PINNED HEADER (Conditionally visible)
+                // =====================================
+                if (_isOutflow)
+                  BeforeAfterBalanceHeader(
+                    label: _method == 'cash' ? 'Cash balance' : 'Bank balance',
+                    before: before,
+                    after: after,
+                  ),
+
+                // =====================================
+                // 2. SCROLLABLE CONTENT
+                // =====================================
+                Expanded(
+                  child: ListView(
+                    padding: const EdgeInsets.all(20),
+                    children: [
+                      QuickActionAmountCard(
+                        amountController: _amountController,
+                        amountLabel: 'Amount',
+                        onAmountChanged: () => setState(() {}),
+                      ),
+                      if (_isOutflow && insufficient)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 8),
+                          child: InsufficientBalanceNotice(
+                            amount: _currentAmount,
+                            currentBalance: before,
+                            isOutflow: true,
+                          ),
+                        ),
+                      const SizedBox(height: 24),
+                      const QuickActionSectionLabel('Refunded via'),
+                      PaymentMethodChips(
+                        value: _method,
+                        onChanged: (v) => setState(() => _method = v),
+                        creditLabel: 'On Credit',
+                        cashBalance: cashBalance,
+                        bankBalance: bankBalance,
+                      ),
+                      if (isUnpaid)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 12),
+                          child: Row(
+                            children: [
+                              Icon(
+                                Icons.warning_amber_rounded,
+                                size: 18,
+                                color: context.warning,
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  'Will be recorded as Accounts Payable (Owed to customer).',
+                                  style: TextStyle(
+                                    color: context.warning,
+                                    fontSize: 13,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      const SizedBox(height: 24),
+                      QuickActionDetailsCard(
+                        descriptionController: _descController,
+                        dateText: _dateController.text,
+                        onDateTap: _pickDate,
+                      ),
+                    ],
+                  ),
                 ),
-              if (_isOutflow) const SizedBox(height: 16),
-              QuickActionAmountCard(
-                amountController: _amountController,
-                amountLabel: 'Amount',
-                balanceStream: _balanceStream,
-                balanceLabel: _balanceLabel,
-                checkInsufficient: _isOutflow,
-                onAmountChanged: () => setState(() {}),
-              ),
-              if (_isOutflow && _balanceStream != null)
-                StreamBuilder<double>(
-                  stream: _balanceStream,
-                  builder: (context, snap) {
-                    final balance = snap.data ?? 0.0;
-                    return InsufficientBalanceNotice(
-                      amount: _currentAmount,
-                      currentBalance: balance,
-                      isOutflow: true,
-                    );
-                  },
-                ),
-              const SizedBox(height: 24),
-              const QuickActionSectionLabel('Refunded via'),
-              PaymentMethodChips(
-                value: _method,
-                onChanged: (v) => setState(() => _method = v),
-                creditLabel: 'On Credit',
-                cashBalance: balances[QuickActionAccounts.cashOnHand],
-                bankBalance: balances[QuickActionAccounts.cashInBank],
-              ),
-              const SizedBox(height: 24),
-              QuickActionDetailsCard(
-                descriptionController: _descController,
-                dateText: _dateController.text,
-                onDateTap: _pickDate,
-              ),
-            ],
-          );
-        },
+              ],
+            );
+          },
+        ),
       ),
       bottomNavigationBar: _isOutflow && _balanceStream != null
           ? StreamBuilder<double>(

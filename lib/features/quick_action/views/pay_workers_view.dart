@@ -86,15 +86,11 @@ class _PayWorkersViewState extends State<PayWorkersView> {
       if (mounted) Navigator.pop(context, true);
     } catch (e) {
       if (mounted) {
-<<<<<<< HEAD
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Failed to save payment. Please try again.'),
-          ),
+        AppToast.show(
+          context,
+          message: 'Failed to save payment. Please try again.',
+          isError: true,
         );
-=======
-        AppToast.show(context, message: 'Failed to save payment. Please try again.', isError: true);
->>>>>>> 49feba258613adace58ba3d301b80e351928abf3
       }
     } finally {
       if (mounted) setState(() => _isSaving = false);
@@ -108,11 +104,14 @@ class _PayWorkersViewState extends State<PayWorkersView> {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
+
     return Scaffold(
       backgroundColor: scheme.surfaceContainerHighest,
       appBar: AppBar(
-        backgroundColor: scheme.surfaceContainerHighest,
+        // Blends smoothly into the pinned header
+        backgroundColor: scheme.surface,
         elevation: 0,
+        scrolledUnderElevation: 0,
         leading: BackButton(color: scheme.primary),
         title: Text(
           PayWorkersView._title,
@@ -121,91 +120,114 @@ class _PayWorkersViewState extends State<PayWorkersView> {
               TextStyle(color: scheme.onSurface, fontWeight: FontWeight.bold),
         ),
       ),
-      body: StreamBuilder<Map<int, double>>(
-        stream: appDb.ledgerDao.watchBalancesForAccountCodes({
-          QuickActionAccounts.cashOnHand,
-          QuickActionAccounts.cashInBank,
-          QuickActionAccounts.directLabor,
-        }),
-        builder: (context, snap) {
-          final balances =
-              snap.data ??
-              {
-                QuickActionAccounts.cashOnHand: 0.0,
-                QuickActionAccounts.cashInBank: 0.0,
-                QuickActionAccounts.directLabor: 0.0,
-              };
-          final amount = _currentAmount;
-          final cash = balances[QuickActionAccounts.cashOnHand] ?? 0.0;
-          final bank = balances[QuickActionAccounts.cashInBank] ?? 0.0;
-          final directLabor = balances[QuickActionAccounts.directLabor] ?? 0.0;
-          final isCash = _paymentMethod == 'cash';
-          final before = isCash ? cash : bank;
-          final after = before - amount;
+      body: SafeArea(
+        child: StreamBuilder<Map<int, double>>(
+          stream: appDb.ledgerDao.watchBalancesForAccountCodes({
+            QuickActionAccounts.cashOnHand,
+            QuickActionAccounts.cashInBank,
+            QuickActionAccounts.directLabor,
+          }),
+          builder: (context, snap) {
+            final balances =
+                snap.data ??
+                {
+                  QuickActionAccounts.cashOnHand: 0.0,
+                  QuickActionAccounts.cashInBank: 0.0,
+                  QuickActionAccounts.directLabor: 0.0,
+                };
+            final amount = _currentAmount;
+            final cash = balances[QuickActionAccounts.cashOnHand] ?? 0.0;
+            final bank = balances[QuickActionAccounts.cashInBank] ?? 0.0;
+            final directLabor =
+                balances[QuickActionAccounts.directLabor] ?? 0.0;
 
-          return ListView(
-            padding: const EdgeInsets.all(20),
-            children: [
-              BeforeAfterBalanceHeader(
-                label: isCash ? 'Cash balance' : 'Bank balance',
-                before: before,
-                after: after,
-              ),
-              const SizedBox(height: 16),
-              QuickActionAmountCard(
-                amountController: _amountController,
-                amountLabel: 'Amount',
-                onAmountChanged: () => setState(() {}),
-              ),
-              InsufficientBalanceNotice(
-                amount: amount,
-                currentBalance: before,
-                isOutflow: true,
-              ),
-              const SizedBox(height: 24),
-              const QuickActionSectionLabel('Employee Type'),
-              Row(
-                children: [
-                  Expanded(
-                    child: _TypeChip(
-                      label: 'Workers',
-                      isSelected: _employeeType == 'workers',
-                      onTap: () => setState(() => _employeeType = 'workers'),
-                      accentColor: const Color(0xFF00838F), // Teal
-                    ),
+            final isCash = _paymentMethod == 'cash';
+            final before = isCash ? cash : bank;
+            final after = before - amount;
+            final insufficient = amount > 0 && amount > before;
+
+            return Column(
+              children: [
+                // =====================================
+                // 1. PINNED HEADER
+                // =====================================
+                BeforeAfterBalanceHeader(
+                  label: isCash ? 'Cash balance' : 'Bank balance',
+                  before: before,
+                  after: after,
+                ),
+
+                // =====================================
+                // 2. SCROLLABLE CONTENT
+                // =====================================
+                Expanded(
+                  child: ListView(
+                    padding: const EdgeInsets.all(20),
+                    children: [
+                      QuickActionAmountCard(
+                        amountController: _amountController,
+                        amountLabel: 'Amount',
+                        onAmountChanged: () => setState(() {}),
+                      ),
+                      if (insufficient)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 8),
+                          child: InsufficientBalanceNotice(
+                            amount: amount,
+                            currentBalance: before,
+                            isOutflow: true,
+                          ),
+                        ),
+                      const SizedBox(height: 24),
+                      const QuickActionSectionLabel('Employee Type'),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: _TypeChip(
+                              label: 'Workers',
+                              isSelected: _employeeType == 'workers',
+                              onTap: () =>
+                                  setState(() => _employeeType = 'workers'),
+                              accentColor: const Color(0xFF00838F), // Teal
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: _TypeChip(
+                              label: 'Office Staffs',
+                              isSelected: _employeeType == 'office',
+                              onTap: () =>
+                                  setState(() => _employeeType = 'office'),
+                              accentColor: const Color(0xFF5C6BC0), // Indigo
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 10),
+                      if (_employeeType == 'workers')
+                        _PostingHintCard(directLaborBalance: directLabor.abs()),
+                      const SizedBox(height: 20),
+                      const QuickActionSectionLabel('Paid via'),
+                      CashBankChips(
+                        value: _paymentMethod,
+                        onChanged: (v) => setState(() => _paymentMethod = v),
+                        cashBalance: cash,
+                        bankBalance: bank,
+                      ),
+                      const SizedBox(height: 24),
+                      QuickActionDetailsCard(
+                        descriptionController: _descController,
+                        dateText: _dateController.text,
+                        onDateTap: _pickDate,
+                      ),
+                      const SizedBox(height: 90),
+                    ],
                   ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: _TypeChip(
-                      label: 'Office Staffs',
-                      isSelected: _employeeType == 'office',
-                      onTap: () => setState(() => _employeeType = 'office'),
-                      accentColor: const Color(0xFF5C6BC0), // Indigo
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 10),
-              if (_employeeType == 'workers')
-                _PostingHintCard(directLaborBalance: directLabor.abs()),
-              const SizedBox(height: 20),
-              const QuickActionSectionLabel('Paid via'),
-              CashBankChips(
-                value: _paymentMethod,
-                onChanged: (v) => setState(() => _paymentMethod = v),
-                cashBalance: cash,
-                bankBalance: bank,
-              ),
-              const SizedBox(height: 24),
-              QuickActionDetailsCard(
-                descriptionController: _descController,
-                dateText: _dateController.text,
-                onDateTap: _pickDate,
-              ),
-              const SizedBox(height: 90),
-            ],
-          );
-        },
+                ),
+              ],
+            );
+          },
+        ),
       ),
       bottomNavigationBar: StreamBuilder<Map<int, double>>(
         stream: appDb.ledgerDao.watchBalancesForAccountCodes({
@@ -225,6 +247,7 @@ class _PayWorkersViewState extends State<PayWorkersView> {
           final before = isCash ? cash : bank;
           final amount = _currentAmount;
           final insufficient = amount > 0 && amount > before;
+
           return QuickActionSaveButton(
             onPressed: insufficient ? null : _save,
             isSaving: _isSaving,
