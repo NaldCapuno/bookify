@@ -103,8 +103,9 @@ class _BankingViewState extends State<BankingView> {
     return Scaffold(
       backgroundColor: scheme.surfaceContainerHighest,
       appBar: AppBar(
-        backgroundColor: scheme.surfaceContainerHighest,
+        backgroundColor: scheme.surface,
         elevation: 0,
+        scrolledUnderElevation: 0,
         leading: BackButton(color: scheme.primary),
         title: Text(
           widget.type == 'Deposit' ? 'Deposit to Bank' : 'Withdraw from Bank',
@@ -132,44 +133,53 @@ class _BankingViewState extends State<BankingView> {
           final sourceBalance = isDeposit ? cash : bank;
           final insufficient = amount > 0 && amount > sourceBalance;
 
-          return ListView(
-            padding: const EdgeInsets.all(20),
-            children: [
-              BeforeAfterBalanceHeader(
-                label: isDeposit ? 'Cash balance' : 'Bank balance',
-                before: balanceBefore,
-                after: balanceAfter,
-              ),
-              const SizedBox(height: 16),
-              QuickActionAmountCard(
-                amountController: _amountController,
-                amountLabel: _amountLabel,
-                onAmountChanged: () => setState(() {}),
-                errorText: _attemptedSubmit && parseAmount(_amountController) <= 0
-                    ? 'Amount is required.'
-                    : null,
-              ),
-              if (insufficient)
-                Padding(
-                  padding: const EdgeInsets.only(top: 8),
-                  child: InsufficientBalanceNotice(
-                    amount: amount,
-                    currentBalance: sourceBalance,
-                    isOutflow: true,
+          return SafeArea(
+            top: false,
+            child: Column(
+              children: [
+                BeforeAfterBalanceHeader(
+                  label: isDeposit ? 'Cash balance' : 'Bank balance',
+                  before: balanceBefore,
+                  after: balanceAfter,
+                ),
+                Expanded(
+                  child: ListView(
+                    padding: const EdgeInsets.all(20),
+                    children: [
+                      QuickActionAmountCard(
+                        amountController: _amountController,
+                        amountLabel: _amountLabel,
+                        onAmountChanged: () => setState(() {}),
+                        errorText: _attemptedSubmit &&
+                                parseAmount(_amountController) <= 0
+                            ? 'Amount is required.'
+                            : null,
+                      ),
+                      if (insufficient)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 8),
+                          child: InsufficientBalanceNotice(
+                            amount: amount,
+                            currentBalance: sourceBalance,
+                            isOutflow: true,
+                          ),
+                        ),
+                      const SizedBox(height: 24),
+                      QuickActionDetailsCard(
+                        descriptionController: _descController,
+                        dateText: _dateController.text,
+                        onDateTap: _pickDate,
+                        descriptionErrorText: _attemptedSubmit &&
+                                _descController.text.trim().isEmpty
+                            ? 'Description is required.'
+                            : null,
+                        onDescriptionChanged: () => setState(() {}),
+                      ),
+                    ],
                   ),
                 ),
-              const SizedBox(height: 24),
-              QuickActionDetailsCard(
-                descriptionController: _descController,
-                dateText: _dateController.text,
-                onDateTap: _pickDate,
-                descriptionErrorText: _attemptedSubmit &&
-                        _descController.text.trim().isEmpty
-                    ? 'Description is required.'
-                    : null,
-                onDescriptionChanged: () => setState(() {}),
-              ),
-            ],
+              ],
+            ),
           );
         },
       ),

@@ -108,8 +108,9 @@ class _PayWorkersViewState extends State<PayWorkersView> {
     return Scaffold(
       backgroundColor: scheme.surfaceContainerHighest,
       appBar: AppBar(
-        backgroundColor: scheme.surfaceContainerHighest,
+        backgroundColor: scheme.surface,
         elevation: 0,
+        scrolledUnderElevation: 0,
         leading: BackButton(color: scheme.primary),
         title: Text(
           PayWorkersView._title,
@@ -138,77 +139,87 @@ class _PayWorkersViewState extends State<PayWorkersView> {
           final before = isCash ? cash : bank;
           final after = before - amount;
 
-          return ListView(
-            padding: const EdgeInsets.all(20),
-            children: [
-              BeforeAfterBalanceHeader(
-                label: isCash ? 'Cash balance' : 'Bank balance',
-                before: before,
-                after: after,
-              ),
-              const SizedBox(height: 16),
-              QuickActionAmountCard(
-                amountController: _amountController,
-                amountLabel: 'Amount',
-                onAmountChanged: () => setState(() {}),
-                errorText: _attemptedSubmit && _currentAmount <= 0
-                    ? 'Amount is required.'
-                    : null,
-              ),
-              InsufficientBalanceNotice(
-                amount: amount,
-                currentBalance: before,
-                isOutflow: true,
-              ),
-              const SizedBox(height: 24),
-              const QuickActionSectionLabel('Employee Type'),
-              Row(
-                children: [
-                  Expanded(
-                    child: _TypeChip(
-                      label: 'Workers',
-                      isSelected: _employeeType == 'workers',
-                      onTap: () => setState(() => _employeeType = 'workers'),
-                      accentColor: const Color(0xFF00838F), // Teal
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: _TypeChip(
-                      label: 'Office Staffs',
-                      isSelected: _employeeType == 'office',
-                      onTap: () => setState(() => _employeeType = 'office'),
-                      accentColor: const Color(0xFF5C6BC0), // Indigo
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 10),
-              if (_employeeType == 'workers')
-                _PostingHintCard(
-                  directLaborBalance: directLabor.abs(),
+          return SafeArea(
+            top: false,
+            child: Column(
+              children: [
+                BeforeAfterBalanceHeader(
+                  label: isCash ? 'Cash balance' : 'Bank balance',
+                  before: before,
+                  after: after,
                 ),
-              const SizedBox(height: 20),
-              const QuickActionSectionLabel('Paid via'),
-              CashBankChips(
-                value: _paymentMethod,
-                onChanged: (v) => setState(() => _paymentMethod = v),
-                cashBalance: cash,
-                bankBalance: bank,
-              ),
-              const SizedBox(height: 24),
-              QuickActionDetailsCard(
-                descriptionController: _descController,
-                dateText: _dateController.text,
-                onDateTap: _pickDate,
-                descriptionErrorText: _attemptedSubmit &&
-                        _descController.text.trim().isEmpty
-                    ? 'Description is required.'
-                    : null,
-                onDescriptionChanged: () => setState(() {}),
-              ),
-              const SizedBox(height: 90),
-            ],
+                Expanded(
+                  child: ListView(
+                    padding: const EdgeInsets.all(20),
+                    children: [
+                      QuickActionAmountCard(
+                        amountController: _amountController,
+                        amountLabel: 'Amount',
+                        onAmountChanged: () => setState(() {}),
+                        errorText: _attemptedSubmit && _currentAmount <= 0
+                            ? 'Amount is required.'
+                            : null,
+                      ),
+                      InsufficientBalanceNotice(
+                        amount: amount,
+                        currentBalance: before,
+                        isOutflow: true,
+                      ),
+                      const SizedBox(height: 24),
+                      const QuickActionSectionLabel('Employee Type'),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: _TypeChip(
+                              label: 'Workers',
+                              isSelected: _employeeType == 'workers',
+                              onTap: () =>
+                                  setState(() => _employeeType = 'workers'),
+                              accentColor: const Color(0xFF00838F), // Teal
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: _TypeChip(
+                              label: 'Office Staffs',
+                              isSelected: _employeeType == 'office',
+                              onTap: () =>
+                                  setState(() => _employeeType = 'office'),
+                              accentColor: const Color(0xFF5C6BC0), // Indigo
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 10),
+                      if (_employeeType == 'workers')
+                        _PostingHintCard(
+                          directLaborBalance: directLabor.abs(),
+                        ),
+                      const SizedBox(height: 20),
+                      const QuickActionSectionLabel('Paid via'),
+                      CashBankChips(
+                        value: _paymentMethod,
+                        onChanged: (v) => setState(() => _paymentMethod = v),
+                        cashBalance: cash,
+                        bankBalance: bank,
+                      ),
+                      const SizedBox(height: 24),
+                      QuickActionDetailsCard(
+                        descriptionController: _descController,
+                        dateText: _dateController.text,
+                        onDateTap: _pickDate,
+                        descriptionErrorText: _attemptedSubmit &&
+                                _descController.text.trim().isEmpty
+                            ? 'Description is required.'
+                            : null,
+                        onDescriptionChanged: () => setState(() {}),
+                      ),
+                      const SizedBox(height: 90),
+                    ],
+                  ),
+                ),
+              ],
+            ),
           );
         },
       ),

@@ -152,8 +152,10 @@ class _SellProductsViewState extends State<SellProductsView> {
     return Scaffold(
       backgroundColor: scheme.surfaceContainerHighest,
       appBar: AppBar(
-        backgroundColor: scheme.surfaceContainerHighest,
+        // Set AppBar color to surface so it blends with the header below
+        backgroundColor: scheme.surface,
         elevation: 0,
+        scrolledUnderElevation: 0,
         leading: BackButton(color: scheme.primary),
         title: Text(
           'Record Sale',
@@ -161,145 +163,140 @@ class _SellProductsViewState extends State<SellProductsView> {
               TextStyle(color: scheme.onSurface, fontWeight: FontWeight.bold),
         ),
       ),
-      body: ListView(
-        padding: const EdgeInsets.all(20),
-        children: [
-          StreamBuilder<double>(
-            stream: appDb.ledgerDao.watchBalanceForAccountCode(
-              QuickActionAccounts.inventoryFinishedGoods,
+      body: SafeArea(
+        top: false,
+        child: Column(
+          children: [
+            // Pinned header (always visible)
+            StreamBuilder<double>(
+              stream: appDb.ledgerDao.watchBalanceForAccountCode(
+                QuickActionAccounts.inventoryFinishedGoods,
+              ),
+              builder: (context, snap) {
+                final balance = snap.data ?? 0.0;
+                final cogs = parseAmount(_cogsController);
+                final remaining = (balance - cogs).clamp(0.0, double.infinity);
+
+                return BeforeAfterBalanceHeader(
+                  label: 'Finished Goods',
+                  before: balance,
+                  after: remaining,
+                );
+              },
             ),
-            builder: (context, snap) {
-              final balance = snap.data ?? 0.0;
-              final cogs = parseAmount(_cogsController);
-              final remaining = (balance - cogs).clamp(0.0, double.infinity);
-              return Container(
-                padding: const EdgeInsets.all(14),
-                margin: const EdgeInsets.only(bottom: 16),
-                decoration: BoxDecoration(
-                  color: scheme.surface,
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: scheme.outlineVariant),
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      'Total Finished Goods',
-                      style: TextStyle(
-                        fontSize: 13,
-                        color: scheme.onSurfaceVariant,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    Text(
-                      '${formatAmount(remaining)}',
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 15,
-                        color: cogs > balance ? scheme.error : null,
-                      ),
-                    ),
-                  ],
-                ),
-              );
-            },
-          ),
-          _buildExtraField(
-            context,
-            controller: _sellingPriceController,
-            label: 'Selling price',
-            icon: Icons.sell_outlined,
-            onChanged: () => setState(() {}),
-            errorText: _attemptedSubmit && _sellingPrice <= 0
-                ? 'Selling price is required.'
-                : null,
-          ),
-          const SizedBox(height: 16),
-          _buildExtraField(
-            context,
-            controller: _discountController,
-            label: 'Is there a discount? (optional amount)',
-            icon: Icons.percent,
-            onChanged: () => setState(() {}),
-            errorText: _attemptedSubmit &&
-                    _sellingPrice > 0 &&
-                    (_sellingPrice - _discount) <= 0
-                ? 'Discount cannot be equal to or exceed the selling price.'
-                : null,
-          ),
-          const SizedBox(height: 16),
-          Container(
-            padding: const EdgeInsets.all(14),
-            decoration: BoxDecoration(
-              color: scheme.surface,
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: scheme.outlineVariant),
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  'Total Amount',
-                  style: TextStyle(
-                    fontSize: 13,
-                    color: scheme.onSurfaceVariant,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                Text(
-                  '${formatAmount(_totalAmount)}',
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 15,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 16),
-          _buildExtraField(
-            context,
-            controller: _cogsController,
-            label: 'Total value of goods sold (COGS)',
-            icon: Icons.inventory_2_outlined,
-            onChanged: () => setState(() {}),
-          ),
-          const SizedBox(height: 24),
-          const QuickActionSectionLabel('Payment Method'),
-          PaymentMethodChips(
-            value: _selectedPaymentMethod,
-            onChanged: (v) => setState(() => _selectedPaymentMethod = v),
-          ),
-          if (isCreditSale)
-            Padding(
-              padding: const EdgeInsets.only(top: 12),
-              child: Row(
+            // Scrollable form
+            Expanded(
+              child: ListView(
+                padding: const EdgeInsets.all(20),
                 children: [
-                  Icon(Icons.info_outline, size: 18, color: context.warning),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      'This will be recorded as an Account Receivable.',
-                      style: TextStyle(color: context.warning, fontSize: 13),
+                  _buildExtraField(
+                    context,
+                    controller: _sellingPriceController,
+                    label: 'Selling price',
+                    icon: Icons.sell_outlined,
+                    onChanged: () => setState(() {}),
+                    errorText: _attemptedSubmit && _sellingPrice <= 0
+                        ? 'Selling price is required.'
+                        : null,
+                  ),
+                  const SizedBox(height: 16),
+                  _buildExtraField(
+                    context,
+                    controller: _discountController,
+                    label: 'Is there a discount? (optional amount)',
+                    icon: Icons.percent,
+                    onChanged: () => setState(() {}),
+                    errorText: _attemptedSubmit &&
+                            _sellingPrice > 0 &&
+                            (_sellingPrice - _discount) <= 0
+                        ? 'Discount cannot be equal to or exceed the selling price.'
+                        : null,
+                  ),
+                  const SizedBox(height: 16),
+                  Container(
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      color: scheme.surface,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: scheme.outlineVariant),
                     ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'Total Amount',
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: scheme.onSurfaceVariant,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        Text(
+                          '${formatAmount(_totalAmount)}',
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 15,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  _buildExtraField(
+                    context,
+                    controller: _cogsController,
+                    label: 'Total value of goods sold (COGS)',
+                    icon: Icons.inventory_2_outlined,
+                    onChanged: () => setState(() {}),
+                  ),
+                  const SizedBox(height: 24),
+                  const QuickActionSectionLabel('Payment Method'),
+                  PaymentMethodChips(
+                    value: _selectedPaymentMethod,
+                    onChanged: (v) => setState(() => _selectedPaymentMethod = v),
+                  ),
+                  if (isCreditSale)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 12),
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.info_outline,
+                            size: 18,
+                            color: context.warning,
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              'This will be recorded as an Account Receivable.',
+                              style: TextStyle(
+                                color: context.warning,
+                                fontSize: 13,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  const SizedBox(height: 24),
+                  QuickActionDetailsCard(
+                    descriptionController: _descController,
+                    dateText: _dateController.text,
+                    onDateTap: _pickDate,
+                    descriptionLabel: 'What was sold?',
+                    descriptionHint:
+                        'e.g. product name, quantity sold, discount if any',
+                    descriptionErrorText: _attemptedSubmit &&
+                            _descController.text.trim().isEmpty
+                        ? 'This field is required.'
+                        : null,
+                    onDescriptionChanged: () => setState(() {}),
                   ),
                 ],
               ),
             ),
-          const SizedBox(height: 24),
-          QuickActionDetailsCard(
-            descriptionController: _descController,
-            dateText: _dateController.text,
-            onDateTap: _pickDate,
-            descriptionLabel: 'What was sold?',
-            descriptionHint: 'e.g. product name, quantity sold, discount if any',
-            descriptionErrorText:
-                _attemptedSubmit && _descController.text.trim().isEmpty
-                    ? 'This field is required.'
-                    : null,
-            onDescriptionChanged: () => setState(() {}),
-          ),
-        ],
+          ],
+        ),
       ),
       bottomNavigationBar: QuickActionSaveButton(
         onPressed: _save,
@@ -329,20 +326,25 @@ class _SellProductsViewState extends State<SellProductsView> {
       child: TextField(
         controller: controller,
         keyboardType: const TextInputType.numberWithOptions(decimal: true),
+        style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800),
         decoration: InputDecoration(
           labelText: label,
           errorText: hasError ? errorText : null,
           prefixIcon: Icon(icon, color: hasError ? scheme.error : scheme.onSurface),
-          border: const UnderlineInputBorder(),
-          errorBorder: UnderlineInputBorder(
-            borderSide: BorderSide(color: scheme.error),
-          ),
-          focusedErrorBorder: UnderlineInputBorder(
-            borderSide: BorderSide(color: scheme.error, width: 2),
-          ),
+          border: InputBorder.none,
+          enabledBorder: InputBorder.none,
+          focusedBorder: InputBorder.none,
+          disabledBorder: InputBorder.none,
+          errorBorder: InputBorder.none,
+          focusedErrorBorder: InputBorder.none,
           contentPadding: const EdgeInsets.symmetric(vertical: 12),
         ),
         onChanged: onChanged != null ? (_) => onChanged() : null,
+        onEditingComplete: () {
+          formatAmountController(controller);
+          onChanged?.call();
+          FocusScope.of(context).unfocus();
+        },
       ),
     );
   }

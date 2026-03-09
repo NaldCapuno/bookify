@@ -86,8 +86,7 @@ class _RecordPurchaseViewState extends State<RecordPurchaseView> {
     if (assetCode == null) {
       AppToast.show(
         context,
-        message:
-            'This category is not supported yet for Quick Purchase.',
+        message: 'This category is not supported yet for Quick Purchase.',
         isError: true,
       );
       return;
@@ -124,7 +123,11 @@ class _RecordPurchaseViewState extends State<RecordPurchaseView> {
       if (mounted) Navigator.pop(context, true);
     } catch (e) {
       if (mounted) {
-        AppToast.show(context, message: 'Failed to save purchase. Please try again.', isError: true);
+        AppToast.show(
+          context,
+          message: 'Failed to save purchase. Please try again.',
+          isError: true,
+        );
       }
     } finally {
       if (mounted) setState(() => _isSaving = false);
@@ -166,8 +169,9 @@ class _RecordPurchaseViewState extends State<RecordPurchaseView> {
     return Scaffold(
       backgroundColor: scheme.surfaceContainerHighest,
       appBar: AppBar(
-        backgroundColor: scheme.surfaceContainerHighest,
+        backgroundColor: scheme.surface,
         elevation: 0,
+        scrolledUnderElevation: 0,
         leading: BackButton(color: scheme.primary),
         title: Text(
           'Purchase ${widget.initialCategory}',
@@ -192,86 +196,96 @@ class _RecordPurchaseViewState extends State<RecordPurchaseView> {
           final bankBalance = balances[QuickActionAccounts.cashInBank] ?? 0.0;
           final amount = _currentAmount;
           final isCash = _selectedPaymentMethod == 'cash';
+          final showStickyHeader = _isOutflow;
 
-          return ListView(
-            padding: const EdgeInsets.all(20),
-            children: [
-              if (_isOutflow) ...[
-                BeforeAfterBalanceHeader(
-                  label: isCash ? 'Cash balance' : 'Bank balance',
-                  before: isCash ? cashBalance : bankBalance,
-                  after: (isCash ? cashBalance : bankBalance) - amount,
-                ),
-                const SizedBox(height: 16),
-              ],
-              QuickActionAmountCard(
-                amountController: _amountController,
-                amountLabel: 'Amount',
-                balanceStream: _balanceStream,
-                balanceLabel: _balanceLabel,
-                checkInsufficient: _isOutflow,
-                onAmountChanged: () => setState(() {}),
-                errorText: _attemptedSubmit && _currentAmount <= 0
-                    ? 'Amount is required.'
-                    : null,
-              ),
-              if (_isOutflow && _balanceStream != null)
-                StreamBuilder<double>(
-                  stream: _balanceStream,
-                  builder: (context, snap) {
-                    final balance = snap.data ?? 0.0;
-                    return InsufficientBalanceNotice(
-                      amount: _currentAmount,
-                      currentBalance: balance,
-                      isOutflow: true,
-                    );
-                  },
-                ),
-              const SizedBox(height: 24),
-              const QuickActionSectionLabel('Paid via'),
-              PaymentMethodChips(
-                value: _selectedPaymentMethod,
-                onChanged: (v) => setState(() => _selectedPaymentMethod = v),
-                creditLabel: 'Pay Later',
-                cashBalance: balances[QuickActionAccounts.cashOnHand],
-                bankBalance: balances[QuickActionAccounts.cashInBank],
-              ),
-              if (isUnpaid)
-                Padding(
-                  padding: const EdgeInsets.only(top: 12),
-                  child: Row(
+          return SafeArea(
+            top: false,
+            child: Column(
+              children: [
+                if (showStickyHeader)
+                  BeforeAfterBalanceHeader(
+                    label: isCash ? 'Cash balance' : 'Bank balance',
+                    before: isCash ? cashBalance : bankBalance,
+                    after: (isCash ? cashBalance : bankBalance) - amount,
+                  ),
+                Expanded(
+                  child: ListView(
+                    padding: const EdgeInsets.all(20),
                     children: [
-                      Icon(
-                        Icons.warning_amber_rounded,
-                        size: 18,
-                        color: context.warning,
+                      QuickActionAmountCard(
+                        amountController: _amountController,
+                        amountLabel: 'Amount',
+                        balanceStream: _balanceStream,
+                        balanceLabel: _balanceLabel,
+                        checkInsufficient: _isOutflow,
+                        onAmountChanged: () => setState(() {}),
+                        errorText: _attemptedSubmit && _currentAmount <= 0
+                            ? 'Amount is required.'
+                            : null,
                       ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          'Will be recorded as Accounts Payable (Debt).',
-                          style: TextStyle(
-                            color: context.warning,
-                            fontSize: 13,
+                      if (_isOutflow && _balanceStream != null)
+                        StreamBuilder<double>(
+                          stream: _balanceStream,
+                          builder: (context, snap) {
+                            final balance = snap.data ?? 0.0;
+                            return InsufficientBalanceNotice(
+                              amount: _currentAmount,
+                              currentBalance: balance,
+                              isOutflow: true,
+                            );
+                          },
+                        ),
+                      const SizedBox(height: 24),
+                      const QuickActionSectionLabel('Paid via'),
+                      PaymentMethodChips(
+                        value: _selectedPaymentMethod,
+                        onChanged: (v) =>
+                            setState(() => _selectedPaymentMethod = v),
+                        creditLabel: 'Pay Later',
+                        cashBalance: balances[QuickActionAccounts.cashOnHand],
+                        bankBalance: balances[QuickActionAccounts.cashInBank],
+                      ),
+                      if (isUnpaid)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 12),
+                          child: Row(
+                            children: [
+                              Icon(
+                                Icons.warning_amber_rounded,
+                                size: 18,
+                                color: context.warning,
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  'Will be recorded as Accounts Payable (Debt).',
+                                  style: TextStyle(
+                                    color: context.warning,
+                                    fontSize: 13,
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
                         ),
+                      const SizedBox(height: 24),
+                      QuickActionDetailsCard(
+                        descriptionController: _descController,
+                        dateText: _dateController.text,
+                        onDateTap: _pickDate,
+                        // descriptionHint: 'e.g. 2 Laptops for office',
+                        descriptionErrorText:
+                            _attemptedSubmit &&
+                                _descController.text.trim().isEmpty
+                            ? 'Description is required.'
+                            : null,
+                        onDescriptionChanged: () => setState(() {}),
                       ),
                     ],
                   ),
                 ),
-              const SizedBox(height: 24),
-              QuickActionDetailsCard(
-                descriptionController: _descController,
-                dateText: _dateController.text,
-                onDateTap: _pickDate,
-                descriptionHint: 'e.g. 2 Laptops for office',
-                descriptionErrorText: _attemptedSubmit &&
-                        _descController.text.trim().isEmpty
-                    ? 'Description is required.'
-                    : null,
-                onDescriptionChanged: () => setState(() {}),
-              ),
-            ],
+              ],
+            ),
           );
         },
       ),

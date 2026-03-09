@@ -109,8 +109,9 @@ class _CollectMoneyViewState extends State<CollectMoneyView> {
     return Scaffold(
       backgroundColor: scheme.surfaceContainerHighest,
       appBar: AppBar(
-        backgroundColor: scheme.surfaceContainerHighest,
+        backgroundColor: scheme.surface,
         elevation: 0,
+        scrolledUnderElevation: 0,
         leading: BackButton(color: scheme.primary),
         title: Text(
           CollectMoneyView._title,
@@ -138,62 +139,76 @@ class _CollectMoneyViewState extends State<CollectMoneyView> {
           final receivablesAfter = receivablesBefore - amount;
           final exceedsReceivables = amount > 0 && amount > receivablesBefore;
 
-          return ListView(
-            padding: const EdgeInsets.all(20),
-            children: [
-              BeforeAfterBalanceHeader(
-                label: 'Total Receivables',
-                before: receivablesBefore,
-                after: receivablesAfter,
-              ),
-              const SizedBox(height: 16),
-              QuickActionAmountCard(
-                amountController: _amountController,
-                amountLabel: 'Amount Collected',
-                onAmountChanged: () => setState(() {}),
-                errorText: _attemptedSubmit && parseAmount(_amountController) <= 0
-                    ? 'Amount is required.'
-                    : null,
-              ),
-              if (exceedsReceivables)
-                Padding(
-                  padding: const EdgeInsets.only(top: 8),
-                  child: Row(
+          return SafeArea(
+            top: false,
+            child: Column(
+              children: [
+                BeforeAfterBalanceHeader(
+                  label: 'Total Receivables',
+                  before: receivablesBefore,
+                  after: receivablesAfter,
+                ),
+                Expanded(
+                  child: ListView(
+                    padding: const EdgeInsets.all(20),
                     children: [
-                      Icon(Icons.warning_amber_rounded,
-                          size: 20, color: scheme.error),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          'Amount cannot exceed total receivables (₱ ${formatAmount(receivablesBefore)}).',
-                          style: TextStyle(
-                            color: scheme.error,
-                            fontSize: 13,
-                            fontWeight: FontWeight.w500,
+                      QuickActionAmountCard(
+                        amountController: _amountController,
+                        amountLabel: 'Amount Collected',
+                        onAmountChanged: () => setState(() {}),
+                        errorText: _attemptedSubmit &&
+                                parseAmount(_amountController) <= 0
+                            ? 'Amount is required.'
+                            : null,
+                      ),
+                      if (exceedsReceivables)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 8),
+                          child: Row(
+                            children: [
+                              Icon(
+                                Icons.warning_amber_rounded,
+                                size: 20,
+                                color: scheme.error,
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  'Amount cannot exceed total receivables (₱ ${formatAmount(receivablesBefore)}).',
+                                  style: TextStyle(
+                                    color: scheme.error,
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
                         ),
+                      const SizedBox(height: 24),
+                      const QuickActionSectionLabel(
+                        'Received to (Cash / Bank)',
+                      ),
+                      CashBankChips(
+                        value: _cashLocation,
+                        onChanged: (v) => setState(() => _cashLocation = v),
+                      ),
+                      const SizedBox(height: 24),
+                      QuickActionDetailsCard(
+                        descriptionController: _descController,
+                        dateText: _dateController.text,
+                        onDateTap: _pickDate,
+                        descriptionErrorText: _attemptedSubmit &&
+                                _descController.text.trim().isEmpty
+                            ? 'Description is required.'
+                            : null,
+                        onDescriptionChanged: () => setState(() {}),
                       ),
                     ],
                   ),
                 ),
-              const SizedBox(height: 24),
-              const QuickActionSectionLabel('Received to (Cash / Bank)'),
-              CashBankChips(
-                value: _cashLocation,
-                onChanged: (v) => setState(() => _cashLocation = v),
-              ),
-              const SizedBox(height: 24),
-              QuickActionDetailsCard(
-                descriptionController: _descController,
-                dateText: _dateController.text,
-                onDateTap: _pickDate,
-                descriptionErrorText:
-                    _attemptedSubmit && _descController.text.trim().isEmpty
-                        ? 'Description is required.'
-                        : null,
-                onDescriptionChanged: () => setState(() {}),
-              ),
-            ],
+              ],
+            ),
           );
         },
       ),

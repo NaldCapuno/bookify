@@ -188,8 +188,9 @@ class _RecordOtherExpenseViewState extends State<RecordOtherExpenseView> {
     return Scaffold(
       backgroundColor: scheme.surfaceContainerHighest,
       appBar: AppBar(
-        backgroundColor: scheme.surfaceContainerHighest,
+        backgroundColor: scheme.surface,
         elevation: 0,
+        scrolledUnderElevation: 0,
         leading: BackButton(color: scheme.primary),
         title: Text(
           RecordOtherExpenseView._title,
@@ -216,86 +217,104 @@ class _RecordOtherExpenseViewState extends State<RecordOtherExpenseView> {
           final amount = parseAmount(_amountController);
           final after = before - amount;
 
-          return ListView(
-            padding: const EdgeInsets.all(20),
-            children: [
-              BeforeAfterBalanceHeader(
-                label: _paymentMethod == 'cash'
-                    ? 'Cash balance'
-                    : 'Bank balance',
-                before: before,
-                after: after,
-              ),
-              const SizedBox(height: 16),
-              QuickActionAmountCard(
-                amountController: _amountController,
-                amountLabel: 'Amount',
-                balanceStream: _balanceStream,
-                balanceLabel: _balanceLabel,
-                checkInsufficient: true,
-                onAmountChanged: () => setState(() {}),
-                errorText: _attemptedSubmit && _currentAmount <= 0
-                    ? 'Amount is required.'
-                    : null,
-              ),
-              StreamBuilder<double>(
-                stream: _balanceStream,
-                builder: (context, snap) {
-                  final balance = snap.data ?? 0.0;
-                  return InsufficientBalanceNotice(
-                    amount: _currentAmount,
-                    currentBalance: balance,
-                    isOutflow: true,
-                  );
-                },
-              ),
-              const SizedBox(height: 24),
-              const QuickActionSectionLabel('Expense Type'),
-              InkWell(
-                onTap: _showExpenseTypePicker,
-                borderRadius: BorderRadius.circular(16),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-                  decoration: BoxDecoration(
-                    color: scheme.surface,
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: scheme.outlineVariant),
-                  ),
-                  child: Row(
+          return SafeArea(
+            top: false,
+            child: Column(
+              children: [
+                BeforeAfterBalanceHeader(
+                  label: _paymentMethod == 'cash'
+                      ? 'Cash balance'
+                      : 'Bank balance',
+                  before: before,
+                  after: after,
+                ),
+                Expanded(
+                  child: ListView(
+                    padding: const EdgeInsets.all(20),
                     children: [
-                      Icon(Icons.receipt_long_outlined, color: scheme.onSurfaceVariant),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Text(
-                          _expenseTypeLabels[_expenseType] ?? _expenseType,
-                          style: Theme.of(context).textTheme.bodyLarge,
+                      QuickActionAmountCard(
+                        amountController: _amountController,
+                        amountLabel: 'Amount',
+                        balanceStream: _balanceStream,
+                        balanceLabel: _balanceLabel,
+                        checkInsufficient: true,
+                        onAmountChanged: () => setState(() {}),
+                        errorText: _attemptedSubmit && _currentAmount <= 0
+                            ? 'Amount is required.'
+                            : null,
+                      ),
+                      StreamBuilder<double>(
+                        stream: _balanceStream,
+                        builder: (context, snap) {
+                          final balance = snap.data ?? 0.0;
+                          return InsufficientBalanceNotice(
+                            amount: _currentAmount,
+                            currentBalance: balance,
+                            isOutflow: true,
+                          );
+                        },
+                      ),
+                      const SizedBox(height: 24),
+                      const QuickActionSectionLabel('Expense Type'),
+                      InkWell(
+                        onTap: _showExpenseTypePicker,
+                        borderRadius: BorderRadius.circular(16),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 16,
+                          ),
+                          decoration: BoxDecoration(
+                            color: scheme.surface,
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(color: scheme.outlineVariant),
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(
+                                Icons.receipt_long_outlined,
+                                color: scheme.onSurfaceVariant,
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Text(
+                                  _expenseTypeLabels[_expenseType] ??
+                                      _expenseType,
+                                  style: Theme.of(context).textTheme.bodyLarge,
+                                ),
+                              ),
+                              Icon(
+                                Icons.keyboard_arrow_down,
+                                color: scheme.onSurfaceVariant,
+                              ),
+                            ],
+                          ),
                         ),
                       ),
-                      Icon(Icons.keyboard_arrow_down, color: scheme.onSurfaceVariant),
+                      const SizedBox(height: 20),
+                      const QuickActionSectionLabel('Paid via'),
+                      CashBankChips(
+                        value: _paymentMethod,
+                        onChanged: (v) => setState(() => _paymentMethod = v),
+                        cashBalance: balances[QuickActionAccounts.cashOnHand],
+                        bankBalance: balances[QuickActionAccounts.cashInBank],
+                      ),
+                      const SizedBox(height: 24),
+                      QuickActionDetailsCard(
+                        descriptionController: _descController,
+                        dateText: _dateController.text,
+                        onDateTap: _pickDate,
+                        descriptionErrorText: _attemptedSubmit &&
+                                _descController.text.trim().isEmpty
+                            ? 'Description is required.'
+                            : null,
+                        onDescriptionChanged: () => setState(() {}),
+                      ),
                     ],
                   ),
                 ),
-              ),
-              const SizedBox(height: 20),
-              const QuickActionSectionLabel('Paid via'),
-              CashBankChips(
-                value: _paymentMethod,
-                onChanged: (v) => setState(() => _paymentMethod = v),
-                cashBalance: balances[QuickActionAccounts.cashOnHand],
-                bankBalance: balances[QuickActionAccounts.cashInBank],
-              ),
-              const SizedBox(height: 24),
-              QuickActionDetailsCard(
-                descriptionController: _descController,
-                dateText: _dateController.text,
-                onDateTap: _pickDate,
-                descriptionErrorText: _attemptedSubmit &&
-                        _descController.text.trim().isEmpty
-                    ? 'Description is required.'
-                    : null,
-                onDescriptionChanged: () => setState(() {}),
-              ),
-            ],
+              ],
+            ),
           );
         },
       ),

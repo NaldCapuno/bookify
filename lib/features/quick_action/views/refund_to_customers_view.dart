@@ -132,8 +132,9 @@ class _RefundToCustomersViewState extends State<RefundToCustomersView> {
     return Scaffold(
       backgroundColor: scheme.surfaceContainerHighest,
       appBar: AppBar(
-        backgroundColor: scheme.surfaceContainerHighest,
+        backgroundColor: scheme.surface,
         elevation: 0,
+        scrolledUnderElevation: 0,
         leading: BackButton(color: scheme.primary),
         title: Text(
           RefundToCustomersView._title,
@@ -156,61 +157,71 @@ class _RefundToCustomersViewState extends State<RefundToCustomersView> {
               : (balances[QuickActionAccounts.cashInBank] ?? 0.0);
           final amount = parseAmount(_amountController);
           final after = before - amount;
+          final showStickyHeader = _isOutflow;
 
-          return ListView(
-            padding: const EdgeInsets.all(20),
-            children: [
-              if (_isOutflow)
-                BeforeAfterBalanceHeader(
-                  label: _method == 'cash' ? 'Cash balance' : 'Bank balance',
-                  before: before,
-                  after: after,
+          return SafeArea(
+            top: false,
+            child: Column(
+              children: [
+                if (showStickyHeader)
+                  BeforeAfterBalanceHeader(
+                    label:
+                        _method == 'cash' ? 'Cash balance' : 'Bank balance',
+                    before: before,
+                    after: after,
+                  ),
+                Expanded(
+                  child: ListView(
+                    padding: const EdgeInsets.all(20),
+                    children: [
+                      QuickActionAmountCard(
+                        amountController: _amountController,
+                        amountLabel: 'Amount',
+                        balanceStream: _balanceStream,
+                        balanceLabel: _balanceLabel,
+                        checkInsufficient: _isOutflow,
+                        onAmountChanged: () => setState(() {}),
+                        errorText: _attemptedSubmit && _currentAmount <= 0
+                            ? 'Amount is required.'
+                            : null,
+                      ),
+                      if (_isOutflow && _balanceStream != null)
+                        StreamBuilder<double>(
+                          stream: _balanceStream,
+                          builder: (context, snap) {
+                            final balance = snap.data ?? 0.0;
+                            return InsufficientBalanceNotice(
+                              amount: _currentAmount,
+                              currentBalance: balance,
+                              isOutflow: true,
+                            );
+                          },
+                        ),
+                      const SizedBox(height: 24),
+                      const QuickActionSectionLabel('Refunded via'),
+                      PaymentMethodChips(
+                        value: _method,
+                        onChanged: (v) => setState(() => _method = v),
+                        creditLabel: 'On Credit',
+                        cashBalance: balances[QuickActionAccounts.cashOnHand],
+                        bankBalance: balances[QuickActionAccounts.cashInBank],
+                      ),
+                      const SizedBox(height: 24),
+                      QuickActionDetailsCard(
+                        descriptionController: _descController,
+                        dateText: _dateController.text,
+                        onDateTap: _pickDate,
+                        descriptionErrorText: _attemptedSubmit &&
+                                _descController.text.trim().isEmpty
+                            ? 'Description is required.'
+                            : null,
+                        onDescriptionChanged: () => setState(() {}),
+                      ),
+                    ],
+                  ),
                 ),
-              if (_isOutflow) const SizedBox(height: 16),
-              QuickActionAmountCard(
-                amountController: _amountController,
-                amountLabel: 'Amount',
-                balanceStream: _balanceStream,
-                balanceLabel: _balanceLabel,
-                checkInsufficient: _isOutflow,
-                onAmountChanged: () => setState(() {}),
-                errorText: _attemptedSubmit && _currentAmount <= 0
-                    ? 'Amount is required.'
-                    : null,
-              ),
-              if (_isOutflow && _balanceStream != null)
-                StreamBuilder<double>(
-                  stream: _balanceStream,
-                  builder: (context, snap) {
-                    final balance = snap.data ?? 0.0;
-                    return InsufficientBalanceNotice(
-                      amount: _currentAmount,
-                      currentBalance: balance,
-                      isOutflow: true,
-                    );
-                  },
-                ),
-              const SizedBox(height: 24),
-              const QuickActionSectionLabel('Refunded via'),
-              PaymentMethodChips(
-                value: _method,
-                onChanged: (v) => setState(() => _method = v),
-                creditLabel: 'On Credit',
-                cashBalance: balances[QuickActionAccounts.cashOnHand],
-                bankBalance: balances[QuickActionAccounts.cashInBank],
-              ),
-              const SizedBox(height: 24),
-              QuickActionDetailsCard(
-                descriptionController: _descController,
-                dateText: _dateController.text,
-                onDateTap: _pickDate,
-                descriptionErrorText: _attemptedSubmit &&
-                        _descController.text.trim().isEmpty
-                    ? 'Description is required.'
-                    : null,
-                onDescriptionChanged: () => setState(() {}),
-              ),
-            ],
+              ],
+            ),
           );
         },
       ),

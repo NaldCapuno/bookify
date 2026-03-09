@@ -12,6 +12,7 @@ import 'package:bookkeeping/features/cashflow/cash_flow_screen.dart';
 import 'package:bookkeeping/features/onboarding/onboarding_screen.dart';
 import 'package:bookkeeping/features/userguide/user_guide_screen.dart';
 import 'package:bookkeeping/features/userguide/about_us_screen.dart';
+import 'package:bookkeeping/core/widgets/unfocus_on_tap_outside.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -37,6 +38,8 @@ class MyApp extends StatelessWidget {
           theme: AppTheme.light,
           darkTheme: AppTheme.dark,
           themeMode: themeMode,
+          builder: (context, child) =>
+              UnfocusOnTapOutside(child: child ?? const SizedBox.shrink()),
           initialRoute: onboardingComplete ? '/' : '/onboarding',
           routes: {
             '/onboarding': (context) => const OnboardingScreen(),

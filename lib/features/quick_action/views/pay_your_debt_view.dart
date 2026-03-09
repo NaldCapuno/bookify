@@ -113,8 +113,9 @@ class _PayYourDebtViewState extends State<PayYourDebtView> {
     return Scaffold(
       backgroundColor: scheme.surfaceContainerHighest,
       appBar: AppBar(
-        backgroundColor: scheme.surfaceContainerHighest,
+        backgroundColor: scheme.surface,
         elevation: 0,
+        scrolledUnderElevation: 0,
         leading: BackButton(color: scheme.primary),
         title: Text(
           PayYourDebtView._title,
@@ -151,102 +152,115 @@ class _PayYourDebtViewState extends State<PayYourDebtView> {
 
           final exceedsDebt = amount > 0 && amount > selectedDebtBefore;
 
-          return ListView(
-            padding: const EdgeInsets.all(20),
-            children: [
-              BeforeAfterBalanceHeader(
-                label: isCash ? 'Cash balance' : 'Bank balance',
-                before: cashOrBankBefore,
-                after: cashOrBankAfter,
-              ),
-              const SizedBox(height: 16),
-              QuickActionAmountCard(
-                amountController: _amountController,
-                amountLabel: 'Amount',
-                onAmountChanged: () => setState(() {}),
-                errorText: _attemptedSubmit && parseAmount(_amountController) <= 0
-                    ? 'Amount is required.'
-                    : null,
-              ),
-              InsufficientBalanceNotice(
-                amount: amount,
-                currentBalance: cashOrBankBefore,
-                isOutflow: true,
-              ),
-              if (exceedsDebt)
-                Padding(
-                  padding: const EdgeInsets.only(top: 8),
-                  child: Row(
+          return SafeArea(
+            top: false,
+            child: Column(
+              children: [
+                BeforeAfterBalanceHeader(
+                  label: isCash ? 'Cash balance' : 'Bank balance',
+                  before: cashOrBankBefore,
+                  after: cashOrBankAfter,
+                ),
+                Expanded(
+                  child: ListView(
+                    padding: const EdgeInsets.all(20),
                     children: [
-                      Icon(Icons.warning_amber_rounded,
-                          size: 18, color: scheme.error),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          'Amount cannot exceed recorded debt (${formatAmount(selectedDebtBefore)}).',
-                          style: TextStyle(
-                            color: scheme.error,
-                            fontSize: 13,
-                            fontWeight: FontWeight.w600,
+                      QuickActionAmountCard(
+                        amountController: _amountController,
+                        amountLabel: 'Amount',
+                        onAmountChanged: () => setState(() {}),
+                        errorText: _attemptedSubmit &&
+                                parseAmount(_amountController) <= 0
+                            ? 'Amount is required.'
+                            : null,
+                      ),
+                      InsufficientBalanceNotice(
+                        amount: amount,
+                        currentBalance: cashOrBankBefore,
+                        isOutflow: true,
+                      ),
+                      if (exceedsDebt)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 8),
+                          child: Row(
+                            children: [
+                              Icon(
+                                Icons.warning_amber_rounded,
+                                size: 18,
+                                color: scheme.error,
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  'Amount cannot exceed recorded debt (${formatAmount(selectedDebtBefore)}).',
+                                  style: TextStyle(
+                                    color: scheme.error,
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
                         ),
+                      const SizedBox(height: 24),
+                      const QuickActionSectionLabel('Debt Account'),
+                      Column(
+                        children: [
+                          Row(
+                            children: [
+                              Expanded(
+                                child: _DebtChip(
+                                  label: 'Payable',
+                                  isSelected: _debtType == 'ap',
+                                  onTap: () => setState(() => _debtType = 'ap'),
+                                  accentColor: const Color(0xFF1976D2), // Blue
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: _DebtChip(
+                                  label: 'Loan',
+                                  isSelected: _debtType == 'loan',
+                                  onTap: () =>
+                                      setState(() => _debtType = 'loan'),
+                                  accentColor: const Color(0xFF7B1FA2), // Purple
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 10),
+                      _SelectedDebtBalanceCard(
+                        debtType: _debtType,
+                        payableDebt: payableDebt,
+                        loanDebt: loanDebt,
+                      ),
+                      const SizedBox(height: 20),
+                      const QuickActionSectionLabel('Paid via'),
+                      CashBankChips(
+                        value: _paymentMethod,
+                        onChanged: (v) => setState(() => _paymentMethod = v),
+                        cashBalance: cash,
+                        bankBalance: bank,
+                      ),
+                      const SizedBox(height: 24),
+                      QuickActionDetailsCard(
+                        descriptionController: _descController,
+                        dateText: _dateController.text,
+                        onDateTap: _pickDate,
+                        descriptionErrorText: _attemptedSubmit &&
+                                _descController.text.trim().isEmpty
+                            ? 'Description is required.'
+                            : null,
+                        onDescriptionChanged: () => setState(() {}),
                       ),
                     ],
                   ),
                 ),
-              const SizedBox(height: 24),
-              const QuickActionSectionLabel('Debt Account'),
-              Column(
-                children: [
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _DebtChip(
-                          label: 'Payable',
-                          isSelected: _debtType == 'ap',
-                          onTap: () => setState(() => _debtType = 'ap'),
-                          accentColor: const Color(0xFF1976D2), // Blue
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: _DebtChip(
-                          label: 'Loan',
-                          isSelected: _debtType == 'loan',
-                          onTap: () => setState(() => _debtType = 'loan'),
-                          accentColor: const Color(0xFF7B1FA2), // Purple
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-              const SizedBox(height: 10),
-              _SelectedDebtBalanceCard(
-                debtType: _debtType,
-                payableDebt: payableDebt,
-                loanDebt: loanDebt,
-              ),
-              const SizedBox(height: 20),
-              const QuickActionSectionLabel('Paid via'),
-              CashBankChips(
-                value: _paymentMethod,
-                onChanged: (v) => setState(() => _paymentMethod = v),
-                cashBalance: cash,
-                bankBalance: bank,
-              ),
-              const SizedBox(height: 24),
-              QuickActionDetailsCard(
-                descriptionController: _descController,
-                dateText: _dateController.text,
-                onDateTap: _pickDate,
-                descriptionErrorText:
-                    _attemptedSubmit && _descController.text.trim().isEmpty
-                        ? 'Description is required.'
-                        : null,
-                onDescriptionChanged: () => setState(() {}),
-              ),
-            ],
+              ],
+            ),
           );
         },
       ),

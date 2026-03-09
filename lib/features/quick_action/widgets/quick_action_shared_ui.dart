@@ -1,19 +1,32 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 
 /// Format amount for display (e.g. "5,000.00").
 String formatAmount(double value) {
-  if (value == value.truncateToDouble()) {
-    return value.toInt().toString();
-  }
-  return value.toStringAsFixed(2);
+  if (value.isNaN || value.isInfinite) return '0.00';
+  return _amountFormatter.format(value);
 }
 
 double parseAmount(TextEditingController c) {
   return double.tryParse(c.text.replaceAll(',', '').trim()) ?? 0.0;
 }
 
+void formatAmountController(TextEditingController c) {
+  final raw = c.text.replaceAll(',', '').trim();
+  if (raw.isEmpty) return;
+  final parsed = double.tryParse(raw);
+  if (parsed == null || parsed <= 0) {
+    c.text = '';
+    return;
+  }
+  c.text = _amountFormatter.format(parsed);
+  c.selection = TextSelection.collapsed(offset: c.text.length);
+}
+
+final NumberFormat _amountFormatter = NumberFormat('#,##0.00');
+
 /// Before/After balance header shown above the amount card.
-/// Uses consistent labels: 'CURRENT' and 'AFTER' across all quick action forms.
+/// Designed to stick to the top of the screen right under the AppBar.
 class BeforeAfterBalanceHeader extends StatelessWidget {
   const BeforeAfterBalanceHeader({
     super.key,
@@ -34,11 +47,13 @@ class BeforeAfterBalanceHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     return Container(
-      padding: const EdgeInsets.all(14),
+      // Padding adjusted for a full-width flush look
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
       decoration: BoxDecoration(
+        // Match the AppBar's surface color
         color: scheme.surface,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: scheme.outlineVariant),
+        // Only apply a bottom border to separate it from the scrolling content below
+        border: Border(bottom: BorderSide(color: scheme.outlineVariant)),
       ),
       child: Row(
         children: [
@@ -54,6 +69,7 @@ class BeforeAfterBalanceHeader extends StatelessWidget {
               title: afterTitle,
               label: label,
               value: after,
+              alignEnd: true,
             ),
           ),
         ],
@@ -67,37 +83,65 @@ class _BeforeAfterColumn extends StatelessWidget {
     required this.title,
     required this.label,
     required this.value,
+    this.alignEnd = false,
   });
 
   final String title;
   final String label;
   final double value;
+  final bool alignEnd;
 
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment: alignEnd
+          ? CrossAxisAlignment.end
+          : CrossAxisAlignment.start,
       children: [
         Text(
           title,
+          textAlign: alignEnd ? TextAlign.right : TextAlign.left,
           style: TextStyle(
-            fontSize: 11,
-            color: scheme.onSurfaceVariant,
-            fontWeight: FontWeight.bold,
+            fontSize: 9,
+            color: scheme.onSurfaceVariant.withValues(alpha: 0.75),
+            fontWeight: FontWeight.w600,
+            letterSpacing: 0.5,
           ),
         ),
-        const SizedBox(height: 4),
+        const SizedBox(height: 1),
         Text(
           label,
-          style: TextStyle(fontSize: 12, color: scheme.onSurfaceVariant),
+          textAlign: alignEnd ? TextAlign.right : TextAlign.left,
+          style: TextStyle(
+            fontSize: 10,
+            color: scheme.onSurfaceVariant.withValues(alpha: 0.8),
+            fontWeight: FontWeight.w400,
+          ),
         ),
-        const SizedBox(height: 2),
-        Text(
-          '₱ ${formatAmount(value)}',
-          style: textTheme.titleSmall?.copyWith(fontSize: 14) ??
-              const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+        const SizedBox(height: 3),
+        DefaultTextStyle(
+          style:
+              textTheme.titleMedium?.copyWith(
+                fontSize: 15,
+                fontWeight: FontWeight.w800,
+                color: scheme.onSurface,
+              ) ??
+              TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.w800,
+                color: scheme.onSurface,
+              ),
+          child: FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: alignEnd ? Alignment.centerRight : Alignment.centerLeft,
+            child: Text(
+              '₱ ${formatAmount(value)}',
+              maxLines: 1,
+              textAlign: alignEnd ? TextAlign.right : TextAlign.left,
+            ),
+          ),
         ),
       ],
     );
@@ -118,6 +162,7 @@ class QuickActionAmountCard extends StatelessWidget {
     this.currencyPrefix = '₱ ',
     this.onAmountChanged,
     this.errorText,
+
     /// Optional footer shown inside the card with lower hierarchy (e.g. "remaining" or total).
     this.footer,
   });
@@ -141,7 +186,6 @@ class QuickActionAmountCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: scheme.surface,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: hasError ? scheme.error : scheme.outlineVariant),
         boxShadow: [
           BoxShadow(
             color: scheme.onSurface.withValues(alpha: 0.04),
@@ -166,18 +210,56 @@ class QuickActionAmountCard extends StatelessWidget {
           TextField(
             controller: amountController,
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
-            style: const TextStyle(
-              fontSize: 28,
-              fontWeight: FontWeight.bold,
-            ),
+            style: const TextStyle(fontSize: 34, fontWeight: FontWeight.w800),
             decoration: InputDecoration(
+              filled: true,
+              fillColor: scheme.surfaceContainerHighest,
               prefixText: currencyPrefix,
               hintText: '0.00',
-              border: InputBorder.none,
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(14),
+                borderSide: BorderSide(
+                  color: hasError ? scheme.error : scheme.outlineVariant,
+                ),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(14),
+                borderSide: BorderSide(
+                  color: hasError ? scheme.error : scheme.outlineVariant,
+                ),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(14),
+                borderSide: BorderSide(
+                  color: hasError ? scheme.error : scheme.outlineVariant,
+                ),
+              ),
+              disabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(14),
+                borderSide: BorderSide(
+                  color: hasError ? scheme.error : scheme.outlineVariant,
+                ),
+              ),
+              errorBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(14),
+                borderSide: BorderSide(color: scheme.error),
+              ),
+              focusedErrorBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(14),
+                borderSide: BorderSide(color: scheme.error),
+              ),
               isDense: true,
-              contentPadding: EdgeInsets.zero,
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 14,
+                vertical: 16,
+              ),
             ),
             onChanged: (_) => onAmountChanged?.call(),
+            onEditingComplete: () {
+              formatAmountController(amountController);
+              onAmountChanged?.call();
+              FocusScope.of(context).unfocus();
+            },
           ),
           if (hasError) ...[
             const SizedBox(height: 6),
@@ -222,7 +304,8 @@ class InsufficientBalanceNotice extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (!isOutflow || amount <= 0 || amount <= currentBalance) return const SizedBox.shrink();
+    if (!isOutflow || amount <= 0 || amount <= currentBalance)
+      return const SizedBox.shrink();
     final scheme = Theme.of(context).colorScheme;
     return Padding(
       padding: const EdgeInsets.only(top: 8),
@@ -267,9 +350,11 @@ class PaymentMethodChips extends StatelessWidget {
   final double? cashBalance;
   final double? bankBalance;
 
-  static const Color _cashColor = Color(0xFF2E7D32);   // Green
-  static const Color _bankColor = Color(0xFF1976D2);  // Blue
-  static const Color _creditColor = Color(0xFFE65100); // Orange/amber for Pay Later
+  static const Color _cashColor = Color(0xFF2E7D32); // Green
+  static const Color _bankColor = Color(0xFF1976D2); // Blue
+  static const Color _creditColor = Color(
+    0xFFE65100,
+  ); // Orange/amber for Pay Later
 
   @override
   Widget build(BuildContext context) {
@@ -402,8 +487,8 @@ class CashBankChips extends StatelessWidget {
   final double? cashBalance;
   final double? bankBalance;
 
-  static const Color _cashColor = Color(0xFF2E7D32);  // Green
-  static const Color _bankColor = Color(0xFF1976D2);  // Blue
+  static const Color _cashColor = Color(0xFF2E7D32); // Green
+  static const Color _bankColor = Color(0xFF1976D2); // Blue
 
   @override
   Widget build(BuildContext context) {
@@ -480,65 +565,54 @@ class QuickActionDetailsCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
     final hasDescError =
         descriptionErrorText != null && descriptionErrorText!.trim().isNotEmpty;
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      decoration: BoxDecoration(
-        color: scheme.surface,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: scheme.outlineVariant),
-        boxShadow: [
-          BoxShadow(
-            color: scheme.onSurface.withValues(alpha: 0.04),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
+
+    InputDecoration fieldDecoration({
+      required String label,
+      required String hint,
+      required IconData icon,
+      bool isError = false,
+    }) {
+      return InputDecoration(
+        labelText: label,
+        hintText: hint,
+        prefixIcon: Icon(icon, size: 20),
+        errorText: isError ? descriptionErrorText : null,
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 12,
+        ),
+      );
+    }
+
+    return Column(
+      children: [
+        TextFormField(
+          controller: TextEditingController(text: dateText),
+          readOnly: true,
+          onTap: onDateTap,
+          decoration: fieldDecoration(
+            label: 'Date',
+            hint: 'Select Date',
+            icon: Icons.calendar_today_outlined,
+            isError: false,
           ),
-        ],
-      ),
-      child: Column(
-        children: [
-          TextField(
-            controller: descriptionController,
-            decoration: InputDecoration(
-              labelText: descriptionLabel,
-              hintText: descriptionHint,
-              errorText: hasDescError ? descriptionErrorText : null,
-              prefixIcon: Icon(
-                Icons.description_outlined,
-                color: hasDescError ? scheme.error : scheme.onSurface,
-              ),
-              border: const UnderlineInputBorder(),
-              errorBorder: UnderlineInputBorder(
-                borderSide: BorderSide(color: scheme.error),
-              ),
-              focusedErrorBorder: UnderlineInputBorder(
-                borderSide: BorderSide(color: scheme.error, width: 2),
-              ),
-              contentPadding: const EdgeInsets.symmetric(vertical: 12),
-            ),
-            maxLines: 2,
-            onChanged: (_) => onDescriptionChanged?.call(),
+        ),
+        const SizedBox(height: 12),
+        TextFormField(
+          controller: descriptionController,
+          maxLines: 2,
+          decoration: fieldDecoration(
+            label: descriptionLabel,
+            hint: descriptionHint ?? 'Add a short note...',
+            icon: Icons.description_outlined,
+            isError: hasDescError,
           ),
-          const Divider(height: 24),
-          InkWell(
-            onTap: onDateTap,
-            child: InputDecorator(
-              decoration: InputDecoration(
-                labelText: 'Date',
-                prefixIcon: Icon(Icons.calendar_today_outlined, color: scheme.onSurface),
-                border: const UnderlineInputBorder(),
-                contentPadding: const EdgeInsets.symmetric(vertical: 12),
-              ),
-              child: Text(
-                dateText,
-                style: const TextStyle(fontWeight: FontWeight.w600),
-              ),
-            ),
-          ),
-        ],
-      ),
+          onChanged: (_) => onDescriptionChanged?.call(),
+        ),
+      ],
     );
   }
 }
@@ -576,11 +650,9 @@ class QuickActionSaveButton extends StatelessWidget {
           ),
           child: Text(
             isSaving ? 'Saving...' : label,
-            style: textTheme.labelLarge?.copyWith(fontSize: 16) ??
-                const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                ),
+            style:
+                textTheme.labelLarge?.copyWith(fontSize: 16) ??
+                const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
           ),
         ),
       ),

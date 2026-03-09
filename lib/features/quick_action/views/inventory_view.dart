@@ -187,8 +187,9 @@ class _InventoryViewState extends State<InventoryView> {
     return Scaffold(
       backgroundColor: scheme.surfaceContainerHighest,
       appBar: AppBar(
-        backgroundColor: scheme.surfaceContainerHighest,
+        backgroundColor: scheme.surface,
         elevation: 0,
+        scrolledUnderElevation: 0,
         leading: BackButton(color: scheme.primary),
         title: Text(
           isAcquire ? 'Acquire Raw Materials' : 'Produce Finished Goods',
@@ -209,127 +210,154 @@ class _InventoryViewState extends State<InventoryView> {
           final cash = balances[QuickActionAccounts.cashOnHand] ?? 0.0;
           final bank = balances[QuickActionAccounts.cashInBank] ?? 0.0;
 
-          return ListView(
-            padding: const EdgeInsets.all(20),
-            children: [
-              if (isAcquire) ...[
-                if (_paymentMethod != 'credit') ...[
+          final showStickyHeader = isAcquire && _paymentMethod != 'credit';
+
+          return SafeArea(
+            top: false,
+            child: Column(
+              children: [
+                if (showStickyHeader)
                   BeforeAfterBalanceHeader(
-                    label: _paymentMethod == 'cash' ? 'Cash balance' : 'Bank balance',
+                    label:
+                        _paymentMethod == 'cash' ? 'Cash balance' : 'Bank balance',
                     before: _paymentMethod == 'cash' ? cash : bank,
-                    after: (_paymentMethod == 'cash' ? cash : bank) - _currentAmount,
+                    after:
+                        (_paymentMethod == 'cash' ? cash : bank) - _currentAmount,
                   ),
-                  const SizedBox(height: 16),
-                ],
-                QuickActionAmountCard(
-                  amountController: _amountController,
-                  amountLabel: 'Amount',
-                  balanceStream: _balanceStream,
-                  balanceLabel: _balanceLabel,
-                  checkInsufficient: _paymentMethod != 'credit',
-                  onAmountChanged: () => setState(() {}),
-                  errorText: _attemptedSubmit && _currentAmount <= 0
-                      ? 'Amount is required.'
-                      : null,
+                Expanded(
+                  child: ListView(
+                    padding: const EdgeInsets.all(20),
+                    children: [
+                      if (isAcquire) ...[
+                        QuickActionAmountCard(
+                          amountController: _amountController,
+                          amountLabel: 'Amount',
+                          balanceStream: _balanceStream,
+                          balanceLabel: _balanceLabel,
+                          checkInsufficient: _paymentMethod != 'credit',
+                          onAmountChanged: () => setState(() {}),
+                          errorText: _attemptedSubmit && _currentAmount <= 0
+                              ? 'Amount is required.'
+                              : null,
+                        ),
+                        if (_balanceStream != null)
+                          StreamBuilder<double>(
+                            stream: _balanceStream,
+                            builder: (context, snap) {
+                              final balance = snap.data ?? 0.0;
+                              return InsufficientBalanceNotice(
+                                amount: _currentAmount,
+                                currentBalance: balance,
+                                isOutflow: true,
+                              );
+                            },
+                          ),
+                        const SizedBox(height: 24),
+                        const QuickActionSectionLabel('Paid via'),
+                        PaymentMethodChips(
+                          value: _paymentMethod,
+                          onChanged: (v) => setState(() => _paymentMethod = v),
+                          creditLabel: 'Pay Later',
+                          cashBalance: cash,
+                          bankBalance: bank,
+                        ),
+                      ] else ...[
+                        // Raw Materials Used — card with grouped remaining detail inside
+                        StreamBuilder<double>(
+                          stream: appDb.ledgerDao.watchBalanceForAccountCode(
+                            QuickActionAccounts.inventoryRawMaterials,
+                          ),
+                          builder: (context, snap) {
+                            final balance = snap.data ?? 0.0;
+                            final rawUsed = double.tryParse(
+                                  _rawUsedController.text
+                                      .replaceAll(',', '')
+                                      .trim(),
+                                ) ??
+                                0.0;
+                            final remaining = balance - rawUsed;
+                            final displayRemaining =
+                                remaining.clamp(0.0, double.infinity);
+                            return QuickActionAmountCard(
+                              amountController: _rawUsedController,
+                              amountLabel: 'Raw Materials Used',
+                              onAmountChanged: () => setState(() {}),
+                              errorText: _attemptedSubmit &&
+                                      parseAmount(_rawUsedController) <= 0
+                                  ? 'Raw materials used is required.'
+                                  : null,
+                              footer: Text(
+                                'Raw materials remaining: ${formatAmount(displayRemaining)}',
+                                style: remaining < 0
+                                    ? TextStyle(
+                                        color: scheme.error,
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w500,
+                                      )
+                                    : null,
+                              ),
+                            );
+                          },
+                        ),
+                        const SizedBox(height: 16),
+                        // Direct Labor — card with grouped total detail inside
+                        QuickActionAmountCard(
+                          amountController: _laborController,
+                          amountLabel: 'Direct Labor',
+                          onAmountChanged: () => setState(() {}),
+                          errorText: _attemptedSubmit &&
+                                  double.tryParse(
+                                        _laborController.text
+                                            .replaceAll(',', '')
+                                            .trim(),
+                                      ) !=
+                                      null &&
+                                  double.tryParse(
+                                        _laborController.text
+                                            .replaceAll(',', '')
+                                            .trim(),
+                                      )! <
+                                      0
+                              ? 'Direct Labor cannot be negative.'
+                              : null,
+                          footer: Builder(
+                            builder: (context) {
+                              final rawUsed = double.tryParse(
+                                    _rawUsedController.text
+                                        .replaceAll(',', '')
+                                        .trim(),
+                                  ) ??
+                                  0.0;
+                              final labor = double.tryParse(
+                                    _laborController.text
+                                        .replaceAll(',', '')
+                                        .trim(),
+                                  ) ??
+                                  0.0;
+                              final totalFinishedGoods = rawUsed + labor;
+                              return Text(
+                                'Total finished goods: ${formatAmount(totalFinishedGoods)}',
+                              );
+                            },
+                          ),
+                        ),
+                      ],
+                      const SizedBox(height: 24),
+                      QuickActionDetailsCard(
+                        descriptionController: _descController,
+                        dateText: _dateController.text,
+                        onDateTap: _pickDate,
+                        descriptionErrorText: _attemptedSubmit &&
+                                _descController.text.trim().isEmpty
+                            ? 'Description is required.'
+                            : null,
+                        onDescriptionChanged: () => setState(() {}),
+                      ),
+                    ],
+                  ),
                 ),
-                if (_balanceStream != null)
-                  StreamBuilder<double>(
-                    stream: _balanceStream,
-                    builder: (context, snap) {
-                      final balance = snap.data ?? 0.0;
-                      return InsufficientBalanceNotice(
-                        amount: _currentAmount,
-                        currentBalance: balance,
-                        isOutflow: true,
-                      );
-                    },
-                  ),
-                const SizedBox(height: 24),
-                const QuickActionSectionLabel('Paid via'),
-                PaymentMethodChips(
-                  value: _paymentMethod,
-                  onChanged: (v) => setState(() => _paymentMethod = v),
-                  creditLabel: 'Pay Later',
-                  cashBalance: cash,
-                  bankBalance: bank,
-                ),
-              ] else ...[
-            // Raw Materials Used — card with grouped remaining detail inside
-            StreamBuilder<double>(
-              stream: appDb.ledgerDao.watchBalanceForAccountCode(
-                QuickActionAccounts.inventoryRawMaterials,
-              ),
-              builder: (context, snap) {
-                final balance = snap.data ?? 0.0;
-                final rawUsed = double.tryParse(
-                      _rawUsedController.text.replaceAll(',', '').trim()) ??
-                    0.0;
-                final remaining = balance - rawUsed;
-                final displayRemaining = remaining.clamp(0.0, double.infinity);
-                return QuickActionAmountCard(
-                  amountController: _rawUsedController,
-                  amountLabel: 'Raw Materials Used',
-                  onAmountChanged: () => setState(() {}),
-                  errorText: _attemptedSubmit &&
-                          parseAmount(_rawUsedController) <= 0
-                      ? 'Raw materials used is required.'
-                      : null,
-                  footer: Text(
-                    'Raw materials remaining: ${formatAmount(displayRemaining)}',
-                    style: remaining < 0
-                        ? TextStyle(color: scheme.error, fontSize: 12, fontWeight: FontWeight.w500)
-                        : null,
-                  ),
-                );
-              },
-            ),
-            const SizedBox(height: 16),
-            // Direct Labor — card with grouped total detail inside
-            QuickActionAmountCard(
-              amountController: _laborController,
-              amountLabel: 'Direct Labor',
-              onAmountChanged: () => setState(() {}),
-              errorText: _attemptedSubmit &&
-                      double.tryParse(
-                            _laborController.text.replaceAll(',', '').trim(),
-                          ) !=
-                          null &&
-                      double.tryParse(
-                            _laborController.text.replaceAll(',', '').trim(),
-                          )! <
-                          0
-                  ? 'Direct Labor cannot be negative.'
-                  : null,
-              footer: Builder(
-                builder: (context) {
-                  final rawUsed = double.tryParse(
-                        _rawUsedController.text.replaceAll(',', '').trim(),
-                      ) ??
-                      0.0;
-                  final labor = double.tryParse(
-                        _laborController.text.replaceAll(',', '').trim(),
-                      ) ??
-                      0.0;
-                  final totalFinishedGoods = rawUsed + labor;
-                  return Text(
-                    'Total finished goods: ${formatAmount(totalFinishedGoods)}',
-                  );
-                },
-              ),
-            ),
               ],
-              const SizedBox(height: 24),
-              QuickActionDetailsCard(
-                descriptionController: _descController,
-                dateText: _dateController.text,
-                onDateTap: _pickDate,
-                descriptionErrorText:
-                    _attemptedSubmit && _descController.text.trim().isEmpty
-                        ? 'Description is required.'
-                        : null,
-                onDescriptionChanged: () => setState(() {}),
-              ),
-            ],
+            ),
           );
         },
       ),
