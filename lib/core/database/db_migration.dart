@@ -2,7 +2,6 @@ import 'package:bookkeeping/core/database/tables/accounts_table.dart';
 import 'package:bookkeeping/core/database/tables/user_table.dart';
 import 'package:drift/drift.dart';
 import 'app_database.dart';
-import 'tables/account_categories_table.dart';
 
 MigrationStrategy buildMigrationStrategy(AppDatabase db) {
   return MigrationStrategy(

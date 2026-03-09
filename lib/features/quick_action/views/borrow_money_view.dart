@@ -1,4 +1,3 @@
-import 'package:bookkeeping/core/database/app_database.dart';
 import 'package:bookkeeping/features/quick_action/quick_action_journal_service.dart';
 import 'package:bookkeeping/features/quick_action/widgets/quick_action_shared_ui.dart';
 import 'package:flutter/material.dart';
@@ -96,85 +95,81 @@ class _BorrowMoneyViewState extends State<BorrowMoneyView> {
     }
   }
 
-  Stream<double> get _balanceStream =>
-      _receivedTo == 'cash'
-          ? appDb.ledgerDao.watchBalanceForAccountCode(QuickActionAccounts.cashOnHand)
-          : appDb.ledgerDao.watchBalanceForAccountCode(QuickActionAccounts.cashInBank);
-
-  String get _balanceLabel =>
-      _receivedTo == 'cash' ? 'Cash balance:' : 'Bank balance:';
-
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
     return Scaffold(
-      backgroundColor: Colors.grey.shade50,
+      backgroundColor: scheme.surfaceContainerHighest,
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: scheme.surfaceContainerHighest,
         elevation: 0,
-        leading: const BackButton(color: Colors.black87),
-        title: const Text(
+        leading: BackButton(color: scheme.primary),
+        title: Text(
           BorrowMoneyView._title,
-          style: TextStyle(color: Colors.black87, fontWeight: FontWeight.bold),
+          style: textTheme.headlineLarge?.copyWith(fontSize: 20) ??
+              TextStyle(color: scheme.onSurface, fontWeight: FontWeight.bold),
         ),
       ),
-      body: StreamBuilder<Map<int, double>>(
-        stream: appDb.ledgerDao.watchBalancesForAccountCodes({
-          QuickActionAccounts.cashOnHand,
-          QuickActionAccounts.cashInBank,
-        }),
-        builder: (context, snap) {
-          final balances = snap.data ??
-              {
-                QuickActionAccounts.cashOnHand: 0.0,
-                QuickActionAccounts.cashInBank: 0.0,
-              };
-
-          return ListView(
-            padding: const EdgeInsets.all(20),
+      body: ListView(
+        padding: const EdgeInsets.all(20),
+        children: [
+          QuickActionAmountCard(
+            amountController: _amountController,
+            amountLabel: 'Amount',
+            onAmountChanged: () => setState(() {}),
+          ),
+          const SizedBox(height: 24),
+          const QuickActionSectionLabel('Debt Account'),
+          Row(
             children: [
-              QuickActionAmountCard(
-                amountController: _amountController,
-                amountLabel: 'Amount',
-                onAmountChanged: () => setState(() {}),
+              Expanded(
+                child: _DebtChip(
+                  label: 'Payable',
+                  isSelected: _debtType == 'ap',
+                  onTap: () => setState(() => _debtType = 'ap'),
+                  accentColor: const Color(0xFF1976D2), // Blue
+                ),
               ),
-              const SizedBox(height: 24),
-              const QuickActionSectionLabel('Debt Account'),
-              Row(
-                children: [
-                  Expanded(
-                    child: _DebtChip(
-                      label: 'Payable (≤ 3 months)',
-                      isSelected: _debtType == 'ap',
-                      onTap: () => setState(() => _debtType = 'ap'),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: _DebtChip(
-                      label: 'Loan (> 3 months)',
-                      isSelected: _debtType == 'loan',
-                      onTap: () => setState(() => _debtType = 'loan'),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 20),
-              const QuickActionSectionLabel('Received to (Cash / Bank)'),
-              CashBankChips(
-                value: _receivedTo,
-                onChanged: (v) => setState(() => _receivedTo = v),
-                cashBalance: balances[QuickActionAccounts.cashOnHand],
-                bankBalance: balances[QuickActionAccounts.cashInBank],
-              ),
-              const SizedBox(height: 24),
-              QuickActionDetailsCard(
-                descriptionController: _descController,
-                dateText: _dateController.text,
-                onDateTap: _pickDate,
+              const SizedBox(width: 8),
+              Expanded(
+                child: _DebtChip(
+                  label: 'Loan',
+                  isSelected: _debtType == 'loan',
+                  onTap: () => setState(() => _debtType = 'loan'),
+                  accentColor: const Color(0xFF7B1FA2), // Purple
+                ),
               ),
             ],
-          );
-        },
+          ),
+          const SizedBox(height: 10),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: Text(
+              _debtType == 'ap'
+                  ? '- Payable: This debt must be settled within 90 days'
+                  : '- Loan: This debt is due after 90 days',
+              style: TextStyle(
+                fontSize: 12,
+                height: 1.35,
+                color: scheme.onSurfaceVariant,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+          const SizedBox(height: 20),
+          const QuickActionSectionLabel('Received to (Cash / Bank)'),
+          CashBankChips(
+            value: _receivedTo,
+            onChanged: (v) => setState(() => _receivedTo = v),
+          ),
+          const SizedBox(height: 24),
+          QuickActionDetailsCard(
+            descriptionController: _descController,
+            dateText: _dateController.text,
+            onDateTap: _pickDate,
+          ),
+        ],
       ),
       bottomNavigationBar: QuickActionSaveButton(
         onPressed: _save,
@@ -186,16 +181,23 @@ class _BorrowMoneyViewState extends State<BorrowMoneyView> {
 }
 
 class _DebtChip extends StatelessWidget {
-  const _DebtChip({required this.label, required this.isSelected, required this.onTap});
+  const _DebtChip({
+    required this.label,
+    required this.isSelected,
+    required this.onTap,
+    required this.accentColor,
+  });
 
   final String label;
   final bool isSelected;
   final VoidCallback onTap;
+  final Color accentColor;
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return Material(
-      color: isSelected ? const Color(0xFF2E7D32).withValues(alpha: 0.12) : Colors.white,
+      color: isSelected ? accentColor.withValues(alpha: 0.15) : scheme.surface,
       borderRadius: BorderRadius.circular(12),
       child: InkWell(
         onTap: onTap,
@@ -205,7 +207,7 @@ class _DebtChip extends StatelessWidget {
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(12),
             border: Border.all(
-              color: isSelected ? const Color(0xFF2E7D32) : Colors.grey.shade300,
+              color: isSelected ? accentColor : accentColor.withValues(alpha: 0.4),
               width: isSelected ? 1.5 : 1,
             ),
           ),
@@ -216,7 +218,7 @@ class _DebtChip extends StatelessWidget {
               style: TextStyle(
                 fontSize: 12,
                 fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                color: isSelected ? const Color(0xFF2E7D32) : Colors.grey.shade700,
+                color: isSelected ? accentColor : scheme.onSurfaceVariant,
               ),
             ),
           ),

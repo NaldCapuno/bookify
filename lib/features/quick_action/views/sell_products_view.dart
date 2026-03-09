@@ -1,4 +1,5 @@
 import 'package:bookkeeping/core/database/app_database.dart';
+import 'package:bookkeeping/core/theme/app_theme.dart';
 import 'package:bookkeeping/features/quick_action/quick_action_journal_service.dart';
 import 'package:bookkeeping/features/quick_action/widgets/quick_action_shared_ui.dart';
 import 'package:flutter/material.dart';
@@ -15,10 +16,7 @@ class _SellProductsViewState extends State<SellProductsView> {
   String _selectedPaymentMethod = 'cash';
   DateTime _selectedDate = DateTime.now();
   final _dateController = TextEditingController();
-  final _totalController = TextEditingController();
-  final _productNameController = TextEditingController();
-  final _totalProductsController = TextEditingController();
-  final _qtySoldController = TextEditingController();
+  final _sellingPriceController = TextEditingController();
   final _discountController = TextEditingController();
   final _cogsController = TextEditingController();
   final _descController = TextEditingController();
@@ -33,15 +31,19 @@ class _SellProductsViewState extends State<SellProductsView> {
   @override
   void dispose() {
     _dateController.dispose();
-    _totalController.dispose();
-    _productNameController.dispose();
-    _totalProductsController.dispose();
-    _qtySoldController.dispose();
+    _sellingPriceController.dispose();
     _discountController.dispose();
     _cogsController.dispose();
     _descController.dispose();
     super.dispose();
   }
+
+  double get _sellingPrice => parseAmount(_sellingPriceController);
+  double get _discount {
+    final d = double.tryParse(_discountController.text.replaceAll(',', '').trim());
+    return d == null || d < 0 ? 0 : d;
+  }
+  double get _totalAmount => (_sellingPrice - _discount).clamp(0.0, double.infinity);
 
   Future<void> _pickDate() async {
     final picked = await showDatePicker(
@@ -60,34 +62,13 @@ class _SellProductsViewState extends State<SellProductsView> {
 
   Future<void> _save() async {
     final desc = _descController.text.trim();
-    final totalRaw = _totalController.text.replaceAll(',', '').trim();
-    final discountRaw = _discountController.text.replaceAll(',', '').trim();
-    final cogsRaw = _cogsController.text.replaceAll(',', '').trim();
-    final productName = _productNameController.text.trim();
-    final totalProductsRaw = _totalProductsController.text.replaceAll(',', '').trim();
-    final qtySoldRaw = _qtySoldController.text.replaceAll(',', '').trim();
-
-    final total = double.tryParse(totalRaw) ?? 0;
-    final totalProducts = int.tryParse(totalProductsRaw) ?? 0;
-    final qtySold = int.tryParse(qtySoldRaw) ?? 0;
-    final parsedDiscount = double.tryParse(discountRaw);
-    final double discount = parsedDiscount == null
-        ? 0
-        : parsedDiscount < 0
-            ? 0
-            : parsedDiscount;
-    final cogs = double.tryParse(cogsRaw) ?? 0;
+    final total = _sellingPrice;
+    final discount = _discount;
+    final cogs = parseAmount(_cogsController);
 
     if (desc.isEmpty || total <= 0) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Description and total amount are required.')),
-      );
-      return;
-    }
-
-    if (productName.isNotEmpty && totalProducts > 0 && qtySold > totalProducts) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Quantity sold cannot exceed total products.')),
+        const SnackBar(content: Text('What was sold and selling price are required.')),
       );
       return;
     }
@@ -150,9 +131,7 @@ class _SellProductsViewState extends State<SellProductsView> {
     try {
       await QuickActionJournalService.instance.postTemplateEntry(
         date: _selectedDate,
-        description: productName.isEmpty
-            ? desc
-            : 'Product: $productName${qtySold > 0 ? ' (Qty sold: $qtySold)' : ''} — $desc',
+        description: desc,
         referenceNo: null,
         lines: lines,
       );
@@ -168,50 +147,118 @@ class _SellProductsViewState extends State<SellProductsView> {
     }
   }
 
-  Stream<double>? get _balanceStream {
-    if (_selectedPaymentMethod == 'cash') {
-      return appDb.ledgerDao.watchBalanceForAccountCode(QuickActionAccounts.cashOnHand);
-    }
-    if (_selectedPaymentMethod == 'bank') {
-      return appDb.ledgerDao.watchBalanceForAccountCode(QuickActionAccounts.cashInBank);
-    }
-    return null;
-  }
-
-  String? get _balanceLabel {
-    if (_selectedPaymentMethod == 'cash') return 'Cash balance:';
-    if (_selectedPaymentMethod == 'bank') return 'Bank balance:';
-    return null;
-  }
-
   @override
   Widget build(BuildContext context) {
     final isCreditSale = _selectedPaymentMethod == 'credit';
-    final totalProducts = int.tryParse(_totalProductsController.text.trim()) ?? 0;
-    final qtySold = int.tryParse(_qtySoldController.text.trim()) ?? 0;
-    final remaining = (totalProducts - qtySold);
+    final scheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
 
     return Scaffold(
-      backgroundColor: Colors.grey.shade50,
+      backgroundColor: scheme.surfaceContainerHighest,
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: scheme.surfaceContainerHighest,
         elevation: 0,
-        leading: const BackButton(color: Colors.black87),
-        title: const Text(
+        leading: BackButton(color: scheme.primary),
+        title: Text(
           'Record Sale',
-          style: TextStyle(color: Colors.black87, fontWeight: FontWeight.bold),
+          style: textTheme.headlineLarge?.copyWith(fontSize: 20) ??
+              TextStyle(color: scheme.onSurface, fontWeight: FontWeight.bold),
         ),
       ),
       body: ListView(
         padding: const EdgeInsets.all(20),
         children: [
-          QuickActionAmountCard(
-            amountController: _totalController,
-            amountLabel: 'Total Amount',
-            balanceStream: _balanceStream,
-            balanceLabel: _balanceLabel,
-            checkInsufficient: false,
-            onAmountChanged: () => setState(() {}),
+          StreamBuilder<double>(
+            stream: appDb.ledgerDao.watchBalanceForAccountCode(
+              QuickActionAccounts.inventoryFinishedGoods,
+            ),
+            builder: (context, snap) {
+              final balance = snap.data ?? 0.0;
+              final cogs = parseAmount(_cogsController);
+              final remaining = (balance - cogs).clamp(0.0, double.infinity);
+              return Container(
+                padding: const EdgeInsets.all(14),
+                margin: const EdgeInsets.only(bottom: 16),
+                decoration: BoxDecoration(
+                  color: scheme.surface,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: scheme.outlineVariant),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Total Finished Goods',
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: scheme.onSurfaceVariant,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    Text(
+                      '${formatAmount(remaining)}',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 15,
+                        color: cogs > balance ? scheme.error : null,
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
+          _buildExtraField(
+            context,
+            controller: _sellingPriceController,
+            label: 'Selling price',
+            icon: Icons.sell_outlined,
+            onChanged: () => setState(() {}),
+          ),
+          const SizedBox(height: 16),
+          _buildExtraField(
+            context,
+            controller: _discountController,
+            label: 'Is there a discount? (optional amount)',
+            icon: Icons.percent,
+            onChanged: () => setState(() {}),
+          ),
+          const SizedBox(height: 16),
+          Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: scheme.surface,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: scheme.outlineVariant),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Total Amount',
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: scheme.onSurfaceVariant,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                Text(
+                  '${formatAmount(_totalAmount)}',
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 15,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+          _buildExtraField(
+            context,
+            controller: _cogsController,
+            label: 'Total value of goods sold (COGS)',
+            icon: Icons.inventory_2_outlined,
+            onChanged: () => setState(() {}),
           ),
           const SizedBox(height: 24),
           const QuickActionSectionLabel('Payment Method'),
@@ -224,95 +271,24 @@ class _SellProductsViewState extends State<SellProductsView> {
               padding: const EdgeInsets.only(top: 12),
               child: Row(
                 children: [
-                  Icon(Icons.info_outline, size: 18, color: Colors.orange.shade700),
+                  Icon(Icons.info_outline, size: 18, color: context.warning),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
                       'This will be recorded as an Account Receivable.',
-                      style: TextStyle(color: Colors.orange.shade700, fontSize: 13),
+                      style: TextStyle(color: context.warning, fontSize: 13),
                     ),
                   ),
                 ],
               ),
             ),
           const SizedBox(height: 24),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: Colors.grey.shade200),
-            ),
-            child: Column(
-              children: [
-                TextField(
-                  controller: _productNameController,
-                  decoration: const InputDecoration(
-                    labelText: 'What product is this?',
-                    prefixIcon: Icon(Icons.inventory_2_outlined),
-                    border: UnderlineInputBorder(),
-                  ),
-                  onChanged: (_) => setState(() {}),
-                ),
-                const Divider(height: 24),
-                TextField(
-                  controller: _totalProductsController,
-                  keyboardType: TextInputType.number,
-                  decoration: const InputDecoration(
-                    labelText: 'Total products available (Finished Goods)',
-                    prefixIcon: Icon(Icons.warehouse_outlined),
-                    border: UnderlineInputBorder(),
-                  ),
-                  onChanged: (_) => setState(() {}),
-                ),
-                const Divider(height: 24),
-                TextField(
-                  controller: _qtySoldController,
-                  keyboardType: TextInputType.number,
-                  decoration: const InputDecoration(
-                    labelText: 'How many will you sell?',
-                    prefixIcon: Icon(Icons.shopping_cart_outlined),
-                    border: UnderlineInputBorder(),
-                  ),
-                  onChanged: (_) => setState(() {}),
-                ),
-                if (totalProducts > 0 && qtySold >= 0)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 10),
-                    child: Align(
-                      alignment: Alignment.centerLeft,
-                      child: Text(
-                        'Finished Goods remaining: ${remaining < 0 ? 0 : remaining}',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: remaining < 0 ? Colors.red.shade700 : Colors.grey.shade700,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
-                  ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 24),
           QuickActionDetailsCard(
             descriptionController: _descController,
             dateText: _dateController.text,
             onDateTap: _pickDate,
             descriptionLabel: 'What was sold?',
-            descriptionHint: 'Describe what was sold and any notes',
-          ),
-          const SizedBox(height: 16),
-          _buildExtraField(
-            controller: _discountController,
-            label: 'Is there a discount? (optional amount)',
-            icon: Icons.percent,
-          ),
-          const SizedBox(height: 12),
-          _buildExtraField(
-            controller: _cogsController,
-            label: 'Total value of goods sold (COGS)',
-            icon: Icons.inventory_2_outlined,
+            descriptionHint: 'e.g. product name, quantity sold, discount if any',
           ),
         ],
       ),
@@ -324,27 +300,31 @@ class _SellProductsViewState extends State<SellProductsView> {
     );
   }
 
-  Widget _buildExtraField({
+  Widget _buildExtraField(
+    BuildContext context, {
     required TextEditingController controller,
     required String label,
     required IconData icon,
+    VoidCallback? onChanged,
   }) {
+    final scheme = Theme.of(context).colorScheme;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: scheme.surface,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.grey.shade200),
+        border: Border.all(color: scheme.outlineVariant),
       ),
       child: TextField(
         controller: controller,
         keyboardType: const TextInputType.numberWithOptions(decimal: true),
         decoration: InputDecoration(
           labelText: label,
-          prefixIcon: Icon(icon, color: Colors.black87),
+          prefixIcon: Icon(icon, color: scheme.onSurface),
           border: const UnderlineInputBorder(),
           contentPadding: const EdgeInsets.symmetric(vertical: 12),
         ),
+        onChanged: onChanged != null ? (_) => onChanged() : null,
       ),
     );
   }

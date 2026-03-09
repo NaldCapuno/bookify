@@ -96,15 +96,18 @@ class _ConsumeSuppliesViewState extends State<ConsumeSuppliesView> {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
     return Scaffold(
-      backgroundColor: Colors.grey.shade50,
+      backgroundColor: scheme.surfaceContainerHighest,
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: scheme.surfaceContainerHighest,
         elevation: 0,
-        leading: const BackButton(color: Colors.black87),
-        title: const Text(
+        leading: BackButton(color: scheme.primary),
+        title: Text(
           ConsumeSuppliesView._title,
-          style: TextStyle(color: Colors.black87, fontWeight: FontWeight.bold),
+          style: textTheme.headlineLarge?.copyWith(fontSize: 20) ??
+              TextStyle(color: scheme.onSurface, fontWeight: FontWeight.bold),
         ),
       ),
       body: ListView(
@@ -113,9 +116,34 @@ class _ConsumeSuppliesViewState extends State<ConsumeSuppliesView> {
           QuickActionAmountCard(
             amountController: _amountController,
             amountLabel: 'Amount (value of supplies used)',
-            balanceStream: appDb.ledgerDao.watchBalanceForAccountCode(QuickActionAccounts.supplies),
-            balanceLabel: 'Supplies balance:',
             onAmountChanged: () => setState(() {}),
+          ),
+          StreamBuilder<double>(
+            stream: appDb.ledgerDao
+                .watchBalanceForAccountCode(QuickActionAccounts.supplies),
+            builder: (context, snap) {
+              final scheme = Theme.of(context).colorScheme;
+              final balance = snap.data ?? 0.0;
+              final used = parseAmount(_amountController);
+              final remaining = balance - used;
+              final displayRemaining = remaining.clamp(0.0, double.infinity);
+              return Padding(
+                padding: const EdgeInsets.only(top: 10),
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    'Supplies Remaining: ${formatAmount(displayRemaining)}',
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: remaining < 0
+                          ? scheme.error
+                          : scheme.onSurfaceVariant,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              );
+            },
           ),
           const SizedBox(height: 24),
           QuickActionDetailsCard(

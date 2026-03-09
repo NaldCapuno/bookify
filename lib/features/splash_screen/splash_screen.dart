@@ -46,9 +46,7 @@ class _SplashScreenState extends State<SplashScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(
-        0xFF0F172A,
-      ), // Dark background to make colors pop
+      backgroundColor: const Color(0xFF0F172A),
       body: Center(
         child: CustomPaint(
           painter: TsekBooksPainter(_animation),
@@ -76,8 +74,8 @@ class TsekBooksPainter extends CustomPainter {
     ); // Now controls the checkmark
     final double textP = ((p - 0.65) / 0.35).clamp(0.0, 1.0);
 
-    final Color barColor = const Color(0xFF2DD4BF); // Teal
-    final Color accentColor = const Color(0xFFFBBF24); // Amber
+    final Color barColor = const Color(0xFF2DD4BF);
+    final Color accentColor = const Color(0xFFFBBF24);
     final Color textColor = Colors.white;
 
     // --- Text Configuration ---

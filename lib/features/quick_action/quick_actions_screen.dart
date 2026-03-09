@@ -12,7 +12,6 @@ import 'views/pay_your_debt_view.dart';
 import 'views/lend_money_view.dart';
 import 'views/settle_operations_view.dart';
 import 'views/fund_marketing_view.dart';
-import 'views/remit_taxes_view.dart';
 import 'views/refund_to_customers_view.dart';
 import 'views/record_other_expense_view.dart';
 import 'views/borrow_money_view.dart';
@@ -22,58 +21,70 @@ import 'views/consume_supplies_view.dart';
 class QuickActionScreen extends StatelessWidget {
   const QuickActionScreen({super.key});
 
-  final MaterialColor receiveTheme = Colors.lightGreen;
-  final MaterialColor outflowTheme = Colors.lightGreen;
-  final MaterialColor inventoryTheme = Colors.blue;
-  final MaterialColor otherTheme = Colors.teal;
+  /// Green theme for Receive Money hero tile only; rest use app_theme.
+  static const MaterialColor _receiveTheme = Colors.lightGreen;
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final greenFill = isDark
+        ? Colors.lightGreen.shade900.withValues(alpha: 0.35)
+        : Colors.lightGreen.shade50;
+    final blueFill = isDark
+        ? Colors.blue.shade900.withValues(alpha: 0.35)
+        : Colors.blue.shade50;
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: scheme.surfaceContainerHighest,
       appBar: AppBar(
         elevation: 0,
-        backgroundColor: Colors.white,
+        backgroundColor: scheme.surfaceContainerHighest,
         leading: IconButton(
-          icon: const Icon(Icons.close, color: Colors.black87),
+          icon: Icon(Icons.close, color: scheme.primary),
           onPressed: () => Navigator.pop(context),
         ),
-        title: const Text(
+        title: Text(
           "Quick Actions",
-          style: TextStyle(color: Colors.black87, fontWeight: FontWeight.bold),
+          style:
+              textTheme.headlineLarge?.copyWith(fontSize: 20) ??
+              TextStyle(color: scheme.onSurface, fontWeight: FontWeight.bold),
         ),
       ),
       body: ListView(
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
         children: [
-          // 1. HERO TILE: RECEIVE MONEY
+          // 1. HERO TILE: RECEIVE MONEY (green)
           _buildHeroTile(
+            context: context,
             title: "Receive Money",
             subtitle: "Record cash or bank payments from customers",
             icon: Icons.payments_outlined,
-            themeColor: receiveTheme,
+            themeColor: _receiveTheme,
             onTap: () => _showSubmenu(context, _buildReceiveSubmenu(context)),
           ),
           const SizedBox(height: 12),
 
-          // 2. SOFT WIDE TILE: PURCHASE
+          // 2. SOFT WIDE TILE: PURCHASE (theme)
           _buildSoftWideTile(
+            context: context,
             title: "Purchase",
             subtitle: "Record buying supplies, equipment, or assets",
             icon: Icons.shopping_bag_outlined,
-            themeColor: outflowTheme,
             onTap: () => _showSubmenu(context, _buildPurchaseSubmenu(context)),
           ),
           const SizedBox(height: 12),
 
-          // 3. BANKING ROW
+          // 3. BANKING ROW (theme)
           Row(
             children: [
               Expanded(
                 child: _buildGridTile(
+                  context,
                   "Deposit\nto Bank",
                   Icons.account_balance_outlined,
-                  outflowTheme,
+                  borderColor: Colors.lightGreen.shade700,
+                  fillColor: greenFill,
                   onTap: () => Navigator.push(
                     context,
                     MaterialPageRoute(
@@ -85,9 +96,11 @@ class QuickActionScreen extends StatelessWidget {
               const SizedBox(width: 12),
               Expanded(
                 child: _buildGridTile(
+                  context,
                   "Withdraw\nFrom Bank",
                   Icons.account_balance_wallet_outlined,
-                  outflowTheme,
+                  borderColor: Colors.lightGreen.shade700,
+                  fillColor: greenFill,
                   onTap: () => Navigator.push(
                     context,
                     MaterialPageRoute(
@@ -101,15 +114,17 @@ class QuickActionScreen extends StatelessWidget {
 
           const Divider(height: 48, thickness: 1),
 
-          // 4. INVENTORY SECTION
-          _buildSectionHeader("INVENTORY & PRODUCTION", inventoryTheme),
+          // 4. INVENTORY SECTION (theme)
+          _buildSectionHeader(context, "INVENTORY & PRODUCTION"),
           Row(
             children: [
               Expanded(
                 child: _buildGridTile(
-                  "Acquire\nMaterials",
+                  context,
+                  "Acquire\nRaw Materials",
                   Icons.widgets_outlined,
-                  inventoryTheme,
+                  borderColor: Colors.blue.shade700,
+                  fillColor: blueFill,
                   onTap: () => Navigator.push(
                     context,
                     MaterialPageRoute(
@@ -122,9 +137,11 @@ class QuickActionScreen extends StatelessWidget {
               const SizedBox(width: 12),
               Expanded(
                 child: _buildGridTile(
-                  "Produce\nGoods",
+                  context,
+                  "Produce\nFinished Goods",
                   Icons.inventory_2_outlined,
-                  inventoryTheme,
+                  borderColor: Colors.blue.shade700,
+                  fillColor: blueFill,
                   onTap: () => Navigator.push(
                     context,
                     MaterialPageRoute(
@@ -139,83 +156,83 @@ class QuickActionScreen extends StatelessWidget {
 
           const Divider(height: 48, thickness: 1),
 
-          // 5. OTHER ACTIONS SECTION
-          _buildSectionHeader("OTHER ACTIONS", Colors.black54),
+          // 5. OTHER ACTIONS SECTION (theme)
+          _buildSectionHeader(context, "OTHER ACTIONS"),
           _buildListTile(
+            context,
             "Pay your Debt",
             "Pay off an existing loan",
             Icons.credit_score,
-            otherTheme,
             onTap: () => Navigator.push(
               context,
               MaterialPageRoute(builder: (_) => const PayYourDebtView()),
             ),
           ),
           _buildListTile(
+            context,
+            "Disburse Funds",
+            "Owner withdrawal or fund distribution",
+            Icons.account_balance_outlined,
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const DisburseFundsView()),
+            ),
+          ),
+          _buildListTile(
+            context,
             "Lend Money",
             "Provide a loan or advance",
             Icons.handshake_outlined,
-            otherTheme,
             onTap: () => Navigator.push(
               context,
               MaterialPageRoute(builder: (_) => const LendMoneyView()),
             ),
           ),
           _buildListTile(
+            context,
             "Settle Operations",
             "Pay rent, salaries, utilities",
             Icons.storefront,
-            otherTheme,
             onTap: () => Navigator.push(
               context,
               MaterialPageRoute(builder: (_) => const SettleOperationsView()),
             ),
           ),
           _buildListTile(
+            context,
             "Pay Employees",
             "Pay production labor (direct labor)",
             Icons.engineering_outlined,
-            otherTheme,
             onTap: () => Navigator.push(
               context,
               MaterialPageRoute(builder: (_) => const PayWorkersView()),
             ),
           ),
           _buildListTile(
+            context,
             "Consume Supplies",
             "Record supplies used in operations",
             Icons.inventory_outlined,
-            otherTheme,
             onTap: () => Navigator.push(
               context,
               MaterialPageRoute(builder: (_) => const ConsumeSuppliesView()),
             ),
           ),
           _buildListTile(
+            context,
             "Fund Marketing",
             "Pay for ads and promotions",
             Icons.campaign_outlined,
-            otherTheme,
             onTap: () => Navigator.push(
               context,
               MaterialPageRoute(builder: (_) => const FundMarketingView()),
             ),
           ),
           _buildListTile(
-            "Remit Taxes",
-            "Pay government tax dues",
-            Icons.receipt_long_outlined,
-            otherTheme,
-            onTap: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const RemitTaxesView()),
-            ),
-          ),
-          _buildListTile(
+            context,
             "Refund to Customers",
             "Return money for goods",
             Icons.assignment_return_outlined,
-            otherTheme,
             onTap: () => Navigator.push(
               context,
               MaterialPageRoute(builder: (_) => const RefundToCustomersView()),
@@ -224,10 +241,10 @@ class QuickActionScreen extends StatelessWidget {
 
           // MOVED TO LAST
           _buildListTile(
+            context,
             "Record Other Expense",
             "Bank fees or misc costs",
             Icons.more_horiz,
-            otherTheme,
             onTap: () => Navigator.push(
               context,
               MaterialPageRoute(builder: (_) => const RecordOtherExpenseView()),
@@ -243,15 +260,16 @@ class QuickActionScreen extends StatelessWidget {
   // --- NAVIGATION HELPERS ---
 
   void _showSubmenu(BuildContext context, Widget content) {
+    final scheme = Theme.of(context).colorScheme;
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
       builder: (context) => Container(
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+        decoration: BoxDecoration(
+          color: scheme.surface,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
         ),
         child: content,
       ),
@@ -265,12 +283,12 @@ class QuickActionScreen extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _sheetHeader("Receive Money", receiveTheme),
+        _sheetHeader(context, "Receive Money"),
         _buildListTile(
+          context,
           "Collect Money",
           "Payment for receivables",
           Icons.request_quote_outlined,
-          receiveTheme,
           onTap: () {
             Navigator.pop(context);
             Navigator.push(
@@ -280,10 +298,10 @@ class QuickActionScreen extends StatelessWidget {
           },
         ),
         _buildListTile(
+          context,
           "Invest to Business",
           "Owner's capital injection",
           Icons.savings_outlined,
-          receiveTheme,
           onTap: () {
             Navigator.pop(context);
             Navigator.push(
@@ -293,10 +311,10 @@ class QuickActionScreen extends StatelessWidget {
           },
         ),
         _buildListTile(
+          context,
           "Borrow Money",
           "Borrow from lender or supplier",
           Icons.credit_score_outlined,
-          receiveTheme,
           onTap: () {
             Navigator.pop(context);
             Navigator.push(
@@ -306,23 +324,10 @@ class QuickActionScreen extends StatelessWidget {
           },
         ),
         _buildListTile(
-          "Disburse funds",
-          "Receive external funding",
-          Icons.account_balance_outlined,
-          receiveTheme,
-          onTap: () {
-            Navigator.pop(context);
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const DisburseFundsView()),
-            );
-          },
-        ),
-        _buildListTile(
+          context,
           "Sell Products",
           "Direct cash or credit sale",
           Icons.point_of_sale_outlined,
-          receiveTheme,
           onTap: () {
             Navigator.pop(context);
             Navigator.push(
@@ -335,12 +340,21 @@ class QuickActionScreen extends StatelessWidget {
     );
   }
 
+  static const Map<String, IconData> _purchaseCategoryIcons = {
+    'Supplies': Icons.inventory_2_outlined,
+    'Equipment': Icons.precision_manufacturing_outlined,
+    'Furniture': Icons.chair_outlined,
+    'Land': Icons.landscape_outlined,
+    'Building': Icons.apartment_outlined,
+    'Vehicle': Icons.directions_car_outlined,
+  };
+
   Widget _buildPurchaseSubmenu(BuildContext context) {
     return Column(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _sheetHeader("Purchase Asset", outflowTheme),
+        _sheetHeader(context, "Purchase Asset"),
         ...[
           'Supplies',
           'Equipment',
@@ -350,10 +364,10 @@ class QuickActionScreen extends StatelessWidget {
           'Vehicle',
         ].map(
           (cat) => _buildListTile(
+            context,
             cat,
             "Record purchase of $cat",
-            Icons.add_business_outlined,
-            outflowTheme,
+            _purchaseCategoryIcons[cat] ?? Icons.add_business_outlined,
             onTap: () {
               Navigator.pop(context);
               Navigator.push(
@@ -371,39 +385,45 @@ class QuickActionScreen extends StatelessWidget {
 
   // --- REUSABLE UI COMPONENTS (Standardized) ---
 
-  Widget _sheetHeader(String title, MaterialColor color) {
+  Widget _sheetHeader(BuildContext context, String title) {
+    final scheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
     return Padding(
       padding: const EdgeInsets.only(bottom: 16, left: 4),
       child: Text(
         title,
-        style: TextStyle(
-          fontSize: 20,
-          fontWeight: FontWeight.bold,
-          color: color.shade900,
-        ),
+        style:
+            textTheme.titleMedium?.copyWith(
+              color: scheme.onSurface,
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+            ) ??
+            TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+              color: scheme.onSurface,
+            ),
       ),
     );
   }
 
   Widget _buildHeroTile({
+    required BuildContext context,
     required String title,
     required String subtitle,
     required IconData icon,
     required MaterialColor themeColor,
     required VoidCallback onTap,
   }) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final bgColor = isDark ? themeColor.shade900 : themeColor.shade800;
+    final textColor = Colors.white;
+    final subtitleColor = Colors.white.withValues(alpha: 0.85);
     return Container(
       height: 100,
       decoration: BoxDecoration(
-        color: themeColor.shade800,
+        color: bgColor,
         borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: themeColor.withOpacity(0.2),
-            blurRadius: 8,
-            offset: const Offset(0, 4),
-          ),
-        ],
       ),
       child: Material(
         color: Colors.transparent,
@@ -414,7 +434,7 @@ class QuickActionScreen extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 20),
             child: Row(
               children: [
-                Icon(icon, color: Colors.white, size: 32),
+                Icon(icon, color: textColor, size: 32),
                 const SizedBox(width: 16),
                 Expanded(
                   child: Column(
@@ -423,29 +443,22 @@ class QuickActionScreen extends StatelessWidget {
                     children: [
                       Text(
                         title,
-                        style: const TextStyle(
-                          color: Colors.white,
+                        style: TextStyle(
+                          color: textColor,
                           fontWeight: FontWeight.bold,
                           fontSize: 18,
                         ),
                       ),
                       Text(
                         subtitle,
-                        style: const TextStyle(
-                          color: Colors.white70,
-                          fontSize: 12,
-                        ),
+                        style: TextStyle(color: subtitleColor, fontSize: 12),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
                     ],
                   ),
                 ),
-                const Icon(
-                  Icons.arrow_forward_ios,
-                  color: Colors.white,
-                  size: 16,
-                ),
+                Icon(Icons.arrow_forward_ios, color: textColor, size: 16),
               ],
             ),
           ),
@@ -455,18 +468,24 @@ class QuickActionScreen extends StatelessWidget {
   }
 
   Widget _buildSoftWideTile({
+    required BuildContext context,
     required String title,
     required String subtitle,
     required IconData icon,
-    required MaterialColor themeColor,
     required VoidCallback onTap,
   }) {
+    final scheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final greenFill = isDark
+        ? Colors.lightGreen.shade900.withValues(alpha: 0.35)
+        : Colors.lightGreen.shade50;
     return Container(
       height: 80,
       decoration: BoxDecoration(
-        color: themeColor.shade50,
+        color: greenFill,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: themeColor.shade200),
+        border: Border.all(color: Colors.lightGreen.shade700, width: 1.5),
       ),
       child: Material(
         color: Colors.transparent,
@@ -477,7 +496,7 @@ class QuickActionScreen extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 20),
             child: Row(
               children: [
-                Icon(icon, color: themeColor.shade700),
+                Icon(icon, color: scheme.primary),
                 const SizedBox(width: 16),
                 Expanded(
                   child: Column(
@@ -486,17 +505,22 @@ class QuickActionScreen extends StatelessWidget {
                     children: [
                       Text(
                         title,
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 15,
-                        ),
+                        style:
+                            textTheme.titleMedium?.copyWith(fontSize: 15) ??
+                            TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 15,
+                              color: scheme.onSurface,
+                            ),
                       ),
                       Text(
                         subtitle,
-                        style: TextStyle(
-                          color: themeColor.shade700,
-                          fontSize: 12,
-                        ),
+                        style:
+                            textTheme.bodySmall?.copyWith(fontSize: 12) ??
+                            TextStyle(
+                              color: scheme.onSurfaceVariant,
+                              fontSize: 12,
+                            ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
@@ -505,7 +529,7 @@ class QuickActionScreen extends StatelessWidget {
                 ),
                 Icon(
                   Icons.arrow_forward_ios,
-                  color: themeColor.shade300,
+                  color: scheme.onSurfaceVariant,
                   size: 14,
                 ),
               ],
@@ -517,17 +541,21 @@ class QuickActionScreen extends StatelessWidget {
   }
 
   Widget _buildGridTile(
+    BuildContext context,
     String t,
-    IconData i,
-    MaterialColor c, {
+    IconData i, {
+    required Color borderColor,
+    required Color fillColor,
     VoidCallback? onTap,
   }) {
+    final scheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
     return Container(
       height: 100,
       decoration: BoxDecoration(
-        color: c.shade50,
+        color: fillColor,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: c.shade200),
+        border: Border.all(color: borderColor, width: 1.5),
       ),
       child: Material(
         color: Colors.transparent,
@@ -543,17 +571,24 @@ class QuickActionScreen extends StatelessWidget {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Icon(i, color: c.shade700),
-                    Icon(Icons.arrow_forward_ios, color: c.shade300, size: 12),
+                    Icon(i, color: scheme.primary),
+                    Icon(
+                      Icons.arrow_forward_ios,
+                      color: scheme.onSurfaceVariant,
+                      size: 12,
+                    ),
                   ],
                 ),
                 Text(
                   t,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 13,
-                    height: 1.1,
-                  ),
+                  style:
+                      textTheme.titleSmall?.copyWith(height: 1.1) ??
+                      TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 13,
+                        height: 1.1,
+                        color: scheme.onSurface,
+                      ),
                 ),
               ],
             ),
@@ -564,33 +599,47 @@ class QuickActionScreen extends StatelessWidget {
   }
 
   Widget _buildListTile(
+    BuildContext context,
     String t,
     String s,
-    IconData i,
-    MaterialColor c, {
+    IconData i, {
     VoidCallback? onTap,
   }) {
+    final scheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
     return ListTile(
       contentPadding: const EdgeInsets.symmetric(vertical: 4),
       leading: CircleAvatar(
-        backgroundColor: c.shade50,
-        child: Icon(i, color: c.shade700, size: 20),
+        backgroundColor: scheme.surfaceContainerHighest,
+        child: Icon(i, color: scheme.primary, size: 20),
       ),
       title: Text(
         t,
-        style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
+        style:
+            textTheme.titleMedium?.copyWith(fontSize: 15) ??
+            TextStyle(
+              fontWeight: FontWeight.w600,
+              fontSize: 15,
+              color: scheme.onSurface,
+            ),
       ),
-      subtitle: Text(s, style: const TextStyle(fontSize: 12)),
-      trailing: const Icon(
+      subtitle: Text(
+        s,
+        style:
+            textTheme.bodySmall?.copyWith(fontSize: 12) ??
+            TextStyle(fontSize: 12, color: scheme.onSurfaceVariant),
+      ),
+      trailing: Icon(
         Icons.arrow_forward_ios,
         size: 14,
-        color: Colors.black12,
+        color: scheme.outlineVariant,
       ),
       onTap: onTap,
     );
   }
 
-  Widget _buildSectionHeader(String title, Color color) {
+  Widget _buildSectionHeader(BuildContext context, String title) {
+    final scheme = Theme.of(context).colorScheme;
     return Padding(
       padding: const EdgeInsets.only(bottom: 12, left: 4),
       child: Text(
@@ -598,7 +647,7 @@ class QuickActionScreen extends StatelessWidget {
         style: TextStyle(
           fontSize: 11,
           fontWeight: FontWeight.bold,
-          color: color,
+          color: scheme.onSurfaceVariant,
           letterSpacing: 1.2,
         ),
       ),

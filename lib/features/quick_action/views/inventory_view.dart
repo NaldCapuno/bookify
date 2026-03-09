@@ -101,32 +101,41 @@ class _InventoryViewState extends State<InventoryView> {
       await _postLines(desc, lines);
     } else {
       final rawRaw = _rawUsedController.text.replaceAll(',', '').trim();
-      final laborRaw = _laborController.text.replaceAll(',', '').trim();
       final rawUsed = double.tryParse(rawRaw) ?? 0;
-      final labor = double.tryParse(laborRaw) ?? 0;
+      final rawLabor = _laborController.text.replaceAll(',', '').trim();
+      final labor = double.tryParse(rawLabor) ?? 0;
 
-      if (rawUsed <= 0 && labor <= 0) {
+      if (rawUsed <= 0) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Enter at least one amount for Raw Materials or Direct Labor.'),
+            content: Text('Enter the amount of Raw Materials used.'),
           ),
         );
         return;
       }
 
-      final total = rawUsed + labor;
+      if (labor < 0) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Direct Labor cannot be negative.'),
+          ),
+        );
+        return;
+      }
+
+      final finishedGoodsProduced = rawUsed + labor;
+
       final lines = <TemplateLine>[
         TemplateLine(
           accountCode: QuickActionAccounts.inventoryFinishedGoods,
           isDebit: true,
-          amount: total,
+          amount: finishedGoodsProduced,
         ),
-        if (rawUsed > 0)
-          TemplateLine(
-            accountCode: QuickActionAccounts.inventoryRawMaterials,
-            isDebit: false,
-            amount: rawUsed,
-          ),
+        TemplateLine(
+          accountCode: QuickActionAccounts.inventoryRawMaterials,
+          isDebit: false,
+          amount: rawUsed,
+        ),
         if (labor > 0)
           TemplateLine(
             accountCode: QuickActionAccounts.directLabor,
@@ -184,54 +193,107 @@ class _InventoryViewState extends State<InventoryView> {
   @override
   Widget build(BuildContext context) {
     final isAcquire = widget.actionType == 'Acquire';
+    final scheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
 
     return Scaffold(
-      backgroundColor: Colors.grey.shade50,
+      backgroundColor: scheme.surfaceContainerHighest,
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: scheme.surfaceContainerHighest,
         elevation: 0,
-        leading: const BackButton(color: Colors.black87),
+        leading: BackButton(color: scheme.primary),
         title: Text(
-          '${widget.actionType} Inventory',
-          style: const TextStyle(color: Colors.black87, fontWeight: FontWeight.bold),
+          isAcquire ? 'Acquire Raw Materials' : 'Produce Finished Goods',
+          style: textTheme.headlineLarge?.copyWith(fontSize: 20) ??
+              TextStyle(color: scheme.onSurface, fontWeight: FontWeight.bold),
         ),
       ),
-      body: ListView(
-        padding: const EdgeInsets.all(20),
-        children: [
-          if (isAcquire) ...[
-            QuickActionAmountCard(
-              amountController: _amountController,
-              amountLabel: 'Amount',
-              balanceStream: _balanceStream,
-              balanceLabel: _balanceLabel,
-              checkInsufficient: _paymentMethod != 'credit',
-              onAmountChanged: () => setState(() {}),
-            ),
-            if (_balanceStream != null)
-              StreamBuilder<double>(
-                stream: _balanceStream,
-                builder: (context, snap) {
-                  final balance = snap.data ?? 0.0;
-                  return InsufficientBalanceNotice(
-                    amount: _currentAmount,
-                    currentBalance: balance,
-                    isOutflow: true,
-                  );
-                },
-              ),
-            const SizedBox(height: 24),
-            const QuickActionSectionLabel('Paid via'),
-            PaymentMethodChips(
-              value: _paymentMethod,
-              onChanged: (v) => setState(() => _paymentMethod = v),
-              creditLabel: 'Pay Later',
-            ),
-          ] else ...[
+      body: StreamBuilder<Map<int, double>>(
+        stream: appDb.ledgerDao.watchBalancesForAccountCodes({
+          QuickActionAccounts.cashOnHand,
+          QuickActionAccounts.cashInBank,
+        }),
+        builder: (context, snap) {
+          final balances = snap.data ?? {
+            QuickActionAccounts.cashOnHand: 0.0,
+            QuickActionAccounts.cashInBank: 0.0,
+          };
+          final cash = balances[QuickActionAccounts.cashOnHand] ?? 0.0;
+          final bank = balances[QuickActionAccounts.cashInBank] ?? 0.0;
+
+          return ListView(
+            padding: const EdgeInsets.all(20),
+            children: [
+              if (isAcquire) ...[
+                if (_paymentMethod != 'credit') ...[
+                  BeforeAfterBalanceHeader(
+                    label: _paymentMethod == 'cash' ? 'Cash balance' : 'Bank balance',
+                    before: _paymentMethod == 'cash' ? cash : bank,
+                    after: (_paymentMethod == 'cash' ? cash : bank) - _currentAmount,
+                  ),
+                  const SizedBox(height: 16),
+                ],
+                QuickActionAmountCard(
+                  amountController: _amountController,
+                  amountLabel: 'Amount',
+                  balanceStream: _balanceStream,
+                  balanceLabel: _balanceLabel,
+                  checkInsufficient: _paymentMethod != 'credit',
+                  onAmountChanged: () => setState(() {}),
+                ),
+                if (_balanceStream != null)
+                  StreamBuilder<double>(
+                    stream: _balanceStream,
+                    builder: (context, snap) {
+                      final balance = snap.data ?? 0.0;
+                      return InsufficientBalanceNotice(
+                        amount: _currentAmount,
+                        currentBalance: balance,
+                        isOutflow: true,
+                      );
+                    },
+                  ),
+                const SizedBox(height: 24),
+                const QuickActionSectionLabel('Paid via'),
+                PaymentMethodChips(
+                  value: _paymentMethod,
+                  onChanged: (v) => setState(() => _paymentMethod = v),
+                  creditLabel: 'Pay Later',
+                  cashBalance: cash,
+                  bankBalance: bank,
+                ),
+              ] else ...[
             QuickActionAmountCard(
               amountController: _rawUsedController,
               amountLabel: 'Raw Materials Used',
               onAmountChanged: () => setState(() {}),
+            ),
+            StreamBuilder<double>(
+              stream: appDb.ledgerDao.watchBalanceForAccountCode(
+                QuickActionAccounts.inventoryRawMaterials,
+              ),
+              builder: (context, snap) {
+                final balance = snap.data ?? 0.0;
+                final rawUsed = double.tryParse(
+                      _rawUsedController.text.replaceAll(',', '').trim()) ??
+                    0.0;
+                final remaining = balance - rawUsed;
+                final displayRemaining = remaining.clamp(0.0, double.infinity);
+                return Padding(
+                  padding: const EdgeInsets.only(top: 10),
+                  child: Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      'Raw materials remaining: ${formatAmount(displayRemaining)}',
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: remaining < 0 ? scheme.error : scheme.onSurfaceVariant,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                );
+              },
             ),
             const SizedBox(height: 16),
             QuickActionAmountCard(
@@ -239,14 +301,43 @@ class _InventoryViewState extends State<InventoryView> {
               amountLabel: 'Direct Labor',
               onAmountChanged: () => setState(() {}),
             ),
-          ],
-          const SizedBox(height: 24),
-          QuickActionDetailsCard(
-            descriptionController: _descController,
-            dateText: _dateController.text,
-            onDateTap: _pickDate,
-          ),
-        ],
+            Padding(
+              padding: const EdgeInsets.only(top: 10),
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: Builder(
+                  builder: (context) {
+                    final rawUsed = double.tryParse(
+                          _rawUsedController.text.replaceAll(',', '').trim(),
+                        ) ??
+                        0.0;
+                    final labor = double.tryParse(
+                          _laborController.text.replaceAll(',', '').trim(),
+                        ) ??
+                        0.0;
+                    final totalFinishedGoods = rawUsed + labor;
+                    return Text(
+                      'Total finished goods: ${formatAmount(totalFinishedGoods)}',
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: scheme.onSurfaceVariant,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ),
+              ],
+              const SizedBox(height: 24),
+              QuickActionDetailsCard(
+                descriptionController: _descController,
+                dateText: _dateController.text,
+                onDateTap: _pickDate,
+              ),
+            ],
+          );
+        },
       ),
       bottomNavigationBar: isAcquire && _balanceStream != null
           ? StreamBuilder<double>(

@@ -100,46 +100,44 @@ class _PayWorkersViewState extends State<PayWorkersView> {
     }
   }
 
-  Stream<double> get _balanceStream =>
-      _paymentMethod == 'cash'
-          ? appDb.ledgerDao.watchBalanceForAccountCode(QuickActionAccounts.cashOnHand)
-          : appDb.ledgerDao.watchBalanceForAccountCode(QuickActionAccounts.cashInBank);
-
-  String get _balanceLabel =>
-      _paymentMethod == 'cash' ? 'Cash balance:' : 'Bank balance:';
-
   double get _currentAmount =>
       double.tryParse(_amountController.text.replaceAll(',', '').trim()) ?? 0;
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
     return Scaffold(
-      backgroundColor: Colors.grey.shade50,
+      backgroundColor: scheme.surfaceContainerHighest,
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: scheme.surfaceContainerHighest,
         elevation: 0,
-        leading: const BackButton(color: Colors.black87),
-        title: const Text(
+        leading: BackButton(color: scheme.primary),
+        title: Text(
           PayWorkersView._title,
-          style: TextStyle(color: Colors.black87, fontWeight: FontWeight.bold),
+          style: textTheme.headlineLarge?.copyWith(fontSize: 20) ??
+              TextStyle(color: scheme.onSurface, fontWeight: FontWeight.bold),
         ),
       ),
       body: StreamBuilder<Map<int, double>>(
         stream: appDb.ledgerDao.watchBalancesForAccountCodes({
           QuickActionAccounts.cashOnHand,
           QuickActionAccounts.cashInBank,
+          QuickActionAccounts.directLabor,
         }),
         builder: (context, snap) {
           final balances = snap.data ??
               {
                 QuickActionAccounts.cashOnHand: 0.0,
                 QuickActionAccounts.cashInBank: 0.0,
+                QuickActionAccounts.directLabor: 0.0,
               };
           final amount = _currentAmount;
+          final cash = balances[QuickActionAccounts.cashOnHand] ?? 0.0;
+          final bank = balances[QuickActionAccounts.cashInBank] ?? 0.0;
+          final directLabor = balances[QuickActionAccounts.directLabor] ?? 0.0;
           final isCash = _paymentMethod == 'cash';
-          final before = isCash
-              ? (balances[QuickActionAccounts.cashOnHand] ?? 0.0)
-              : (balances[QuickActionAccounts.cashInBank] ?? 0.0);
+          final before = isCash ? cash : bank;
           final after = before - amount;
 
           return ListView(
@@ -170,6 +168,7 @@ class _PayWorkersViewState extends State<PayWorkersView> {
                       label: 'Workers',
                       isSelected: _employeeType == 'workers',
                       onTap: () => setState(() => _employeeType = 'workers'),
+                      accentColor: const Color(0xFF00838F), // Teal
                     ),
                   ),
                   const SizedBox(width: 8),
@@ -178,17 +177,23 @@ class _PayWorkersViewState extends State<PayWorkersView> {
                       label: 'Office Staffs',
                       isSelected: _employeeType == 'office',
                       onTap: () => setState(() => _employeeType = 'office'),
+                      accentColor: const Color(0xFF5C6BC0), // Indigo
                     ),
                   ),
                 ],
               ),
+              const SizedBox(height: 10),
+              if (_employeeType == 'workers')
+                _PostingHintCard(
+                  directLaborBalance: directLabor.abs(),
+                ),
               const SizedBox(height: 20),
               const QuickActionSectionLabel('Paid via'),
               CashBankChips(
                 value: _paymentMethod,
                 onChanged: (v) => setState(() => _paymentMethod = v),
-                cashBalance: balances[QuickActionAccounts.cashOnHand],
-                bankBalance: balances[QuickActionAccounts.cashInBank],
+                cashBalance: cash,
+                bankBalance: bank,
               ),
               const SizedBox(height: 24),
               QuickActionDetailsCard(
@@ -212,10 +217,10 @@ class _PayWorkersViewState extends State<PayWorkersView> {
                 QuickActionAccounts.cashOnHand: 0.0,
                 QuickActionAccounts.cashInBank: 0.0,
               };
+          final cash = balances[QuickActionAccounts.cashOnHand] ?? 0.0;
+          final bank = balances[QuickActionAccounts.cashInBank] ?? 0.0;
           final isCash = _paymentMethod == 'cash';
-          final before = isCash
-              ? (balances[QuickActionAccounts.cashOnHand] ?? 0.0)
-              : (balances[QuickActionAccounts.cashInBank] ?? 0.0);
+          final before = isCash ? cash : bank;
           final amount = _currentAmount;
           final insufficient = amount > 0 && amount > before;
           return QuickActionSaveButton(
@@ -229,23 +234,65 @@ class _PayWorkersViewState extends State<PayWorkersView> {
   }
 }
 
+class _PostingHintCard extends StatelessWidget {
+  const _PostingHintCard({
+    required this.directLaborBalance,
+  });
+
+  final double directLaborBalance;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final text = 'Direct labor balance: ${formatAmount(directLaborBalance)}';
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: scheme.surface,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: scheme.outlineVariant),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(Icons.info_outline, size: 18, color: scheme.primary),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              text,
+              style: TextStyle(
+                fontSize: 13,
+                color: scheme.onSurfaceVariant,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _TypeChip extends StatelessWidget {
   const _TypeChip({
     required this.label,
     required this.isSelected,
     required this.onTap,
+    required this.accentColor,
   });
 
   final String label;
   final bool isSelected;
   final VoidCallback onTap;
+  final Color accentColor;
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return Material(
       color: isSelected
-          ? const Color(0xFF2E7D32).withValues(alpha: 0.12)
-          : Colors.white,
+          ? accentColor.withValues(alpha: 0.15)
+          : scheme.surface,
       borderRadius: BorderRadius.circular(12),
       child: InkWell(
         onTap: onTap,
@@ -255,7 +302,7 @@ class _TypeChip extends StatelessWidget {
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(12),
             border: Border.all(
-              color: isSelected ? const Color(0xFF2E7D32) : Colors.grey.shade300,
+              color: isSelected ? accentColor : accentColor.withValues(alpha: 0.4),
               width: isSelected ? 1.5 : 1,
             ),
           ),
@@ -265,7 +312,7 @@ class _TypeChip extends StatelessWidget {
               style: TextStyle(
                 fontSize: 13,
                 fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                color: isSelected ? const Color(0xFF2E7D32) : Colors.grey.shade700,
+                color: isSelected ? accentColor : scheme.onSurfaceVariant,
               ),
             ),
           ),

@@ -4,6 +4,10 @@ import 'package:tutorial_coach_mark/tutorial_coach_mark.dart';
 
 class WalkthroughService {
   static const String _prefPrefix = 'walkthrough_complete_';
+  static const Color _walkthroughShadow = Colors.black;
+  static const Color _walkthroughOnShadow = Colors.white;
+  static const Color _walkthroughButtonBg = Colors.white;
+  static const Color _walkthroughButtonFg = Colors.black87;
 
   /// Uncomment the calls below to enable: walkthroughs won't show again after Finish or Skip
   // ignore: unused_element
@@ -57,7 +61,7 @@ class WalkthroughService {
 
     TutorialCoachMark(
       targets: targets,
-      colorShadow: const Color(0xFF1A1C1E),
+      colorShadow: _walkthroughShadow,
       opacityShadow: 0.9,
       textSkip: "SKIP",
       paddingFocus: 10,
@@ -106,7 +110,7 @@ class WalkthroughService {
 
     TutorialCoachMark(
       targets: targets,
-      colorShadow: const Color(0xFF1A1C1E),
+      colorShadow: _walkthroughShadow,
       opacityShadow: 0.9,
       textSkip: "SKIP",
       beforeFocus: (target) => _scrollToTarget(target),
@@ -165,7 +169,7 @@ class WalkthroughService {
 
     TutorialCoachMark(
       targets: targets,
-      colorShadow: const Color(0xFF1A1C1E),
+      colorShadow: _walkthroughShadow,
       opacityShadow: 0.9,
       textSkip: "SKIP",
       beforeFocus: (target) => _scrollToTarget(target),
@@ -211,7 +215,7 @@ class WalkthroughService {
 
     TutorialCoachMark(
       targets: targets,
-      colorShadow: const Color(0xFF1A1C1E),
+      colorShadow: _walkthroughShadow,
       opacityShadow: 0.9,
       textSkip: "SKIP",
       beforeFocus: (target) => _scrollToTarget(target),
@@ -259,7 +263,7 @@ class WalkthroughService {
 
     TutorialCoachMark(
       targets: targets,
-      colorShadow: const Color(0xFF1A1C1E),
+      colorShadow: _walkthroughShadow,
       opacityShadow: 0.9,
       textSkip: "SKIP",
       beforeFocus: (target) => _scrollToTarget(target),
@@ -309,16 +313,19 @@ class WalkthroughService {
               children: [
                 Text(
                   title,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontWeight: FontWeight.bold,
-                    color: Colors.white,
+                    color: _walkthroughOnShadow,
                     fontSize: 22,
                   ),
                 ),
                 const SizedBox(height: 10),
                 Text(
                   text,
-                  style: const TextStyle(color: Colors.white, fontSize: 16),
+                  style: TextStyle(
+                    color: _walkthroughOnShadow,
+                    fontSize: 16,
+                  ),
                 ),
                 const SizedBox(height: 10),
                 ElevatedButton(
@@ -326,11 +333,11 @@ class WalkthroughService {
                     controller.next();
                   },
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.white,
+                    backgroundColor: _walkthroughButtonBg,
+                    foregroundColor: _walkthroughButtonFg,
                   ),
                   child: Text(
                     isLastStep ? "Finish" : "Next",
-                    style: const TextStyle(color: Colors.black),
                   ),
                 ),
               ],

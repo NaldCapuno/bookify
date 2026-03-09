@@ -13,44 +13,45 @@ double parseAmount(TextEditingController c) {
 }
 
 /// Before/After balance header shown above the amount card.
+/// Uses consistent labels: 'CURRENT' and 'AFTER' across all quick action forms.
 class BeforeAfterBalanceHeader extends StatelessWidget {
   const BeforeAfterBalanceHeader({
     super.key,
     required this.label,
     required this.before,
     required this.after,
+    this.beforeTitle = 'CURRENT',
+    this.afterTitle = 'AFTER',
   });
 
   final String label;
   final double before;
   final double after;
+  final String beforeTitle;
+  final String afterTitle;
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: scheme.surface,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.grey.shade200),
+        border: Border.all(color: scheme.outlineVariant),
       ),
       child: Row(
         children: [
           Expanded(
             child: _BeforeAfterColumn(
-              title: 'BEFORE',
+              title: beforeTitle,
               label: label,
               value: before,
             ),
           ),
-          Container(
-            width: 1,
-            height: 44,
-            color: Colors.grey.shade200,
-          ),
           Expanded(
             child: _BeforeAfterColumn(
-              title: 'AFTER',
+              title: afterTitle,
               label: label,
               value: after,
             ),
@@ -74,6 +75,8 @@ class _BeforeAfterColumn extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -81,19 +84,20 @@ class _BeforeAfterColumn extends StatelessWidget {
           title,
           style: TextStyle(
             fontSize: 11,
-            color: Colors.grey.shade600,
+            color: scheme.onSurfaceVariant,
             fontWeight: FontWeight.bold,
           ),
         ),
         const SizedBox(height: 4),
         Text(
           label,
-          style: TextStyle(fontSize: 12, color: Colors.grey.shade700),
+          style: TextStyle(fontSize: 12, color: scheme.onSurfaceVariant),
         ),
         const SizedBox(height: 2),
         Text(
           '₱ ${formatAmount(value)}',
-          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+          style: textTheme.titleSmall?.copyWith(fontSize: 14) ??
+              const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
         ),
       ],
     );
@@ -125,15 +129,16 @@ class QuickActionAmountCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: scheme.surface,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.grey.shade200),
+        border: Border.all(color: scheme.outlineVariant),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
+            color: scheme.onSurface.withValues(alpha: 0.04),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -146,7 +151,7 @@ class QuickActionAmountCard extends StatelessWidget {
             amountLabel.toUpperCase(),
             style: TextStyle(
               fontSize: 12,
-              color: Colors.grey.shade500,
+              color: scheme.onSurfaceVariant,
               fontWeight: FontWeight.bold,
             ),
           ),
@@ -189,16 +194,17 @@ class InsufficientBalanceNotice extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (!isOutflow || amount <= 0 || amount <= currentBalance) return const SizedBox.shrink();
+    final scheme = Theme.of(context).colorScheme;
     return Padding(
       padding: const EdgeInsets.only(top: 8),
       child: Row(
         children: [
-          Icon(Icons.warning_amber_rounded, size: 18, color: Colors.red.shade700),
+          Icon(Icons.warning_amber_rounded, size: 18, color: scheme.error),
           const SizedBox(width: 8),
           Text(
             'Insufficient balance in selected account.',
             style: TextStyle(
-              color: Colors.red.shade700,
+              color: scheme.error,
               fontSize: 13,
               fontWeight: FontWeight.w500,
             ),
@@ -209,7 +215,7 @@ class InsufficientBalanceNotice extends StatelessWidget {
   }
 }
 
-/// Horizontal chips for Cash / Bank / Unpaid (or Pay Later). Green when selected.
+/// Horizontal chips for Cash / Bank / Unpaid (or Pay Later). Each has a distinct accent color.
 class PaymentMethodChips extends StatelessWidget {
   const PaymentMethodChips({
     super.key,
@@ -232,6 +238,10 @@ class PaymentMethodChips extends StatelessWidget {
   final double? cashBalance;
   final double? bankBalance;
 
+  static const Color _cashColor = Color(0xFF2E7D32);   // Green
+  static const Color _bankColor = Color(0xFF1976D2);  // Blue
+  static const Color _creditColor = Color(0xFFE65100); // Orange/amber for Pay Later
+
   @override
   Widget build(BuildContext context) {
     return Row(
@@ -243,6 +253,7 @@ class PaymentMethodChips extends StatelessWidget {
             isSelected: value == 'cash',
             onTap: () => onChanged('cash'),
             balance: cashBalance,
+            accentColor: _cashColor,
           ),
         ),
         const SizedBox(width: 8),
@@ -253,6 +264,7 @@ class PaymentMethodChips extends StatelessWidget {
             isSelected: value == 'bank',
             onTap: () => onChanged('bank'),
             balance: bankBalance,
+            accentColor: _bankColor,
           ),
         ),
         const SizedBox(width: 8),
@@ -262,6 +274,7 @@ class PaymentMethodChips extends StatelessWidget {
             icon: creditIcon,
             isSelected: value == 'credit',
             onTap: () => onChanged('credit'),
+            accentColor: _creditColor,
           ),
         ),
       ],
@@ -276,6 +289,7 @@ class _Chip extends StatelessWidget {
     required this.isSelected,
     required this.onTap,
     this.balance,
+    this.accentColor,
   });
 
   final String label;
@@ -283,11 +297,14 @@ class _Chip extends StatelessWidget {
   final bool isSelected;
   final VoidCallback onTap;
   final double? balance;
+  final Color? accentColor;
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final color = accentColor ?? scheme.primary;
     return Material(
-      color: isSelected ? const Color(0xFF2E7D32).withValues(alpha: 0.12) : Colors.white,
+      color: isSelected ? color.withValues(alpha: 0.15) : scheme.surface,
       borderRadius: BorderRadius.circular(12),
       child: InkWell(
         onTap: onTap,
@@ -297,7 +314,7 @@ class _Chip extends StatelessWidget {
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(12),
             border: Border.all(
-              color: isSelected ? const Color(0xFF2E7D32) : Colors.grey.shade300,
+              color: isSelected ? color : color.withValues(alpha: 0.4),
               width: isSelected ? 1.5 : 1,
             ),
           ),
@@ -306,7 +323,7 @@ class _Chip extends StatelessWidget {
               Icon(
                 icon,
                 size: 24,
-                color: isSelected ? const Color(0xFF2E7D32) : Colors.grey.shade600,
+                color: isSelected ? color : color.withValues(alpha: 0.7),
               ),
               const SizedBox(height: 6),
               Text(
@@ -314,7 +331,7 @@ class _Chip extends StatelessWidget {
                 style: TextStyle(
                   fontSize: 13,
                   fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                  color: isSelected ? const Color(0xFF2E7D32) : Colors.grey.shade700,
+                  color: isSelected ? color : scheme.onSurface,
                 ),
               ),
               if (balance != null) ...[
@@ -323,7 +340,7 @@ class _Chip extends StatelessWidget {
                   '₱ ${formatAmount(balance!)}',
                   style: TextStyle(
                     fontSize: 11,
-                    color: Colors.grey.shade700,
+                    color: scheme.onSurfaceVariant,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
@@ -351,6 +368,9 @@ class CashBankChips extends StatelessWidget {
   final double? cashBalance;
   final double? bankBalance;
 
+  static const Color _cashColor = Color(0xFF2E7D32);  // Green
+  static const Color _bankColor = Color(0xFF1976D2);  // Blue
+
   @override
   Widget build(BuildContext context) {
     return Row(
@@ -362,6 +382,7 @@ class CashBankChips extends StatelessWidget {
             isSelected: value == 'cash',
             onTap: () => onChanged('cash'),
             balance: cashBalance,
+            accentColor: _cashColor,
           ),
         ),
         const SizedBox(width: 8),
@@ -372,6 +393,7 @@ class CashBankChips extends StatelessWidget {
             isSelected: value == 'bank',
             onTap: () => onChanged('bank'),
             balance: bankBalance,
+            accentColor: _bankColor,
           ),
         ),
       ],
@@ -386,13 +408,14 @@ class QuickActionSectionLabel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: Text(
         label.toUpperCase(),
         style: TextStyle(
           fontSize: 12,
-          color: Colors.grey.shade600,
+          color: scheme.onSurfaceVariant,
           fontWeight: FontWeight.bold,
         ),
       ),
@@ -419,15 +442,16 @@ class QuickActionDetailsCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: scheme.surface,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.grey.shade200),
+        border: Border.all(color: scheme.outlineVariant),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
+            color: scheme.onSurface.withValues(alpha: 0.04),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -440,7 +464,7 @@ class QuickActionDetailsCard extends StatelessWidget {
             decoration: InputDecoration(
               labelText: descriptionLabel,
               hintText: descriptionHint,
-              prefixIcon: const Icon(Icons.description_outlined, color: Colors.black87),
+              prefixIcon: Icon(Icons.description_outlined, color: scheme.onSurface),
               border: const UnderlineInputBorder(),
               contentPadding: const EdgeInsets.symmetric(vertical: 12),
             ),
@@ -450,11 +474,11 @@ class QuickActionDetailsCard extends StatelessWidget {
           InkWell(
             onTap: onDateTap,
             child: InputDecorator(
-              decoration: const InputDecoration(
+              decoration: InputDecoration(
                 labelText: 'Date',
-                prefixIcon: Icon(Icons.calendar_today_outlined, color: Colors.black87),
-                border: UnderlineInputBorder(),
-                contentPadding: EdgeInsets.symmetric(vertical: 12),
+                prefixIcon: Icon(Icons.calendar_today_outlined, color: scheme.onSurface),
+                border: const UnderlineInputBorder(),
+                contentPadding: const EdgeInsets.symmetric(vertical: 12),
               ),
               child: Text(
                 dateText,
@@ -483,6 +507,8 @@ class QuickActionSaveButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
     return Padding(
       padding: const EdgeInsets.all(20),
       child: SizedBox(
@@ -490,8 +516,8 @@ class QuickActionSaveButton extends StatelessWidget {
         child: ElevatedButton(
           onPressed: isSaving ? null : onPressed,
           style: ElevatedButton.styleFrom(
-            backgroundColor: const Color(0xFF2E7D32),
-            foregroundColor: Colors.white,
+            backgroundColor: scheme.primary,
+            foregroundColor: scheme.onPrimary,
             padding: const EdgeInsets.symmetric(vertical: 16),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(12),
@@ -499,10 +525,11 @@ class QuickActionSaveButton extends StatelessWidget {
           ),
           child: Text(
             isSaving ? 'Saving...' : label,
-            style: const TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
-            ),
+            style: textTheme.labelLarge?.copyWith(fontSize: 16) ??
+                const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
           ),
         ),
       ),

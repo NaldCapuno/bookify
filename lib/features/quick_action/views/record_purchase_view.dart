@@ -1,4 +1,5 @@
 import 'package:bookkeeping/core/database/app_database.dart';
+import 'package:bookkeeping/core/theme/app_theme.dart';
 import 'package:bookkeeping/features/quick_action/quick_action_journal_service.dart';
 import 'package:bookkeeping/features/quick_action/widgets/quick_action_shared_ui.dart';
 import 'package:flutter/material.dart';
@@ -159,59 +160,87 @@ class _RecordPurchaseViewState extends State<RecordPurchaseView> {
   @override
   Widget build(BuildContext context) {
     final isUnpaid = _selectedPaymentMethod == 'credit';
+    final scheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
 
     return Scaffold(
-      backgroundColor: Colors.grey.shade50,
+      backgroundColor: scheme.surfaceContainerHighest,
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: scheme.surfaceContainerHighest,
         elevation: 0,
-        leading: const BackButton(color: Colors.black87),
-        title: const Text(
+        leading: BackButton(color: scheme.primary),
+        title: Text(
           'Record Purchase',
-          style: TextStyle(color: Colors.black87, fontWeight: FontWeight.bold),
+          style: textTheme.headlineLarge?.copyWith(fontSize: 20) ??
+              TextStyle(color: scheme.onSurface, fontWeight: FontWeight.bold),
         ),
       ),
-      body: ListView(
-        padding: const EdgeInsets.all(20),
-        children: [
-          QuickActionAmountCard(
-            amountController: _amountController,
-            amountLabel: 'Amount',
-            balanceStream: _balanceStream,
-            balanceLabel: _balanceLabel,
-            checkInsufficient: _isOutflow,
-            onAmountChanged: () => setState(() {}),
-          ),
-          if (_isOutflow && _balanceStream != null)
-            StreamBuilder<double>(
-              stream: _balanceStream,
-              builder: (context, snap) {
-                final balance = snap.data ?? 0.0;
-                return InsufficientBalanceNotice(
-                  amount: _currentAmount,
-                  currentBalance: balance,
-                  isOutflow: true,
-                );
-              },
-            ),
-          const SizedBox(height: 24),
-          const QuickActionSectionLabel('Paid via'),
-          PaymentMethodChips(
-            value: _selectedPaymentMethod,
-            onChanged: (v) => setState(() => _selectedPaymentMethod = v),
-            creditLabel: 'Pay Later',
-          ),
+      body: StreamBuilder<Map<int, double>>(
+        stream: appDb.ledgerDao.watchBalancesForAccountCodes({
+          QuickActionAccounts.cashOnHand,
+          QuickActionAccounts.cashInBank,
+        }),
+        builder: (context, snap) {
+          final balances = snap.data ?? {
+            QuickActionAccounts.cashOnHand: 0.0,
+            QuickActionAccounts.cashInBank: 0.0,
+          };
+          final cashBalance = balances[QuickActionAccounts.cashOnHand] ?? 0.0;
+          final bankBalance = balances[QuickActionAccounts.cashInBank] ?? 0.0;
+          final amount = _currentAmount;
+          final isCash = _selectedPaymentMethod == 'cash';
+
+          return ListView(
+            padding: const EdgeInsets.all(20),
+            children: [
+              if (_isOutflow) ...[
+                BeforeAfterBalanceHeader(
+                  label: isCash ? 'Cash balance' : 'Bank balance',
+                  before: isCash ? cashBalance : bankBalance,
+                  after: (isCash ? cashBalance : bankBalance) - amount,
+                ),
+                const SizedBox(height: 16),
+              ],
+              QuickActionAmountCard(
+                amountController: _amountController,
+                amountLabel: 'Amount',
+                balanceStream: _balanceStream,
+                balanceLabel: _balanceLabel,
+                checkInsufficient: _isOutflow,
+                onAmountChanged: () => setState(() {}),
+              ),
+              if (_isOutflow && _balanceStream != null)
+                StreamBuilder<double>(
+                  stream: _balanceStream,
+                  builder: (context, snap) {
+                    final balance = snap.data ?? 0.0;
+                    return InsufficientBalanceNotice(
+                      amount: _currentAmount,
+                      currentBalance: balance,
+                      isOutflow: true,
+                    );
+                  },
+                ),
+              const SizedBox(height: 24),
+              const QuickActionSectionLabel('Paid via'),
+              PaymentMethodChips(
+                value: _selectedPaymentMethod,
+                onChanged: (v) => setState(() => _selectedPaymentMethod = v),
+                creditLabel: 'Pay Later',
+                cashBalance: balances[QuickActionAccounts.cashOnHand],
+                bankBalance: balances[QuickActionAccounts.cashInBank],
+              ),
           if (isUnpaid)
             Padding(
               padding: const EdgeInsets.only(top: 12),
               child: Row(
                 children: [
-                  Icon(Icons.warning_amber_rounded, size: 18, color: Colors.orange.shade700),
+                  Icon(Icons.warning_amber_rounded, size: 18, color: context.warning),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
                       'Will be recorded as Accounts Payable (Debt).',
-                      style: TextStyle(color: Colors.orange.shade700, fontSize: 13),
+                      style: TextStyle(color: context.warning, fontSize: 13),
                     ),
                   ),
                 ],
@@ -221,9 +250,9 @@ class _RecordPurchaseViewState extends State<RecordPurchaseView> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: scheme.surface,
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: Colors.grey.shade200),
+              border: Border.all(color: scheme.outlineVariant),
             ),
             child: DropdownButtonFormField<String>(
               value: _currentCategory,
@@ -247,7 +276,9 @@ class _RecordPurchaseViewState extends State<RecordPurchaseView> {
             onDateTap: _pickDate,
             descriptionHint: 'e.g. 2 Laptops for office',
           ),
-        ],
+            ],
+          );
+        },
       ),
       bottomNavigationBar: _isOutflow && _balanceStream != null
           ? StreamBuilder<double>(

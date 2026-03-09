@@ -110,7 +110,9 @@ class AccountDetailsSheet extends StatelessWidget {
               Text(
                 'Account Code: ${account.code}',
                 style: TextStyle(
-                  color: isArchived ? Colors.grey.shade400 : Colors.blueGrey,
+                  color: isArchived
+                      ? colorScheme.onSurfaceVariant
+                      : colorScheme.onSurfaceVariant,
                   fontFamily: 'monospace',
                   fontWeight: FontWeight.bold,
                 ),

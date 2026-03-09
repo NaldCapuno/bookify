@@ -247,8 +247,8 @@ class _AddAccountFormState extends State<AddAccountForm> {
                                       ? Icons.check_circle
                                       : Icons.cancel,
                                   color: _isCodeAvailable!
-                                      ? Colors.green
-                                      : Colors.red,
+                                      ? Theme.of(context).colorScheme.primary
+                                      : Theme.of(context).colorScheme.error,
                                 )),
                   ),
                   validator: (val) {

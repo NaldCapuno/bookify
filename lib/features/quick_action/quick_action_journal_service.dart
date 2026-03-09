@@ -103,7 +103,8 @@ class QuickActionAccounts {
   static const int transportationExpense = 613;
   static const int suppliesExpense = 610;
   static const int salariesAndWagesExpense = 601;
-  static const int salesTaxExpense = 510;
+  static const int salesTaxExpense = 510; // legacy, no longer used in quick actions
+  static const int taxExpense = 622;
   static const int marketingExpense = 655;
   static const int bankFees = 621;
   static const int interestExpense = 701;

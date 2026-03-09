@@ -118,60 +118,116 @@ class _SettleOperationsViewState extends State<SettleOperationsView> {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
     return Scaffold(
-      backgroundColor: Colors.grey.shade50,
+      backgroundColor: scheme.surfaceContainerHighest,
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: scheme.surfaceContainerHighest,
         elevation: 0,
-        leading: const BackButton(color: Colors.black87),
-        title: const Text(
+        leading: BackButton(color: scheme.primary),
+        title: Text(
           SettleOperationsView._title,
-          style: TextStyle(color: Colors.black87, fontWeight: FontWeight.bold),
+          style: textTheme.headlineLarge?.copyWith(fontSize: 20) ??
+              TextStyle(color: scheme.onSurface, fontWeight: FontWeight.bold),
         ),
       ),
-      body: ListView(
-        padding: const EdgeInsets.all(20),
-        children: [
-          QuickActionAmountCard(
-            amountController: _amountController,
-            amountLabel: 'Amount',
-            balanceStream: _balanceStream,
-            balanceLabel: _balanceLabel,
-            checkInsufficient: true,
-            onAmountChanged: () => setState(() {}),
-          ),
-          StreamBuilder<double>(
-            stream: _balanceStream,
-            builder: (context, snap) {
-              final balance = snap.data ?? 0.0;
-              return InsufficientBalanceNotice(
-                amount: _currentAmount,
-                currentBalance: balance,
-                isOutflow: true,
-              );
-            },
-          ),
-          const SizedBox(height: 24),
-          const QuickActionSectionLabel('Expense Type'),
-          Row(
+      body: StreamBuilder<Map<int, double>>(
+        stream: appDb.ledgerDao.watchBalancesForAccountCodes({
+          QuickActionAccounts.cashOnHand,
+          QuickActionAccounts.cashInBank,
+        }),
+        builder: (context, snap) {
+          final balances = snap.data ?? {
+            QuickActionAccounts.cashOnHand: 0.0,
+            QuickActionAccounts.cashInBank: 0.0,
+          };
+          final before = _paymentMethod == 'cash'
+              ? (balances[QuickActionAccounts.cashOnHand] ?? 0.0)
+              : (balances[QuickActionAccounts.cashInBank] ?? 0.0);
+          final amount = parseAmount(_amountController);
+          final after = before - amount;
+
+          return ListView(
+            padding: const EdgeInsets.all(20),
             children: [
-              Expanded(child: _ExpenseChip('Rent', 'rent', _expenseType, () => setState(() => _expenseType = 'rent'))),
-              const SizedBox(width: 6),
-              Expanded(child: _ExpenseChip('Utilities', 'utilities', _expenseType, () => setState(() => _expenseType = 'utilities'))),
-              const SizedBox(width: 6),
-              Expanded(child: _ExpenseChip('Transportation', 'transportation', _expenseType, () => setState(() => _expenseType = 'transportation'))),
+              BeforeAfterBalanceHeader(
+                label: _paymentMethod == 'cash' ? 'Cash balance' : 'Bank balance',
+                before: before,
+                after: after,
+              ),
+              const SizedBox(height: 16),
+              QuickActionAmountCard(
+                amountController: _amountController,
+                amountLabel: 'Amount',
+                balanceStream: _balanceStream,
+                balanceLabel: _balanceLabel,
+                checkInsufficient: true,
+                onAmountChanged: () => setState(() {}),
+              ),
+              StreamBuilder<double>(
+                stream: _balanceStream,
+                builder: (context, snap) {
+                  final balance = snap.data ?? 0.0;
+                  return InsufficientBalanceNotice(
+                    amount: _currentAmount,
+                    currentBalance: balance,
+                    isOutflow: true,
+                  );
+                },
+              ),
+              const SizedBox(height: 24),
+              const QuickActionSectionLabel('Expense Type'),
+              Row(
+                children: [
+                  Expanded(
+                    child: _ExpenseChip(
+                      'Rent',
+                      'rent',
+                      _expenseType,
+                      () => setState(() => _expenseType = 'rent'),
+                      accentColor: const Color(0xFF00838F), // Teal
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: _ExpenseChip(
+                      'Utilities',
+                      'utilities',
+                      _expenseType,
+                      () => setState(() => _expenseType = 'utilities'),
+                      accentColor: const Color(0xFFE65100), // Orange
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: _ExpenseChip(
+                      'Transportation',
+                      'transportation',
+                      _expenseType,
+                      () => setState(() => _expenseType = 'transportation'),
+                      accentColor: const Color(0xFF1976D2), // Blue
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 20),
+              const QuickActionSectionLabel('Paid via'),
+              CashBankChips(
+                value: _paymentMethod,
+                onChanged: (v) => setState(() => _paymentMethod = v),
+                cashBalance: balances[QuickActionAccounts.cashOnHand],
+                bankBalance: balances[QuickActionAccounts.cashInBank],
+              ),
+              const SizedBox(height: 24),
+              QuickActionDetailsCard(
+                descriptionController: _descController,
+                dateText: _dateController.text,
+                onDateTap: _pickDate,
+              ),
             ],
-          ),
-          const SizedBox(height: 20),
-          const QuickActionSectionLabel('Paid via'),
-          CashBankChips(value: _paymentMethod, onChanged: (v) => setState(() => _paymentMethod = v)),
-          const SizedBox(height: 24),
-          QuickActionDetailsCard(
-            descriptionController: _descController,
-            dateText: _dateController.text,
-            onDateTap: _pickDate,
-          ),
-        ],
+          );
+        },
       ),
       bottomNavigationBar: StreamBuilder<double>(
         stream: _balanceStream,
@@ -190,18 +246,20 @@ class _SettleOperationsViewState extends State<SettleOperationsView> {
 }
 
 class _ExpenseChip extends StatelessWidget {
-  const _ExpenseChip(this.label, this.value, this.selected, this.onTap);
+  const _ExpenseChip(this.label, this.value, this.selected, this.onTap, {required this.accentColor});
 
   final String label;
   final String value;
   final String selected;
   final VoidCallback onTap;
+  final Color accentColor;
 
   @override
   Widget build(BuildContext context) {
     final isSelected = selected == value;
+    final scheme = Theme.of(context).colorScheme;
     return Material(
-      color: isSelected ? const Color(0xFF2E7D32).withValues(alpha: 0.12) : Colors.white,
+      color: isSelected ? accentColor.withValues(alpha: 0.15) : scheme.surface,
       borderRadius: BorderRadius.circular(12),
       child: InkWell(
         onTap: onTap,
@@ -211,7 +269,7 @@ class _ExpenseChip extends StatelessWidget {
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(12),
             border: Border.all(
-              color: isSelected ? const Color(0xFF2E7D32) : Colors.grey.shade300,
+              color: isSelected ? accentColor : accentColor.withValues(alpha: 0.4),
               width: isSelected ? 1.5 : 1,
             ),
           ),
@@ -222,7 +280,7 @@ class _ExpenseChip extends StatelessWidget {
               style: TextStyle(
                 fontSize: 11,
                 fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                color: isSelected ? const Color(0xFF2E7D32) : Colors.grey.shade700,
+                color: isSelected ? accentColor : scheme.onSurfaceVariant,
               ),
             ),
           ),
