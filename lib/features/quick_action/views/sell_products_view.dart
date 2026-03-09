@@ -20,7 +20,10 @@ class _SellProductsViewState extends State<SellProductsView> {
   final _discountController = TextEditingController();
   final _cogsController = TextEditingController();
   final _descController = TextEditingController();
+
+  bool _giveDiscount = false;
   bool _isSaving = false;
+  double _currentInventory = 3000.0;
 
   @override
   void initState() {
@@ -39,11 +42,26 @@ class _SellProductsViewState extends State<SellProductsView> {
   }
 
   double get _sellingPrice => parseAmount(_sellingPriceController);
-  double get _discount {
-    final d = double.tryParse(_discountController.text.replaceAll(',', '').trim());
-    return d == null || d < 0 ? 0 : d;
+  double get _discount =>
+      _giveDiscount ? parseAmount(_discountController) : 0.0;
+  double get _totalAmount => (_sellingPrice - _discount);
+  double get _cogs => parseAmount(_cogsController);
+
+  String? get _activeError {
+    if (_cogs > 0 && _cogs > _currentInventory) {
+      return "You don't have enough stock for this sale.";
+    }
+    if (_giveDiscount && _discount > 0 && _discount > _sellingPrice) {
+      return "Discount is higher than the selling price.";
+    }
+    return null;
   }
-  double get _totalAmount => (_sellingPrice - _discount).clamp(0.0, double.infinity);
+
+  bool get _isValid =>
+      _activeError == null &&
+      _sellingPrice > 0 &&
+      _cogs > 0 &&
+      _descController.text.trim().isNotEmpty;
 
   Future<void> _pickDate() async {
     final picked = await showDatePicker(
@@ -62,24 +80,17 @@ class _SellProductsViewState extends State<SellProductsView> {
 
   Future<void> _save() async {
     final desc = _descController.text.trim();
-    final total = _sellingPrice;
-    final discount = _discount;
-    final cogs = parseAmount(_cogsController);
 
-    if (desc.isEmpty || total <= 0) {
+    if (desc.isEmpty || _sellingPrice <= 0 || _cogs <= 0) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('What was sold and selling price are required.')),
+        const SnackBar(
+          content: Text('Please fill in all details before saving.'),
+        ),
       );
       return;
     }
 
-    final netCash = total - discount;
-    if (netCash <= 0) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Discount cannot be equal to or exceed total amount.')),
-      );
-      return;
-    }
+    if (_activeError != null) return;
 
     int paymentAccountCode;
     switch (_selectedPaymentMethod) {
@@ -100,31 +111,31 @@ class _SellProductsViewState extends State<SellProductsView> {
       TemplateLine(
         accountCode: paymentAccountCode,
         isDebit: true,
-        amount: netCash,
+        amount: _totalAmount,
       ),
-      if (discount > 0)
+      if (_discount > 0)
         TemplateLine(
           accountCode: QuickActionAccounts.salesDiscounts,
           isDebit: true,
-          amount: discount,
+          amount: _discount,
         ),
       TemplateLine(
         accountCode: QuickActionAccounts.salesRevenue,
         isDebit: false,
-        amount: total,
+        amount: _sellingPrice,
       ),
-      if (cogs > 0)
+      if (_cogs > 0) ...[
         TemplateLine(
           accountCode: QuickActionAccounts.costOfGoodsSold,
           isDebit: true,
-          amount: cogs,
+          amount: _cogs,
         ),
-      if (cogs > 0)
         TemplateLine(
           accountCode: QuickActionAccounts.inventoryFinishedGoods,
           isDebit: false,
-          amount: cogs,
+          amount: _cogs,
         ),
+      ],
     ];
 
     setState(() => _isSaving = true);
@@ -137,11 +148,10 @@ class _SellProductsViewState extends State<SellProductsView> {
       );
       if (mounted) Navigator.pop(context, true);
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Failed to save entry. Please try again.')),
-        );
-      }
+      if (mounted)
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Failed to save.')));
     } finally {
       if (mounted) setState(() => _isSaving = false);
     }
@@ -149,183 +159,389 @@ class _SellProductsViewState extends State<SellProductsView> {
 
   @override
   Widget build(BuildContext context) {
-    final isCreditSale = _selectedPaymentMethod == 'credit';
     final scheme = Theme.of(context).colorScheme;
-    final textTheme = Theme.of(context).textTheme;
 
     return Scaffold(
-      backgroundColor: scheme.surfaceContainerHighest,
+      backgroundColor: scheme.surface,
+      resizeToAvoidBottomInset: false,
       appBar: AppBar(
-        backgroundColor: scheme.surfaceContainerHighest,
-        elevation: 0,
-        leading: BackButton(color: scheme.primary),
-        title: Text(
+        title: const Text(
           'Record Sale',
-          style: textTheme.headlineLarge?.copyWith(fontSize: 20) ??
-              TextStyle(color: scheme.onSurface, fontWeight: FontWeight.bold),
+          style: TextStyle(fontWeight: FontWeight.bold),
         ),
+        centerTitle: true,
       ),
-      body: ListView(
-        padding: const EdgeInsets.all(20),
+      body: Stack(
         children: [
-          StreamBuilder<double>(
-            stream: appDb.ledgerDao.watchBalanceForAccountCode(
-              QuickActionAccounts.inventoryFinishedGoods,
-            ),
-            builder: (context, snap) {
-              final balance = snap.data ?? 0.0;
-              final cogs = parseAmount(_cogsController);
-              final remaining = (balance - cogs).clamp(0.0, double.infinity);
-              return Container(
-                padding: const EdgeInsets.all(14),
-                margin: const EdgeInsets.only(bottom: 16),
-                decoration: BoxDecoration(
-                  color: scheme.surface,
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: scheme.outlineVariant),
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      'Total Finished Goods',
-                      style: TextStyle(
-                        fontSize: 13,
-                        color: scheme.onSurfaceVariant,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    Text(
-                      '${formatAmount(remaining)}',
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 15,
-                        color: cogs > balance ? scheme.error : null,
-                      ),
-                    ),
-                  ],
-                ),
-              );
-            },
-          ),
-          _buildExtraField(
-            context,
-            controller: _sellingPriceController,
-            label: 'Selling price',
-            icon: Icons.sell_outlined,
-            onChanged: () => setState(() {}),
-          ),
-          const SizedBox(height: 16),
-          _buildExtraField(
-            context,
-            controller: _discountController,
-            label: 'Is there a discount? (optional amount)',
-            icon: Icons.percent,
-            onChanged: () => setState(() {}),
-          ),
-          const SizedBox(height: 16),
-          Container(
-            padding: const EdgeInsets.all(14),
-            decoration: BoxDecoration(
-              color: scheme.surface,
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: scheme.outlineVariant),
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  'Total Amount',
-                  style: TextStyle(
-                    fontSize: 13,
-                    color: scheme.onSurfaceVariant,
-                    fontWeight: FontWeight.w600,
+          ListView(
+            padding: const EdgeInsets.fromLTRB(20, 16, 20, 320),
+            children: [
+              _buildHeroCard(scheme),
+              const SizedBox(height: 28),
+              _buildLabelledField(
+                "How much goods do you wish to sell?",
+                _cogsController,
+                icon: Icons.inventory_2_outlined,
+              ),
+              const SizedBox(height: 20),
+              _buildLabelledField(
+                "How much is the selling price?",
+                _sellingPriceController,
+                customIconText: "₱",
+                hideIconOnInput: false,
+              ),
+              const SizedBox(height: 24),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text(
+                    "Give discount to customer?",
+                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
                   ),
-                ),
-                Text(
-                  '${formatAmount(_totalAmount)}',
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 15,
-                  ),
+                  _buildObviousToggle(scheme),
+                ],
+              ),
+              if (_giveDiscount) ...[
+                const SizedBox(height: 20),
+                _buildLabelledField(
+                  "Discount Amount",
+                  _discountController,
+                  icon: Icons.local_offer_outlined,
+                  prefix: "₱",
                 ),
               ],
+              const SizedBox(height: 28),
+              const Text(
+                "Payment Method",
+                style: TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.grey,
+                ),
+              ),
+              const SizedBox(height: 12),
+              PaymentMethodChips(
+                value: _selectedPaymentMethod,
+                onChanged: (v) => setState(() => _selectedPaymentMethod = v),
+              ),
+              const SizedBox(height: 28),
+              _buildLabelledField(
+                "What did you sell?",
+                _descController,
+                icon: Icons.description_outlined,
+                isNumeric: false,
+                hint: "e.g. 5pcs Coffee Beans",
+              ),
+              const SizedBox(height: 28),
+              const Text(
+                "Date",
+                style: TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.grey,
+                ),
+              ),
+              const SizedBox(height: 8),
+              GestureDetector(
+                onTap: _pickDate,
+                child: AbsorbPointer(
+                  child: TextField(
+                    controller: _dateController,
+                    decoration: InputDecoration(
+                      prefixIcon: const Icon(Icons.calendar_month_outlined),
+                      filled: true,
+                      fillColor: scheme.surfaceContainerLow,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(16),
+                        borderSide: BorderSide.none,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          Align(
+            alignment: Alignment.bottomCenter,
+            child: _buildGracefulSheet(scheme),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildHeroCard(ColorScheme scheme) {
+    return StreamBuilder<double>(
+      stream: appDb.ledgerDao.watchBalanceForAccountCode(
+        QuickActionAccounts.inventoryFinishedGoods,
+      ),
+      builder: (context, snap) {
+        _currentInventory = snap.data ?? 3000.0;
+        return Container(
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [scheme.primary, scheme.primary.withOpacity(0.8)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            borderRadius: BorderRadius.circular(28),
+            boxShadow: [
+              BoxShadow(
+                color: scheme.primary.withOpacity(0.3),
+                blurRadius: 15,
+                offset: const Offset(0, 8),
+              ),
+            ],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'CURRENT INVENTORY',
+                style: TextStyle(
+                  color: scheme.onPrimary.withOpacity(0.7),
+                  letterSpacing: 1.2,
+                  fontSize: 11,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                '₱${formatAmount(_currentInventory)}',
+                style: TextStyle(
+                  color: scheme.onPrimary,
+                  fontSize: 34,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                'Worth of Finished Goods',
+                style: TextStyle(
+                  color: scheme.onPrimary.withOpacity(0.9),
+                  fontSize: 14,
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildObviousToggle(ColorScheme scheme) {
+    return Container(
+      decoration: BoxDecoration(
+        color: scheme.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: scheme.outlineVariant.withOpacity(0.5)),
+      ),
+      padding: const EdgeInsets.all(4),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _toggleBtn("No", !_giveDiscount, scheme),
+          _toggleBtn("Yes", _giveDiscount, scheme),
+        ],
+      ),
+    );
+  }
+
+  Widget _toggleBtn(String label, bool active, ColorScheme scheme) {
+    return GestureDetector(
+      onTap: () => setState(() => _giveDiscount = (label == "Yes")),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+        decoration: BoxDecoration(
+          color: active ? scheme.primary : Colors.transparent,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            fontSize: 14,
+            color: active
+                ? scheme.onPrimary
+                : scheme.onSurfaceVariant.withOpacity(0.6),
+            fontWeight: active ? FontWeight.bold : FontWeight.normal,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildLabelledField(
+    String label,
+    TextEditingController controller, {
+    IconData? icon,
+    String? customIconText,
+    bool isNumeric = true,
+    String? prefix,
+    String? hint,
+    bool hideIconOnInput = false,
+  }) {
+    final scheme = Theme.of(context).colorScheme;
+    final hasInput = controller.text.isNotEmpty;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(left: 4, bottom: 8),
+          child: Text(
+            label,
+            style: const TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.bold,
+              color: Colors.grey,
             ),
           ),
-          const SizedBox(height: 16),
-          _buildExtraField(
-            context,
-            controller: _cogsController,
-            label: 'Total value of goods sold (COGS)',
-            icon: Icons.inventory_2_outlined,
-            onChanged: () => setState(() {}),
+        ),
+        TextField(
+          controller: controller,
+          onChanged: (_) => setState(() {}),
+          keyboardType: isNumeric
+              ? const TextInputType.numberWithOptions(decimal: true)
+              : TextInputType.text,
+          style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
+          decoration: InputDecoration(
+            prefixIcon: (hideIconOnInput && hasInput)
+                ? null
+                : (customIconText != null
+                      ? Container(
+                          width: 48,
+                          alignment: Alignment.center,
+                          child: Text(
+                            customIconText,
+                            style: TextStyle(
+                              fontSize: 20,
+                              color: scheme.primary,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        )
+                      : Icon(icon, size: 20, color: scheme.primary)),
+            prefixText: prefix != null ? "$prefix " : null,
+            prefixStyle: TextStyle(
+              color: scheme.primary,
+              fontWeight: FontWeight.bold,
+            ),
+            hintText: hint,
+            filled: true,
+            fillColor: scheme.surfaceContainerLow,
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(18),
+              borderSide: BorderSide.none,
+            ),
+            contentPadding: const EdgeInsets.all(18),
           ),
-          const SizedBox(height: 24),
-          const QuickActionSectionLabel('Payment Method'),
-          PaymentMethodChips(
-            value: _selectedPaymentMethod,
-            onChanged: (v) => setState(() => _selectedPaymentMethod = v),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildGracefulSheet(ColorScheme scheme) {
+    final activeError = _activeError;
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.fromLTRB(28, 20, 28, 12),
+      decoration: BoxDecoration(
+        color: scheme.surfaceContainerHigh,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(40)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.1),
+            blurRadius: 20,
+            offset: const Offset(0, -5),
           ),
-          if (isCreditSale)
-            Padding(
-              padding: const EdgeInsets.only(top: 12),
+        ],
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (activeError != null)
+            Container(
+              margin: const EdgeInsets.only(bottom: 12),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              decoration: BoxDecoration(
+                color: scheme.errorContainer.withOpacity(0.4),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: scheme.error.withOpacity(0.3)),
+              ),
               child: Row(
                 children: [
-                  Icon(Icons.info_outline, size: 18, color: context.warning),
-                  const SizedBox(width: 8),
+                  Icon(
+                    Icons.error_outline_rounded,
+                    color: scheme.error,
+                    size: 20,
+                  ),
+                  const SizedBox(width: 12),
                   Expanded(
                     child: Text(
-                      'This will be recorded as an Account Receivable.',
-                      style: TextStyle(color: context.warning, fontSize: 13),
+                      activeError,
+                      style: TextStyle(
+                        color: scheme.onErrorContainer,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w500,
+                      ),
                     ),
                   ),
                 ],
               ),
             ),
-          const SizedBox(height: 24),
-          QuickActionDetailsCard(
-            descriptionController: _descController,
-            dateText: _dateController.text,
-            onDateTap: _pickDate,
-            descriptionLabel: 'What was sold?',
-            descriptionHint: 'e.g. product name, quantity sold, discount if any',
+          _summaryLine("Subtotal", _sellingPrice, scheme),
+          const SizedBox(height: 6),
+          _summaryLine("Discount", _discount, scheme, isNegative: true),
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: 12),
+            child: Divider(height: 1),
+          ),
+          _summaryLine("Total", _totalAmount, scheme, isBold: true),
+          const SizedBox(height: 12),
+          Padding(
+            padding: EdgeInsets.zero,
+            child: QuickActionSaveButton(
+              onPressed: (activeError != null) ? null : _save,
+              isSaving: _isSaving,
+              label: 'Save Transaction',
+            ),
           ),
         ],
-      ),
-      bottomNavigationBar: QuickActionSaveButton(
-        onPressed: _save,
-        isSaving: _isSaving,
-        label: 'Save Transaction',
       ),
     );
   }
 
-  Widget _buildExtraField(
-    BuildContext context, {
-    required TextEditingController controller,
-    required String label,
-    required IconData icon,
-    VoidCallback? onChanged,
+  Widget _summaryLine(
+    String label,
+    double amt,
+    ColorScheme scheme, {
+    bool isBold = false,
+    bool isNegative = false,
   }) {
-    final scheme = Theme.of(context).colorScheme;
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      decoration: BoxDecoration(
-        color: scheme.surface,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: scheme.outlineVariant),
-      ),
-      child: TextField(
-        controller: controller,
-        keyboardType: const TextInputType.numberWithOptions(decimal: true),
-        decoration: InputDecoration(
-          labelText: label,
-          prefixIcon: Icon(icon, color: scheme.onSurface),
-          border: const UnderlineInputBorder(),
-          contentPadding: const EdgeInsets.symmetric(vertical: 12),
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: isBold ? 18 : 15,
+            fontWeight: isBold ? FontWeight.bold : FontWeight.w500,
+          ),
         ),
-        onChanged: onChanged != null ? (_) => onChanged() : null,
-      ),
+        Text(
+          "${isNegative && amt > 0 ? '-' : ''}₱${formatAmount(amt.abs())}",
+          style: TextStyle(
+            fontSize: isBold ? 20 : 15,
+            fontWeight: isBold ? FontWeight.bold : FontWeight.w600,
+            color: isNegative && amt > 0
+                ? Colors.redAccent
+                : (isBold ? scheme.primary : null),
+          ),
+        ),
+      ],
     );
   }
 }
