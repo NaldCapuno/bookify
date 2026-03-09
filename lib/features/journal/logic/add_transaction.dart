@@ -749,24 +749,38 @@ class _AddJournalEntryFormState extends State<AddJournalEntryForm> {
 
   Widget _buildTableFooter() {
     final colorScheme = Theme.of(context).colorScheme;
+    
     bool isBalanced = (totalDebit - totalCredit).abs() < 0.01 && totalDebit > 0;
     double diff = (totalDebit - totalCredit).abs();
     bool hasAmounts = totalDebit > 0 || totalCredit > 0;
 
+    // Use our new theme extension
+    Color containerColor;
+    Color borderColor;
+    Color textColor;
+
+    if (!hasAmounts) {
+      containerColor = colorScheme.surfaceContainerHighest;
+      borderColor = colorScheme.outlineVariant;
+      textColor = colorScheme.onSurfaceVariant;
+    } else if (isBalanced) {
+      // Access the new success color from our theme extension
+      containerColor = context.success.withOpacity(0.12);
+      borderColor = context.success;
+      textColor = context.success;
+    } else {
+      // Use standard error colors from the scheme
+      containerColor = colorScheme.error.withOpacity(0.12);
+      borderColor = colorScheme.error;
+      textColor = colorScheme.error;
+    }
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: !hasAmounts
-            ? colorScheme.surfaceContainerHighest
-            : (isBalanced
-                  ? colorScheme.primaryContainer
-                  : colorScheme.errorContainer),
+        color: containerColor,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: !hasAmounts
-              ? colorScheme.outlineVariant
-              : (isBalanced ? colorScheme.primary : colorScheme.error),
-        ),
+        border: Border.all(color: borderColor, width: 1.2),
       ),
       child: Column(
         children: [
@@ -774,27 +788,37 @@ class _AddJournalEntryFormState extends State<AddJournalEntryForm> {
           const SizedBox(height: 8),
           _footerRow("Total Credit", totalCredit),
           if (hasAmounts) ...[
-            const Padding(
-              padding: EdgeInsets.symmetric(vertical: 12),
-              child: Divider(height: 1),
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              child: Divider(height: 1, color: borderColor.withOpacity(0.2)),
             ),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(
-                  isBalanced ? "Balanced" : "Out of Balance",
-                  style: TextStyle(
-                    color: isBalanced ? colorScheme.primary : colorScheme.error,
-                    fontWeight: FontWeight.bold,
-                  ),
+                Row(
+                  children: [
+                    Icon(
+                      isBalanced ? Icons.check_circle_rounded : Icons.error_outline_rounded,
+                      size: 20,
+                      color: textColor,
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      isBalanced ? "Balanced" : "Out of Balance",
+                      style: TextStyle(
+                        color: textColor,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
                 ),
                 if (!isBalanced)
                   Text(
                     "Diff: ₱ ${NumberFormat('#,##0.00').format(diff)}",
                     style: TextStyle(
-                      color: colorScheme.error,
+                      color: textColor,
                       fontSize: 13,
-                      fontWeight: FontWeight.w500,
+                      fontWeight: FontWeight.w900,
                     ),
                   ),
               ],

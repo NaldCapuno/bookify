@@ -3,12 +3,16 @@ import 'package:flutter/material.dart';
 /// Custom extension to add a 'warning' color slot to the theme.
 class AppColorsExtension extends ThemeExtension<AppColorsExtension> {
   final Color warning;
+  final Color success;
 
-  AppColorsExtension({required this.warning});
+  AppColorsExtension({required this.warning, required this.success});
 
   @override
   ThemeExtension<AppColorsExtension> copyWith({Color? warning}) {
-    return AppColorsExtension(warning: warning ?? this.warning);
+    return AppColorsExtension(
+      warning: warning ?? this.warning,
+      success: success ?? this.success,
+    );
   }
 
   @override
@@ -17,13 +21,16 @@ class AppColorsExtension extends ThemeExtension<AppColorsExtension> {
     double t,
   ) {
     if (other is! AppColorsExtension) return this;
-    return AppColorsExtension(warning: Color.lerp(warning, other.warning, t)!);
+    return AppColorsExtension(
+      warning: Color.lerp(warning, other.warning, t)!,
+      success: Color.lerp(success, other.success, t)!,
+    );
   }
 }
 
 extension ThemeColors on BuildContext {
-  Color get warning =>
-      Theme.of(this).extension<AppColorsExtension>()?.warning ?? Colors.orange;
+  Color get warning => Theme.of(this).extension<AppColorsExtension>()?.warning ?? Colors.orange;
+  Color get success => Theme.of(this).extension<AppColorsExtension>()?.success ?? Colors.green;
 }
 
 /// Central app theme. Use [AppTheme.light] and [AppTheme.dark] in MaterialApp.
@@ -146,6 +153,7 @@ class AppTheme {
       extensions: [
         AppColorsExtension(
           warning: isDark ? const Color(0xFFFFB74D) : const Color(0xFFF57C00),
+          success: isDark ? const Color(0xFF81C784) : const Color(0xFF2E7D32),
         ),
       ],
       textTheme: _textTheme(scheme),
