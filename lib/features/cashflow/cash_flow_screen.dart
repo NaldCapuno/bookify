@@ -22,6 +22,7 @@ class _CashFlowStatementScreenState extends State<CashFlowStatementScreen> {
   late DateTime _endDate;
 
   Future<CashFlowStatement>? _statementFuture;
+  User? _businessOwner;
 
   @override
   void initState() {
@@ -36,13 +37,16 @@ class _CashFlowStatementScreenState extends State<CashFlowStatementScreen> {
     _endDate = range.end;
   }
 
-  void _fetchReportData() {
+  Future<void> _fetchReportData() async {
+    final user = await appDb.select(appDb.users).getSingleOrNull();
+    final statementFuture = appDb.reportsDao.getCashFlowStatement(
+      startDate: _startDate,
+      endDate: _endDate,
+    );
+
     setState(() {
-      // Calls our newly created DAO method!
-      _statementFuture = appDb.reportsDao.getCashFlowStatement(
-        startDate: _startDate,
-        endDate: _endDate,
-      );
+      _businessOwner = user;
+      _statementFuture = statementFuture;
     });
   }
 
@@ -70,10 +74,10 @@ class _CashFlowStatementScreenState extends State<CashFlowStatementScreen> {
                   // --- REUSABLE CONTROL BAR ---
                   ReportControlBar(
                     selectedPeriod: _currentPeriod,
-                    currentData:
-                        reportData, // Passes data to the Download button
+                    currentData: reportData,
                     startDate: _startDate,
                     endDate: _endDate,
+                    businessOwner: _businessOwner, // Pass to Control Bar
                     onPeriodChanged: (newPeriod) {
                       setState(() {
                         _currentPeriod = newPeriod;
@@ -84,34 +88,48 @@ class _CashFlowStatementScreenState extends State<CashFlowStatementScreen> {
                   ),
                   const SizedBox(height: 30),
 
-                  // --- REPORT HEADER ---
-                  Text(
-                    reportData?.businessName ?? "Business Name",
-                    style: theme.textTheme.headlineMedium!.copyWith(
-                      color: theme.colorScheme.onSurface,
+                  // --- FORMAL REPORT HEADER ---
+                  if (_businessOwner != null) ...[
+                    Text(
+                      (_businessOwner!.username).toUpperCase(),
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w700,
+                        fontSize: 14,
+                      ),
                     ),
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 6),
-                  Text(
+                    Text(
+                      (_businessOwner!.business ?? 'BUSINESS NAME')
+                          .toUpperCase(),
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                      ),
+                    ),
+                    if (_businessOwner!.businessAddress != null &&
+                        _businessOwner!.businessAddress!.isNotEmpty)
+                      Text(
+                        _businessOwner!.businessAddress!,
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(fontSize: 13),
+                      ),
+                    const SizedBox(height: 16),
+                  ],
+
+                  const Text(
                     "STATEMENT OF CASH FLOWS",
-                    style: theme.textTheme.bodySmall!.copyWith(
-                      fontWeight: FontWeight.w600,
-                      letterSpacing: 1.2,
-                      color: theme.colorScheme.onSurfaceVariant,
-                    ),
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 4),
                   Text(
                     "For the Period: ${dateFormat.format(_startDate)} - ${dateFormat.format(_endDate)}",
-                    style: theme.textTheme.bodyMedium!.copyWith(
-                      fontSize: 13,
-                      color: theme.colorScheme.onSurfaceVariant,
-                    ),
+                    style: const TextStyle(fontSize: 13),
                   ),
-                  const SizedBox(height: 20),
-                  Divider(color: theme.colorScheme.outlineVariant),
-                  const SizedBox(height: 20),
+
+                  const SizedBox(height: 24),
+                  const Divider(color: Colors.black, thickness: 1.5),
+                  const SizedBox(height: 16),
 
                   // --- DYNAMIC CONTENT ---
                   if (snapshot.connectionState == ConnectionState.waiting)

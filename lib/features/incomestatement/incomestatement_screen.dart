@@ -19,12 +19,13 @@ class _IncomeStatementScreenState extends State<IncomeStatementScreen> {
   late DateTime _startDate;
   late DateTime _endDate;
   Future<IncomeStatement>? _statementFuture;
+  User? _businessOwner;
 
   @override
   void initState() {
     super.initState();
     _updateDateRange(_currentPeriod);
-    _fetchReportData(); // Cleaned up init
+    _fetchReportData();
   }
 
   void _updateDateRange(ReportPeriod period) {
@@ -33,21 +34,31 @@ class _IncomeStatementScreenState extends State<IncomeStatementScreen> {
     _endDate = range.end;
   }
 
-  void _fetchReportData() {
+  Future<void> _fetchReportData() async {
+    // 1. Fetch the user profile for the formal header
+    final user = await appDb.select(appDb.users).getSingleOrNull();
+
+    // 2. Fetch the report data
+    final statementFuture = appDb.reportsDao.getIncomeStatement(
+      startDate: _startDate,
+      endDate: _endDate,
+    );
+
     setState(() {
-      // FIX: Removed businessName parameter as it is now handled internally by ReportsDao
-      _statementFuture = appDb.reportsDao.getIncomeStatement(
-        startDate: _startDate,
-        endDate: _endDate,
-      );
+      _businessOwner = user;
+      _statementFuture = statementFuture;
     });
   }
 
   @override
   Widget build(BuildContext context) {
-    final dateFormat = DateFormat('MMMM dd, yyyy');
-
     final theme = Theme.of(context);
+
+    // Format to match "For the Year Ended December 31, 2021"
+    final String periodLabel = _currentPeriod == ReportPeriod.yearly
+        ? "For the Year Ended ${DateFormat('MMMM dd, yyyy').format(_endDate)}"
+        : "For the Period Ended ${DateFormat('MMMM dd, yyyy').format(_endDate)}";
+
     return Scaffold(
       appBar: const CustomAppBar(
         title: "Income Statement",
@@ -67,6 +78,7 @@ class _IncomeStatementScreenState extends State<IncomeStatementScreen> {
                   ReportControlBar(
                     selectedPeriod: _currentPeriod,
                     currentData: reportData,
+                    businessOwner: _businessOwner, // <-- ADD THIS LINE
                     onPeriodChanged: (newPeriod) {
                       setState(() {
                         _currentPeriod = newPeriod;
@@ -77,32 +89,43 @@ class _IncomeStatementScreenState extends State<IncomeStatementScreen> {
                   ),
                   const SizedBox(height: 40),
 
-                  // --- REPORT HEADER ---
-                  Text(
-                    reportData?.businessName ?? "Business Name",
-                    style: theme.textTheme.headlineMedium!.copyWith(
-                      color: theme.colorScheme.onSurface,
+                  // --- FORMAL REPORT HEADER ---
+                  if (_businessOwner != null) ...[
+                    Text(
+                      (_businessOwner!.username).toUpperCase(),
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w700,
+                        fontSize: 14,
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 6),
-                  Text(
-                    "INCOME STATEMENT",
-                    style: theme.textTheme.bodySmall!.copyWith(
-                      fontWeight: FontWeight.w600,
-                      letterSpacing: 1.2,
-                      color: theme.colorScheme.onSurfaceVariant,
+                    Text(
+                      (_businessOwner!.business ?? 'BUSINESS NAME')
+                          .toUpperCase(),
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    "For the Period: ${dateFormat.format(_startDate)} - ${dateFormat.format(_endDate)}",
-                    style: theme.textTheme.bodyMedium!.copyWith(
-                      fontSize: 13,
-                      color: theme.colorScheme.onSurfaceVariant,
+                    Text(
+                      _businessOwner!.businessAddress ?? '',
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(fontSize: 13),
                     ),
+                    const SizedBox(height: 16),
+                  ],
+
+                  const Text(
+                    "STATEMENT OF INCOME",
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
                   ),
-                  const SizedBox(height: 20),
-                  Divider(color: theme.colorScheme.outlineVariant),
+                  const SizedBox(height: 4),
+                  Text(periodLabel, style: const TextStyle(fontSize: 13)),
+
+                  const SizedBox(height: 24),
+                  const Divider(color: Colors.black, thickness: 1.5),
+                  const SizedBox(height: 16),
 
                   // --- DYNAMIC CONTENT ---
                   if (snapshot.connectionState == ConnectionState.waiting)
@@ -118,7 +141,7 @@ class _IncomeStatementScreenState extends State<IncomeStatementScreen> {
                   else if (reportData != null)
                     Center(
                       child: ConstrainedBox(
-                        constraints: const BoxConstraints(maxWidth: 600),
+                        constraints: const BoxConstraints(maxWidth: 700),
                         child: IncomeStatementCard(data: reportData),
                       ),
                     )

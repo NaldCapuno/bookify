@@ -9,6 +9,7 @@ import 'package:bookkeeping/features/incomestatement/income_statement.dart';
 class PdfExportService {
   static final dateFormat = DateFormat('MMMM dd, yyyy');
 
+  // Used for Balance Sheet & Cash Flow
   static String _formatAccounting(double amount, {bool showSymbol = false}) {
     if (amount == 0 && !showSymbol) return '-';
     final formatter = NumberFormat('#,##0', 'en_US');
@@ -18,16 +19,39 @@ class PdfExportService {
     return formatted;
   }
 
+  // Strict formatter for Income Statement (with .00 decimals)
+  static String _formatFormalAccounting(double val) {
+    if (val == 0) return '-';
+    final formatter = NumberFormat('#,##0.00', 'en_US');
+    String formatted = formatter.format(val.abs());
+    return val < 0 ? '($formatted)' : formatted;
+  }
+
+  static double _sumList(List items) {
+    return items.fold(0.0, (sum, item) => sum + (item.amount as double));
+  }
+
   // ==========================================
   // --- INCOME STATEMENT EXPORT ---
   // ==========================================
-  static Future<void> exportIncomeStatement(IncomeStatement data) async {
-    final allExpenses = [
-      ...data.costOfSales,
-      ...data.operatingExpenses,
-      ...data.otherExpenses,
-      ...data.taxExpenses,
-    ];
+  static Future<void> exportIncomeStatement(
+    IncomeStatement data, {
+    String ownerName = '',
+    String address = '',
+    bool isYearly = true,
+  }) async {
+    final double totalRevenue = _sumList(data.revenues);
+    final double costOfSales = _sumList(data.costOfSales);
+    final double grossIncome = totalRevenue - costOfSales;
+    final double operatingExpenses =
+        _sumList(data.operatingExpenses) + _sumList(data.otherExpenses);
+    final double netIncomeLoss = grossIncome - operatingExpenses;
+    final double taxProvision = _sumList(data.taxExpenses);
+    final double netIncomeAfterTax = netIncomeLoss - taxProvision;
+
+    final periodLabel = isYearly
+        ? "For the Year Ended ${dateFormat.format(data.periodEnd)}"
+        : "For the Period Ended ${dateFormat.format(data.periodEnd)}";
 
     await Printing.layoutPdf(
       onLayout: (PdfPageFormat format) async {
@@ -35,62 +59,62 @@ class PdfExportService {
         pdf.addPage(
           pw.MultiPage(
             pageFormat: format,
-            margin: const pw.EdgeInsets.all(40),
+            margin: const pw.EdgeInsets.all(50),
             build: (pw.Context context) => [
               _buildReportHeader(
-                data.businessName,
-                "INCOME STATEMENT",
-                data.periodStart,
-                data.periodEnd,
+                ownerName: ownerName,
+                biz: data.businessName,
+                address: address,
+                title: "STATEMENT OF INCOME",
+                periodLabel: periodLabel,
               ),
-              pw.Text(
-                "Revenues",
-                style: pw.TextStyle(
-                  fontWeight: pw.FontWeight.bold,
-                  fontSize: 12,
-                ),
-              ),
-              pw.SizedBox(height: 4),
-              ...data.revenues.map(
-                (item) => _buildFinancialRow(
-                  label: item.name,
-                  amount: _formatAccounting(item.amount),
-                  indent: 20,
-                ),
-              ),
-              _buildFinancialRow(
-                label: "Total Revenues:",
-                amount: _formatAccounting(data.totalRevenue, showSymbol: true),
+              pw.SizedBox(height: 10),
+              _buildFormalRow(
+                label: "REVENUE",
+                amount: totalRevenue,
                 isBold: true,
-                hasTopBorder: true,
+                showCurrencySymbol: true,
               ),
-              pw.SizedBox(height: 20),
-              pw.Text(
-                "Expenses",
-                style: pw.TextStyle(
-                  fontWeight: pw.FontWeight.bold,
-                  fontSize: 12,
-                ),
+              pw.SizedBox(height: 12),
+              _buildFormalRow(
+                label: "LESS: COST OF SALES",
+                amount: costOfSales,
+                isUnderlined: true,
               ),
-              pw.SizedBox(height: 4),
-              ...allExpenses.map(
-                (item) => _buildFinancialRow(
-                  label: item.name,
-                  amount: _formatAccounting(item.amount),
-                  indent: 20,
-                ),
-              ),
-              _buildFinancialRow(
-                label: "Total Expenses:",
-                amount: _formatAccounting(data.totalExpenses),
+              pw.SizedBox(height: 12),
+              _buildFormalRow(
+                label: "GROSS INCOME",
+                amount: grossIncome,
+                showCurrencySymbol: true,
                 isBold: true,
-                hasTopBorder: true,
               ),
-              pw.SizedBox(height: 16),
-              _buildFinancialRow(
-                label: data.netIncomeLabel,
-                amount: _formatAccounting(data.netIncome, showSymbol: true),
-                isGrandTotal: true,
+              pw.SizedBox(height: 12),
+              _buildFormalRow(
+                label: "LESS: OPERATING EXPENSES",
+                amount: operatingExpenses,
+                isUnderlined: true,
+              ),
+              pw.SizedBox(height: 12),
+              _buildFormalRow(
+                label: "NET INCOME/(LOSS)",
+                amount: netIncomeLoss,
+                showCurrencySymbol: true,
+                isBold: true,
+                isUnderlined: true,
+              ),
+              pw.SizedBox(height: 12),
+              _buildFormalRow(
+                label: "LESS: PROVISION FOR INCOME TAX",
+                amount: taxProvision,
+                isUnderlined: true,
+              ),
+              pw.SizedBox(height: 12),
+              _buildFormalRow(
+                label: "NET INCOME AFTER INCOME TAX",
+                amount: netIncomeAfterTax,
+                showCurrencySymbol: true,
+                isBold: true,
+                isDoubleUnderlined: true,
               ),
             ],
           ),
@@ -101,13 +125,15 @@ class PdfExportService {
   }
 
   // ==========================================
-  // --- BALANCE SHEET EXPORT (FIXED) ---
+  // --- BALANCE SHEET EXPORT ---
   // ==========================================
   static Future<void> exportBalanceSheet(
     BalanceSheet data,
     DateTime start,
-    DateTime end,
-  ) async {
+    DateTime end, {
+    String ownerName = '',
+    String address = '',
+  }) async {
     await Printing.layoutPdf(
       onLayout: (PdfPageFormat format) async {
         final pdf = pw.Document();
@@ -117,10 +143,11 @@ class PdfExportService {
             margin: const pw.EdgeInsets.all(40),
             build: (pw.Context context) => [
               _buildReportHeader(
-                data.businessName,
-                "BALANCE SHEET",
-                start,
-                end,
+                ownerName: ownerName,
+                biz: data.businessName,
+                address: address,
+                title: "BALANCE SHEET",
+                periodLabel: "As of ${dateFormat.format(end)}",
               ),
 
               // --- ASSETS SECTION ---
@@ -195,7 +222,6 @@ class PdfExportService {
               ),
               pw.SizedBox(height: 10),
 
-              // Fixed mapping for Current Liabilities
               if (data.currentLiabilities.isNotEmpty) ...[
                 pw.Text(
                   "Current Liabilities",
@@ -216,10 +242,7 @@ class PdfExportService {
                   hasTopBorder: true,
                 ),
               ],
-
               pw.SizedBox(height: 10),
-
-              // Fixed mapping for Non-Current Liabilities
               if (data.nonCurrentLiabilities.isNotEmpty) ...[
                 pw.Text(
                   "Long-term Liabilities",
@@ -240,7 +263,6 @@ class PdfExportService {
                   hasTopBorder: true,
                 ),
               ],
-
               _buildFinancialRow(
                 label: "Total Liabilities",
                 amount: _formatAccounting(data.totalLiabilities),
@@ -250,7 +272,6 @@ class PdfExportService {
 
               pw.SizedBox(height: 20),
 
-              // OWNER'S EQUITY (Updated format)
               pw.Text(
                 "Owner's Equity",
                 style: const pw.TextStyle(fontSize: 11),
@@ -293,7 +314,11 @@ class PdfExportService {
   // ==========================================
   // --- CASH FLOW EXPORT ---
   // ==========================================
-  static Future<void> exportCashFlowStatement(CashFlowStatement data) async {
+  static Future<void> exportCashFlowStatement(
+    CashFlowStatement data, {
+    String ownerName = '',
+    String address = '',
+  }) async {
     String flowLabel(String cat, double amt) =>
         amt >= 0 ? "NET CASH PROVIDED BY $cat" : "NET CASH USED IN $cat";
 
@@ -305,12 +330,13 @@ class PdfExportService {
             pageFormat: format,
             margin: const pw.EdgeInsets.all(40),
             build: (pw.Context context) => [
-              // 1. HEADER SECTION
               _buildReportHeader(
-                data.businessName,
-                "STATEMENT OF CASH FLOWS",
-                data.startDate,
-                data.endDate,
+                ownerName: ownerName,
+                biz: data.businessName,
+                address: address,
+                title: "STATEMENT OF CASH FLOWS",
+                periodLabel:
+                    "For the Period: ${dateFormat.format(data.startDate)} - ${dateFormat.format(data.endDate)}",
               ),
 
               // 2. OPERATING ACTIVITIES
@@ -332,14 +358,12 @@ class PdfExportService {
                   style: const pw.TextStyle(fontSize: 9),
                 ),
               ),
-
               if (data.depreciationExpense > 0)
                 _buildFinancialRow(
                   label: "Depreciation on fixed assets",
                   amount: _formatAccounting(data.depreciationExpense),
                   indent: 32,
                 ),
-
               ...data.operatingAssetChanges
                   .map(
                     (item) => _buildFinancialRow(
@@ -349,7 +373,6 @@ class PdfExportService {
                     ),
                   )
                   .toList(),
-
               ...data.operatingLiabilityChanges
                   .map(
                     (item) => _buildFinancialRow(
@@ -359,7 +382,6 @@ class PdfExportService {
                     ),
                   )
                   .toList(),
-
               _buildFinancialRow(
                 label: flowLabel(
                   "OPERATING ACTIVITIES",
@@ -367,9 +389,8 @@ class PdfExportService {
                 ),
                 amount: _formatAccounting(data.netCashFromOperating),
                 isBold: true,
-                hasTopBorder: true, // Matches the subtotal line in your image
+                hasTopBorder: true,
               ),
-
               pw.SizedBox(height: 15),
 
               // 3. INVESTING ACTIVITIES
@@ -389,7 +410,6 @@ class PdfExportService {
                     ),
                   )
                   .toList(),
-
               _buildFinancialRow(
                 label: flowLabel(
                   "INVESTING ACTIVITIES",
@@ -399,7 +419,6 @@ class PdfExportService {
                 isBold: true,
                 hasTopBorder: true,
               ),
-
               pw.SizedBox(height: 15),
 
               // 4. FINANCING ACTIVITIES
@@ -428,7 +447,6 @@ class PdfExportService {
                     ),
                   )
                   .toList(),
-
               _buildFinancialRow(
                 label: flowLabel(
                   "FINANCING ACTIVITIES",
@@ -438,7 +456,6 @@ class PdfExportService {
                 isBold: true,
                 hasTopBorder: true,
               ),
-
               pw.SizedBox(height: 15),
 
               // 5. SUMMARY RECONCILIATION
@@ -460,7 +477,7 @@ class PdfExportService {
                   data.endingCashBalance,
                   showSymbol: true,
                 ),
-                isGrandTotal: true, // Triggers bold + double underline
+                isGrandTotal: true,
               ),
             ],
           ),
@@ -469,54 +486,131 @@ class PdfExportService {
       },
     );
   }
+
   // ==========================================
   // --- SHARED HELPERS ---
   // ==========================================
 
-  static pw.Widget _buildReportHeader(
-    String biz,
-    String title,
-    DateTime start,
-    DateTime end,
-  ) {
+  static pw.Widget _buildReportHeader({
+    required String ownerName,
+    required String biz,
+    required String address,
+    required String title,
+    required String periodLabel,
+  }) {
     return pw.Column(
       children: [
+        if (ownerName.isNotEmpty)
+          pw.Center(
+            child: pw.Text(
+              ownerName.toUpperCase(),
+              style: pw.TextStyle(
+                fontSize: 11,
+                fontWeight: pw.FontWeight.bold,
+                color: PdfColor.fromHex('#000000'),
+              ),
+            ),
+          ),
         pw.Center(
           child: pw.Text(
-            biz,
+            biz.toUpperCase(),
             style: pw.TextStyle(
-              fontSize: 20,
+              fontSize: 12,
               fontWeight: pw.FontWeight.bold,
-              color: PdfColor.fromHex('#001F3F'),
+              color: PdfColor.fromHex('#000000'),
             ),
           ),
         ),
+        if (address.isNotEmpty)
+          pw.Center(
+            child: pw.Text(
+              address,
+              style: pw.TextStyle(
+                fontSize: 10,
+                color: PdfColor.fromHex('#000000'),
+              ),
+            ),
+          ),
+        pw.SizedBox(height: 12),
         pw.Center(
           child: pw.Text(
             title,
             style: pw.TextStyle(
-              fontSize: 12,
+              fontSize: 11,
               fontWeight: pw.FontWeight.bold,
-              color: PdfColor.fromHex('#6C757D'),
+              color: PdfColor.fromHex('#000000'),
             ),
           ),
         ),
         pw.Center(
           child: pw.Text(
-            "For the Period: ${dateFormat.format(start)} - ${dateFormat.format(end)}",
+            periodLabel,
             style: pw.TextStyle(
               fontSize: 10,
-              color: PdfColor.fromHex('#6C757D'),
+              color: PdfColor.fromHex('#000000'),
             ),
           ),
         ),
-        pw.SizedBox(height: 10),
-        pw.Divider(color: PdfColor.fromHex('#E0E0E0')),
+        pw.SizedBox(height: 15),
+        pw.Divider(thickness: 1.5, color: PdfColor.fromHex('#000000')),
         pw.SizedBox(height: 15),
       ],
     );
   }
 
+  // Row specifically for the strict Income Statement layout
+  static pw.Widget _buildFormalRow({
+    required String label,
+    required double amount,
+    bool showCurrencySymbol = false,
+    bool isUnderlined = false,
+    bool isDoubleUnderlined = false,
+    bool isBold = false,
+  }) {
+    final textStyle = pw.TextStyle(
+      fontWeight: isBold ? pw.FontWeight.bold : pw.FontWeight.normal,
+      fontSize: 10,
+    );
+
+    return pw.Row(
+      crossAxisAlignment: pw.CrossAxisAlignment.end,
+      children: [
+        pw.Expanded(child: pw.Text(label, style: textStyle)),
+        pw.Container(
+          width: 20,
+          child: pw.Text(
+            showCurrencySymbol ? 'P' : '',
+            style: textStyle,
+            textAlign: pw.TextAlign.right,
+          ),
+        ),
+        pw.SizedBox(width: 5),
+        pw.Container(
+          width: 80,
+          child: pw.Column(
+            crossAxisAlignment: pw.CrossAxisAlignment.end,
+            children: [
+              pw.Text(
+                _formatFormalAccounting(amount),
+                style: textStyle,
+                textAlign: pw.TextAlign.right,
+              ),
+              if (isUnderlined || isDoubleUnderlined) ...[
+                pw.SizedBox(height: 1.5),
+                pw.Container(height: 0.5, color: PdfColors.black),
+              ],
+              if (isDoubleUnderlined) ...[
+                pw.SizedBox(height: 1.5),
+                pw.Container(height: 0.5, color: PdfColors.black),
+              ],
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  // Original row used for Balance Sheet and Cash Flow
   static pw.Widget _buildFinancialRow({
     required String label,
     required String amount,
