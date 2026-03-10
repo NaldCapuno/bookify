@@ -103,11 +103,12 @@ class QuickActionAccounts {
   static const int transportationExpense = 613;
   static const int suppliesExpense = 610;
   static const int salariesAndWagesExpense = 601;
-  static const int salesTaxExpense = 510; // legacy, no longer used in quick actions
-  static const int taxExpense = 622;
-  static const int marketingExpense = 655;
-  static const int bankFees = 621;
-  static const int interestExpense = 701;
-  static const int miscellaneousExpense = 699;
+  static const int salesTaxExpense = 510; // legacy, not used in quick actions
+  // NOTE: Expense codes below must stay in sync with db_migration.dart seeds.
+  static const int marketingExpense = 620;      // Marketing Expense
+  static const int taxExpense = 630;            // Tax Expense
+  static const int bankFees = 635;              // Bank Fees
+  static const int miscellaneousExpense = 640;  // Miscellaneous Expense
+  static const int interestExpense = 645;       // Interest Expense
 }
 
