@@ -64,7 +64,7 @@ class _IncomeStatementScreenState extends State<IncomeStatementScreen> {
         title: "Income Statement",
         showBackButton: true,
       ),
-      backgroundColor: theme.colorScheme.surface,
+      backgroundColor: theme.colorScheme.surfaceContainerHighest,
       body: SafeArea(
         child: FutureBuilder<IncomeStatement>(
           future: _statementFuture,
@@ -72,7 +72,7 @@ class _IncomeStatementScreenState extends State<IncomeStatementScreen> {
             final reportData = snapshot.data;
 
             return SingleChildScrollView(
-              padding: const EdgeInsets.all(20.0),
+              padding: const EdgeInsets.all(24.0),
               child: Column(
                 children: [
                   ReportControlBar(
@@ -94,37 +94,55 @@ class _IncomeStatementScreenState extends State<IncomeStatementScreen> {
                     Text(
                       (_businessOwner!.username).toUpperCase(),
                       textAlign: TextAlign.center,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontWeight: FontWeight.w700,
                         fontSize: 14,
+                        color: theme.colorScheme.onSurface,
                       ),
                     ),
                     Text(
                       (_businessOwner!.business ?? 'BUSINESS NAME')
                           .toUpperCase(),
                       textAlign: TextAlign.center,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 16,
+                        color: theme.colorScheme.onSurface,
                       ),
                     ),
                     Text(
                       _businessOwner!.businessAddress ?? '',
                       textAlign: TextAlign.center,
-                      style: const TextStyle(fontSize: 13),
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: theme.colorScheme.onSurface,
+                      ),
                     ),
                     const SizedBox(height: 16),
                   ],
 
-                  const Text(
+                  Text(
                     "STATEMENT OF INCOME",
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 15,
+                      color: theme.colorScheme.onSurface,
+                    ),
                   ),
                   const SizedBox(height: 4),
-                  Text(periodLabel, style: const TextStyle(fontSize: 13)),
+                  Text(
+                    periodLabel,
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: theme.colorScheme.onSurface,
+                    ),
+                  ),
 
                   const SizedBox(height: 24),
-                  const Divider(color: Colors.black, thickness: 1.5),
+                  Divider(
+                    color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
+                    thickness: 1.5,
+                  ),
                   const SizedBox(height: 16),
 
                   // --- DYNAMIC CONTENT ---
@@ -136,7 +154,10 @@ class _IncomeStatementScreenState extends State<IncomeStatementScreen> {
                   else if (snapshot.hasError)
                     Padding(
                       padding: const EdgeInsets.only(top: 40.0),
-                      child: Text("Error: ${snapshot.error}"),
+                      child: Text(
+                        "Error: ${snapshot.error}",
+                        style: TextStyle(color: theme.colorScheme.onSurface),
+                      ),
                     )
                   else if (reportData != null)
                     Center(
@@ -146,9 +167,12 @@ class _IncomeStatementScreenState extends State<IncomeStatementScreen> {
                       ),
                     )
                   else
-                    const Padding(
-                      padding: EdgeInsets.only(top: 60.0),
-                      child: Text("No transactions recorded for this period."),
+                    Padding(
+                      padding: const EdgeInsets.only(top: 60.0),
+                      child: Text(
+                        "No transactions recorded for this period.",
+                        style: TextStyle(color: theme.colorScheme.onSurface),
+                      ),
                     ),
                 ],
               ),
