@@ -32,45 +32,50 @@ MigrationStrategy buildMigrationStrategy(AppDatabase db) {
       await db.batch((batch) {
         batch.insertAll(db.accounts, [
           // ASSETS
-          AccountsCompanion.insert(code: 101, name: 'Cash on Hand', categoryId: 11, isLocked: const Value(true), normalBalance: NormalBalance.debit),
-          AccountsCompanion.insert(code: 102, name: 'Cash in Bank', categoryId: 11, isLocked: const Value(true), normalBalance: NormalBalance.debit),
-          AccountsCompanion.insert(code: 110, name: 'Accounts Receivable', categoryId: 11, isLocked: const Value(true), normalBalance: NormalBalance.debit),
-          AccountsCompanion.insert(code: 120, name: 'Inventory - Raw Materials', categoryId: 11, isLocked: const Value(true), normalBalance: NormalBalance.debit),
-          AccountsCompanion.insert(code: 121, name: 'Inventory - Finished Goods', categoryId: 11, isLocked: const Value(true), normalBalance: NormalBalance.debit),
-          AccountsCompanion.insert(code: 130, name: 'Supplies', categoryId: 11, isLocked: const Value(true), normalBalance: NormalBalance.debit),
-          AccountsCompanion.insert(code: 150, name: 'Equipment', categoryId: 12, isLocked: const Value(true), normalBalance: NormalBalance.debit),
-          AccountsCompanion.insert(code: 160, name: 'Furniture and Fixtures', categoryId: 12, isLocked: const Value(true), normalBalance: NormalBalance.debit),
-          AccountsCompanion.insert(code: 170, name: 'Land', categoryId: 12, isLocked: const Value(true), normalBalance: NormalBalance.debit),
-          AccountsCompanion.insert(code: 171, name: 'Building', categoryId: 12, isLocked: const Value(true), normalBalance: NormalBalance.debit),
-          AccountsCompanion.insert(code: 172, name: 'Vehicle', categoryId: 12, isLocked: const Value(true), normalBalance: NormalBalance.debit),
-          AccountsCompanion.insert(code: 180, name: 'Accumulated Depreciation', categoryId: 12, isLocked: const Value(true), normalBalance: NormalBalance.credit),
+          AccountsCompanion.insert(code: 101, name: 'Cash on Hand', description: const Value('Physical cash, coins, and bills kept in the store or office.'), categoryId: 11, isLocked: const Value(true), normalBalance: NormalBalance.debit),
+          AccountsCompanion.insert(code: 102, name: 'Cash in Bank', description: const Value('Money stored safely in your business bank accounts.'), categoryId: 11, isLocked: const Value(true), normalBalance: NormalBalance.debit),
+          AccountsCompanion.insert(code: 110, name: 'Accounts Receivable', description: const Value('Money that customers owe you for goods or services they already received.'), categoryId: 11, isLocked: const Value(true), normalBalance: NormalBalance.debit),
+          AccountsCompanion.insert(code: 120, name: 'Inventory - Raw Materials', description: const Value('Unprocessed materials you bought to create your final products.'), categoryId: 11, isLocked: const Value(true), normalBalance: NormalBalance.debit),
+          AccountsCompanion.insert(code: 121, name: 'Inventory - Finished Goods', description: const Value('Completed products that are ready to be sold to customers.'), categoryId: 11, isLocked: const Value(true), normalBalance: NormalBalance.debit),
+          AccountsCompanion.insert(code: 130, name: 'Supplies', description: const Value('Everyday items like pens, paper, and tape used to run the business.'), categoryId: 11, isLocked: const Value(true), normalBalance: NormalBalance.debit),
+          AccountsCompanion.insert(code: 150, name: 'Equipment', description: const Value('Machines, computers, and tools used long-term for the business.'), categoryId: 12, isLocked: const Value(true), normalBalance: NormalBalance.debit),
+          AccountsCompanion.insert(code: 160, name: 'Furniture and Fixtures', description: const Value('Desks, chairs, shelves, and display cases used in your store or office.'), categoryId: 12, isLocked: const Value(true), normalBalance: NormalBalance.debit),
+          AccountsCompanion.insert(code: 170, name: 'Land', description: const Value('Property or lots owned by the business.'), categoryId: 12, isLocked: const Value(true), normalBalance: NormalBalance.debit),
+          AccountsCompanion.insert(code: 171, name: 'Building', description: const Value('Physical structures, offices, or warehouses owned by the business.'), categoryId: 12, isLocked: const Value(true), normalBalance: NormalBalance.debit),
+          AccountsCompanion.insert(code: 172, name: 'Vehicle', description: const Value('Cars, trucks, or motorcycles used for business deliveries and operations.'), categoryId: 12, isLocked: const Value(true), normalBalance: NormalBalance.debit),
+          AccountsCompanion.insert(code: 180, name: 'Accumulated Depreciation', description: const Value('The total value your long-term assets (like equipment) have lost over time.'), categoryId: 12, isLocked: const Value(true), normalBalance: NormalBalance.credit),
+          
           // LIABILITIES
-          AccountsCompanion.insert(code: 201, name: 'Accounts Payable', categoryId: 21, isLocked: const Value(true), normalBalance: NormalBalance.credit),
-          AccountsCompanion.insert(code: 230, name: 'Long-Term Loans', categoryId: 22, isLocked: const Value(true), normalBalance: NormalBalance.credit),
+          AccountsCompanion.insert(code: 201, name: 'Accounts Payable', description: const Value('Money you owe to suppliers or vendors for things you bought on credit.'), categoryId: 21, isLocked: const Value(true), normalBalance: NormalBalance.credit),
+          AccountsCompanion.insert(code: 230, name: 'Long-Term Loans', description: const Value('Money borrowed from banks or lenders that takes longer than a year to pay back.'), categoryId: 22, isLocked: const Value(true), normalBalance: NormalBalance.credit),
+          
           // CAPITAL
-          AccountsCompanion.insert(code: 310, name: 'Retained Earnings', categoryId: 31, isLocked: const Value(true), normalBalance: NormalBalance.credit),
-          AccountsCompanion.insert(code: 340, name: 'Owner\'s Capital', categoryId: 31, isLocked: const Value(true), normalBalance: NormalBalance.credit),
-          AccountsCompanion.insert(code: 341, name: 'Owner\'s Drawings', categoryId: 31, isLocked: const Value(true), normalBalance: NormalBalance.debit),
+          AccountsCompanion.insert(code: 310, name: 'Retained Earnings', description: const Value('Past profits that you kept in the business instead of taking out.'), categoryId: 31, isLocked: const Value(true), normalBalance: NormalBalance.credit),
+          AccountsCompanion.insert(code: 340, name: 'Owner\'s Capital', description: const Value('The personal money or assets you invested into the business.'), categoryId: 31, isLocked: const Value(true), normalBalance: NormalBalance.credit),
+          AccountsCompanion.insert(code: 341, name: 'Owner\'s Drawings', description: const Value('Money you withdrew from the business bank account for personal use.'), categoryId: 31, isLocked: const Value(true), normalBalance: NormalBalance.debit),
+          
           // INCOME
-          AccountsCompanion.insert(code: 401, name: 'Sales Revenue', categoryId: 41, isLocked: const Value(true), normalBalance: NormalBalance.credit),
-          AccountsCompanion.insert(code: 402, name: 'Sales Returns and Allowances', categoryId: 41, isLocked: const Value(true), normalBalance: NormalBalance.debit),
-          AccountsCompanion.insert(code: 403, name: 'Sales Discounts', categoryId: 41, isLocked: const Value(true), normalBalance: NormalBalance.debit),
+          AccountsCompanion.insert(code: 401, name: 'Sales Revenue', description: const Value('Income earned directly from selling your products or services.'), categoryId: 41, isLocked: const Value(true), normalBalance: NormalBalance.credit),
+          AccountsCompanion.insert(code: 402, name: 'Sales Returns and Allowances', description: const Value('Money refunded to customers for returning items or receiving damaged goods.'), categoryId: 41, isLocked: const Value(true), normalBalance: NormalBalance.debit),
+          AccountsCompanion.insert(code: 403, name: 'Sales Discounts', description: const Value('Discounts given to customers, often to encourage them to pay their bills early.'), categoryId: 41, isLocked: const Value(true), normalBalance: NormalBalance.debit),
+          
           // COST OF SALES
-          AccountsCompanion.insert(code: 501, name: 'Raw Materials Used', categoryId: 51, isLocked: const Value(true), normalBalance: NormalBalance.debit),
-          AccountsCompanion.insert(code: 502, name: 'Direct Labor', categoryId: 51, isLocked: const Value(true), normalBalance: NormalBalance.debit),
-          AccountsCompanion.insert(code: 520, name: 'Cost of Goods Sold (COGS)', categoryId: 51, isLocked: const Value(true), normalBalance: NormalBalance.debit),
+          AccountsCompanion.insert(code: 501, name: 'Raw Materials Used', description: const Value('The exact cost of the raw materials used up to create the goods you sold.'), categoryId: 51, isLocked: const Value(true), normalBalance: NormalBalance.debit),
+          AccountsCompanion.insert(code: 502, name: 'Direct Labor', description: const Value('The wages paid to workers who directly make your products or provide your services.'), categoryId: 51, isLocked: const Value(true), normalBalance: NormalBalance.debit),
+          AccountsCompanion.insert(code: 520, name: 'Cost of Goods Sold (COGS)', description: const Value('The total direct cost of producing the items you sold.'), categoryId: 51, isLocked: const Value(true), normalBalance: NormalBalance.debit),
+          
           // EXPENSES
-          AccountsCompanion.insert(code: 601, name: 'Salaries and Wages Expense', categoryId: 52, isLocked: const Value(true), normalBalance: NormalBalance.debit),
-          AccountsCompanion.insert(code: 610, name: 'Supplies Expense', categoryId: 52, isLocked: const Value(true), normalBalance: NormalBalance.debit),
-          AccountsCompanion.insert(code: 611, name: 'Utilities Expense', categoryId: 52, isLocked: const Value(true), normalBalance: NormalBalance.debit),
-          AccountsCompanion.insert(code: 612, name: 'Rent Expense', categoryId: 52, isLocked: const Value(true), normalBalance: NormalBalance.debit),
-          AccountsCompanion.insert(code: 613, name: 'Transportation Expense', categoryId: 52, isLocked: const Value(true), normalBalance: NormalBalance.debit),
-          AccountsCompanion.insert(code: 620, name: 'Marketing Expense', categoryId: 52, isLocked: const Value(true), normalBalance: NormalBalance.debit),
-          AccountsCompanion.insert(code: 625, name: 'Depreciation Expense', categoryId: 52, isLocked: const Value(true), normalBalance: NormalBalance.debit),
-          AccountsCompanion.insert(code: 630, name: 'Tax Expense', categoryId: 53, isLocked: const Value(true), normalBalance: NormalBalance.debit),
-          AccountsCompanion.insert(code: 635, name: 'Bank Fees', categoryId: 53, isLocked: const Value(true), normalBalance: NormalBalance.debit),
-          AccountsCompanion.insert(code: 640, name: 'Miscellaneous Expense', categoryId: 53, isLocked: const Value(true), normalBalance: NormalBalance.debit),
-          AccountsCompanion.insert(code: 645, name: 'Interest Expense', categoryId: 53, isLocked: const Value(true), normalBalance: NormalBalance.debit),
+          AccountsCompanion.insert(code: 601, name: 'Salaries and Wages Expense', description: const Value('Regular paychecks and wages given to your employees.'), categoryId: 52, isLocked: const Value(true), normalBalance: NormalBalance.debit),
+          AccountsCompanion.insert(code: 610, name: 'Supplies Expense', description: const Value('The value of everyday office or cleaning supplies that got used up.'), categoryId: 52, isLocked: const Value(true), normalBalance: NormalBalance.debit),
+          AccountsCompanion.insert(code: 611, name: 'Utilities Expense', description: const Value('Monthly bills for electricity, water, internet, and phone.'), categoryId: 52, isLocked: const Value(true), normalBalance: NormalBalance.debit),
+          AccountsCompanion.insert(code: 612, name: 'Rent Expense', description: const Value('Money paid to use an office, store, or equipment you do not own.'), categoryId: 52, isLocked: const Value(true), normalBalance: NormalBalance.debit),
+          AccountsCompanion.insert(code: 613, name: 'Transportation Expense', description: const Value('Costs for gas, fares, or delivery fees for business travel.'), categoryId: 52, isLocked: const Value(true), normalBalance: NormalBalance.debit),
+          AccountsCompanion.insert(code: 620, name: 'Marketing Expense', description: const Value('Money spent on ads, flyers, and promotions to get more customers.'), categoryId: 52, isLocked: const Value(true), normalBalance: NormalBalance.debit),
+          AccountsCompanion.insert(code: 625, name: 'Depreciation Expense', description: const Value('The portion of a long-term asset\'s value that was "used up" this year.'), categoryId: 52, isLocked: const Value(true), normalBalance: NormalBalance.debit),
+          AccountsCompanion.insert(code: 630, name: 'Tax Expense', description: const Value('Business taxes paid to the government.'), categoryId: 53, isLocked: const Value(true), normalBalance: NormalBalance.debit),
+          AccountsCompanion.insert(code: 635, name: 'Bank Fees', description: const Value('Charges from your bank for maintaining accounts or processing payments.'), categoryId: 53, isLocked: const Value(true), normalBalance: NormalBalance.debit),
+          AccountsCompanion.insert(code: 640, name: 'Miscellaneous Expense', description: const Value('Small, unexpected business costs that do not fit into other categories.'), categoryId: 53, isLocked: const Value(true), normalBalance: NormalBalance.debit),
+          AccountsCompanion.insert(code: 645, name: 'Interest Expense', description: const Value('Extra money paid to the bank on top of the original loan amount.'), categoryId: 53, isLocked: const Value(true), normalBalance: NormalBalance.debit),
         ]);
       });
 
@@ -88,7 +93,7 @@ MigrationStrategy buildMigrationStrategy(AppDatabase db) {
 
       // --- 4. DATA SEEDING TOGGLE ---
       // SET THIS TO FALSE IF YOU WANT TO SKIP JOURNAL SEEDING
-      const bool seedJournalEntries = true; 
+      const bool seedJournalEntries = false; 
 
       if (seedJournalEntries) {
         await _seedAllJournalData(db);
