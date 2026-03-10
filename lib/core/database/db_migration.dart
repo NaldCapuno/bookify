@@ -43,6 +43,7 @@ MigrationStrategy buildMigrationStrategy(AppDatabase db) {
           AccountsCompanion.insert(code: 170, name: 'Land', categoryId: 12, isLocked: const Value(true), normalBalance: NormalBalance.debit),
           AccountsCompanion.insert(code: 171, name: 'Building', categoryId: 12, isLocked: const Value(true), normalBalance: NormalBalance.debit),
           AccountsCompanion.insert(code: 172, name: 'Vehicle', categoryId: 12, isLocked: const Value(true), normalBalance: NormalBalance.debit),
+          AccountsCompanion.insert(code: 180, name: 'Accumulated Depreciation', categoryId: 12, isLocked: const Value(true), normalBalance: NormalBalance.credit),
           
           // LIABILITIES
           AccountsCompanion.insert(code: 201, name: 'Accounts Payable', categoryId: 21, isLocked: const Value(true), normalBalance: NormalBalance.credit),
@@ -70,7 +71,8 @@ MigrationStrategy buildMigrationStrategy(AppDatabase db) {
           AccountsCompanion.insert(code: 612, name: 'Rent Expense', categoryId: 52, isLocked: const Value(true), normalBalance: NormalBalance.debit),
           AccountsCompanion.insert(code: 613, name: 'Transportation Expense', categoryId: 52, isLocked: const Value(true), normalBalance: NormalBalance.debit),
           AccountsCompanion.insert(code: 620, name: 'Marketing Expense', categoryId: 52, isLocked: const Value(true), normalBalance: NormalBalance.debit),
-          AccountsCompanion.insert(code: 630, name: 'Tax Expense', categoryId: 52, isLocked: const Value(true), normalBalance: NormalBalance.debit),
+          AccountsCompanion.insert(code: 625, name: 'Depreciation Expense', categoryId: 52, isLocked: const Value(true), normalBalance: NormalBalance.debit),
+          AccountsCompanion.insert(code: 630, name: 'Tax Expense', categoryId: 53, isLocked: const Value(true), normalBalance: NormalBalance.debit),
           AccountsCompanion.insert(code: 635, name: 'Bank Fees', categoryId: 53, isLocked: const Value(true), normalBalance: NormalBalance.debit),
           AccountsCompanion.insert(code: 640, name: 'Miscellaneous Expense', categoryId: 53, isLocked: const Value(true), normalBalance: NormalBalance.debit),
           AccountsCompanion.insert(code: 645, name: 'Interest Expense', categoryId: 53, isLocked: const Value(true), normalBalance: NormalBalance.debit),
