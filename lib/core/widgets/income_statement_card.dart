@@ -116,10 +116,11 @@ class _FormalReportRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final color = Theme.of(context).colorScheme.onSurface;
     final textStyle = TextStyle(
       fontWeight: isBold ? FontWeight.bold : FontWeight.normal,
       fontSize: 13,
-      color: Colors.black87,
+      color: color,
     );
 
     return Row(
@@ -151,11 +152,11 @@ class _FormalReportRow extends StatelessWidget {
               ),
               if (isUnderlined || isDoubleUnderlined) ...[
                 const SizedBox(height: 2),
-                Container(height: 1, color: Colors.black87),
+                Container(height: 1, color: color),
               ],
               if (isDoubleUnderlined) ...[
                 const SizedBox(height: 2),
-                Container(height: 1, color: Colors.black87),
+                Container(height: 1, color: color),
               ],
             ],
           ),
