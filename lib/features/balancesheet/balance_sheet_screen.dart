@@ -22,6 +22,7 @@ class _BalanceSheetScreenState extends State<BalanceSheetScreen> {
   late DateTime _endDate;
 
   Future<BalanceSheet>? _reportFuture;
+  User? _businessOwner;
 
   @override
   void initState() {
@@ -36,10 +37,15 @@ class _BalanceSheetScreenState extends State<BalanceSheetScreen> {
     _endDate = range.end;
   }
 
-  void _fetchReport() {
+  Future<void> _fetchReport() async {
+    // Fetch user for the formal header
+    final user = await appDb.select(appDb.users).getSingleOrNull();
+    // The Balance Sheet displays the cumulative position "As of" the end date
+    final reportFuture = appDb.reportsDao.getBalanceSheet(date: _endDate);
+
     setState(() {
-      // The Balance Sheet displays the cumulative position "As of" the end date
-      _reportFuture = appDb.reportsDao.getBalanceSheet(date: _endDate);
+      _businessOwner = user;
+      _reportFuture = reportFuture;
     });
   }
 
@@ -66,6 +72,7 @@ class _BalanceSheetScreenState extends State<BalanceSheetScreen> {
                     currentData: report,
                     startDate: _startDate,
                     endDate: _endDate,
+                    businessOwner: _businessOwner, // Passes data to PDF Export
                     onPeriodChanged: (p) {
                       setState(() {
                         _currentPeriod = p;
@@ -76,33 +83,46 @@ class _BalanceSheetScreenState extends State<BalanceSheetScreen> {
                   ),
                   const SizedBox(height: 30),
 
-                  // --- HEADER SECTION ---
-                  Text(
-                    report?.businessName ?? "Business Name",
-                    style: theme.textTheme.headlineMedium!.copyWith(
-                      color: theme.colorScheme.onSurface,
+                  // --- FORMAL REPORT HEADER ---
+                  if (_businessOwner != null) ...[
+                    Text(
+                      (_businessOwner!.username).toUpperCase(),
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w700,
+                        fontSize: 14,
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 6),
-                  Text(
+                    Text(
+                      (_businessOwner!.business ?? 'BUSINESS NAME')
+                          .toUpperCase(),
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                      ),
+                    ),
+                    Text(
+                      _businessOwner!.businessAddress ?? '',
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(fontSize: 13),
+                    ),
+                    const SizedBox(height: 16),
+                  ],
+
+                  const Text(
                     "BALANCE SHEET",
-                    style: theme.textTheme.bodySmall!.copyWith(
-                      fontWeight: FontWeight.w600,
-                      letterSpacing: 1.2,
-                      color: theme.colorScheme.onSurfaceVariant,
-                    ),
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 4),
                   Text(
-                    "For the Period: ${dateFormat.format(_startDate)} - ${dateFormat.format(_endDate)}",
-                    style: theme.textTheme.bodyMedium!.copyWith(
-                      fontSize: 13,
-                      color: theme.colorScheme.onSurfaceVariant,
-                    ),
+                    "As of ${dateFormat.format(_endDate)}",
+                    style: const TextStyle(fontSize: 13),
                   ),
-                  const SizedBox(height: 20),
-                  Divider(color: theme.colorScheme.outlineVariant),
-                  const SizedBox(height: 20),
+
+                  const SizedBox(height: 24),
+                  const Divider(color: Colors.black, thickness: 1.5),
+                  const SizedBox(height: 16),
 
                   // --- DYNAMIC CONTENT ---
                   if (snapshot.connectionState == ConnectionState.waiting)

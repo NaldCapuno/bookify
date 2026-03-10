@@ -78,14 +78,16 @@ class ReportsDao extends DatabaseAccessor<AppDatabase> with _$ReportsDaoMixin {
       } else if (account.code >= 500 && account.code < 600) {
         costOfSales.add(item);
         totalExp += balance;
+      } else if (account.code == 630) {
+        // <-- ADD THIS SPECIFICALLY FOR TAX
+        taxExpenses.add(item);
+        totalExp += balance;
       } else if (account.code >= 600 && account.code < 700) {
+        // Now 630 is safely removed, the rest are operating expenses
         operatingExpenses.add(item);
         totalExp += balance;
       } else if (account.code >= 700 && account.code < 800) {
         otherExpenses.add(item);
-        totalExp += balance;
-      } else if (account.code >= 800 && account.code < 900) {
-        taxExpenses.add(item);
         totalExp += balance;
       }
     }

@@ -5,6 +5,7 @@ import 'package:bookkeeping/core/utils/date_utils.dart';
 import 'package:bookkeeping/core/utils/pdf_export_service.dart';
 import 'package:bookkeeping/features/incomestatement/income_statement.dart';
 import 'package:bookkeeping/features/balancesheet/balance_sheet.dart';
+import 'package:bookkeeping/core/database/app_database.dart'; // Added for User model
 
 class ReportControlBar extends StatelessWidget {
   final ReportPeriod selectedPeriod;
@@ -13,6 +14,9 @@ class ReportControlBar extends StatelessWidget {
   final DateTime? startDate;
   final DateTime? endDate;
 
+  // Add business owner to pass to PDF export
+  final User? businessOwner;
+
   const ReportControlBar({
     super.key,
     required this.selectedPeriod,
@@ -20,6 +24,7 @@ class ReportControlBar extends StatelessWidget {
     this.currentData,
     this.startDate,
     this.endDate,
+    this.businessOwner,
   });
 
   @override
@@ -47,7 +52,9 @@ class ReportControlBar extends StatelessWidget {
               border: Border.all(color: colorScheme.outlineVariant),
               boxShadow: [
                 BoxShadow(
-                  color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.05),
+                  color: Theme.of(
+                    context,
+                  ).colorScheme.onSurface.withValues(alpha: 0.05),
                   blurRadius: 2,
                   offset: const Offset(0, 1),
                 ),
@@ -90,29 +97,40 @@ class ReportControlBar extends StatelessWidget {
         // --- REVERTED DOWNLOAD BUTTON DESIGN ---
         OutlinedButton.icon(
           onPressed: () {
-            if (currentData is CashFlowStatement) {
-              PdfExportService.exportCashFlowStatement(currentData!);
+            if (currentData == null) {
+              AppToast.show(
+                context,
+                message: "No data available to download yet.",
+              );
+              return;
             }
-            if (currentData != null) {
-              if (currentData is IncomeStatement) {
-                PdfExportService.exportIncomeStatement(currentData!);
-              } else if (currentData is BalanceSheet) {
-                AppToast.show(context, message: "Cash Flow PDF Export coming soon!");
-                PdfExportService.exportBalanceSheet(
-                  currentData!,
-                  startDate ?? DateTime.now(),
-                  endDate ?? DateTime.now(),
-                );
-              } else if (currentData is BalanceSheet) {
-                // Pass the dates to the export service
-                PdfExportService.exportBalanceSheet(
-                  currentData!,
-                  startDate ?? DateTime.now(),
-                  endDate ?? DateTime.now(),
-                );
-              }
-            } else {
-              AppToast.show(context, message: "No data available to download yet.");
+
+            // Prepare header details
+            final ownerName = businessOwner?.username ?? '';
+            final address = businessOwner?.businessAddress ?? '';
+            final isYearly = selectedPeriod == ReportPeriod.yearly;
+
+            if (currentData is IncomeStatement) {
+              PdfExportService.exportIncomeStatement(
+                currentData!,
+                ownerName: ownerName,
+                address: address,
+                isYearly: isYearly,
+              );
+            } else if (currentData is BalanceSheet) {
+              PdfExportService.exportBalanceSheet(
+                currentData!,
+                startDate ?? DateTime.now(),
+                endDate ?? DateTime.now(),
+                ownerName: ownerName,
+                address: address,
+              );
+            } else if (currentData is CashFlowStatement) {
+              PdfExportService.exportCashFlowStatement(
+                currentData!,
+                ownerName: ownerName,
+                address: address,
+              );
             }
           },
           style: OutlinedButton.styleFrom(
