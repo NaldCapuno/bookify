@@ -129,7 +129,10 @@ class _CashFlowStatementScreenState extends State<CashFlowStatementScreen> {
                   ),
 
                   const SizedBox(height: 24),
-                  const Divider(color: Colors.black, thickness: 1.5),
+                  Divider(
+                    color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
+                    thickness: 1.5,
+                  ),
                   const SizedBox(height: 16),
 
                   // --- DYNAMIC CONTENT ---
