@@ -19,7 +19,9 @@ class AboutUsScreen extends StatelessWidget {
         showBackButton: true,
         onBackTap: () => Navigator.maybePop(context),
       ),
-      body: ListView(
+      body: SafeArea(
+        top: false,
+        child: ListView(
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
         children: [
           _buildLogoAndTitle(context),
@@ -72,6 +74,7 @@ class AboutUsScreen extends StatelessWidget {
           ),
           const SizedBox(height: 32),
         ],
+        ),
       ),
     );
   }

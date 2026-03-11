@@ -89,6 +89,7 @@ class _LedgerScreenState extends State<LedgerScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       body: SafeArea(
+        top: false,
         child: StreamBuilder<List<LedgerEntry>>(
           stream: appDb.ledgerDao.watchLedgerEntries(),
           builder: (context, snapshot) {

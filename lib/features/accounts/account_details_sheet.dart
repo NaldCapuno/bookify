@@ -1,3 +1,4 @@
+import 'package:bookkeeping/core/constants/app_insets.dart';
 import 'package:bookkeeping/core/database/app_database.dart';
 import 'package:bookkeeping/core/database/tables/accounts_table.dart';
 import 'package:bookkeeping/core/widgets/app_confirmation_sheet.dart';
@@ -30,10 +31,17 @@ class AccountDetailsSheet extends StatelessWidget {
     final Color tagColor = isDebit ? colorScheme.tertiary : warningColor;
     final bool isArchived = account.isArchived;
 
-    return Stack(
+    return SafeArea(
+      top: false,
+      child: Stack(
       children: [
         Container(
-          padding: const EdgeInsets.all(24),
+          padding: const EdgeInsets.fromLTRB(
+            AppInsets.formHorizontal,
+            AppInsets.formTop,
+            AppInsets.formHorizontal,
+            AppInsets.formBottom,
+          ),
           decoration: BoxDecoration(
             color: colorScheme.surface,
             borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
@@ -235,6 +243,7 @@ class AccountDetailsSheet extends StatelessWidget {
             ),
           ),
       ],
+    ),
     );
   }
 

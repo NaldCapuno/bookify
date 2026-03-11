@@ -244,9 +244,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: const CustomAppBar(title: 'Profile', showBackButton: true),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : SingleChildScrollView(
+      body: SafeArea(
+        top: false,
+        child: _isLoading
+            ? const Center(child: CircularProgressIndicator())
+            : SingleChildScrollView(
               padding: const EdgeInsets.all(16),
               child: Column(
                 children: [
@@ -320,6 +322,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ],
               ),
             ),
+        ),
     );
   }
 

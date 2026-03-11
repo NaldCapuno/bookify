@@ -101,7 +101,9 @@ class _FaqScreenState extends State<FaqScreen> {
         showBackButton: true,
         onBackTap: () => Navigator.maybePop(context),
       ),
-      body: ListView(
+      body: SafeArea(
+        top: false,
+        child: ListView(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         children: [
           Padding(
@@ -157,6 +159,7 @@ class _FaqScreenState extends State<FaqScreen> {
           }),
           const SizedBox(height: 24),
         ],
+        ),
       ),
     );
   }

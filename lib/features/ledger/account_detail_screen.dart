@@ -25,7 +25,9 @@ class AccountDetailScreen extends StatelessWidget {
           style: theme.textTheme.titleLarge,
         ),
       ),
-      body: StreamBuilder<List<TypedResult>>(
+      body: SafeArea(
+        top: false,
+        child: StreamBuilder<List<TypedResult>>(
         stream: appDb.ledgerDao.watchTransactionsForAccount(entry.account.id),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
@@ -191,6 +193,7 @@ class AccountDetailScreen extends StatelessWidget {
             ),
           );
         },
+        ),
       ),
     );
   }

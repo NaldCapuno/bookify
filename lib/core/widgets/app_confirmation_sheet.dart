@@ -1,3 +1,4 @@
+import 'package:bookkeeping/core/constants/app_insets.dart';
 import 'package:flutter/material.dart';
 
 class AppConfirmationSheet extends StatelessWidget {
@@ -21,8 +22,15 @@ class AppConfirmationSheet extends StatelessWidget {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
     final confirm = confirmColor ?? colorScheme.primary;
-    return Padding(
-      padding: const EdgeInsets.all(24.0),
+    return SafeArea(
+      top: false,
+      child: Padding(
+      padding: const EdgeInsets.fromLTRB(
+        AppInsets.formHorizontal,
+        AppInsets.formTop,
+        AppInsets.formHorizontal,
+        AppInsets.formBottom,
+      ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -83,6 +91,7 @@ class AppConfirmationSheet extends StatelessWidget {
           ),
         ],
       ),
+    ),
     );
   }
 }

@@ -62,6 +62,7 @@ class _CashFlowStatementScreenState extends State<CashFlowStatementScreen> {
       ),
       backgroundColor: theme.colorScheme.surfaceContainerHighest,
       body: SafeArea(
+        top: false,
         child: FutureBuilder<CashFlowStatement>(
           future: _statementFuture,
           builder: (context, snapshot) {

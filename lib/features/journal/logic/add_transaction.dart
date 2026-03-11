@@ -1,5 +1,6 @@
 // ignore_for_file: unused_field, unused_local_variable
 
+import 'package:bookkeeping/core/constants/app_insets.dart';
 import 'package:bookkeeping/core/database/app_database.dart';
 import 'package:bookkeeping/core/database/daos/journal_entry_daos.dart';
 import 'package:bookkeeping/core/database/tables/accounts_table.dart';
@@ -184,7 +185,9 @@ class _AddJournalEntryFormState extends State<AddJournalEntryForm> {
 
             final groupedData = groupAccounts(filteredAccounts);
 
-            return Padding(
+            return SafeArea(
+              top: false,
+              child: Padding(
               padding: EdgeInsets.only(
                 bottom: MediaQuery.of(context).viewInsets.bottom,
                 top: 20,
@@ -324,6 +327,7 @@ class _AddJournalEntryFormState extends State<AddJournalEntryForm> {
                   ],
                 ),
               ),
+            ),
             );
           },
         );
@@ -390,13 +394,17 @@ class _AddJournalEntryFormState extends State<AddJournalEntryForm> {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
+    final mediaQuery = MediaQuery.of(context);
+    final bottomPadding = mediaQuery.viewInsets.bottom + AppInsets.formBottom;
 
-    return Container(
+    return SafeArea(
+      top: false,
+      child: Container(
       padding: EdgeInsets.only(
         top: 40,
-        left: 20,
-        right: 20,
-        bottom: MediaQuery.of(context).viewInsets.bottom + 40,
+        left: AppInsets.formHorizontal,
+        right: AppInsets.formHorizontal,
+        bottom: bottomPadding,
       ),
       decoration: BoxDecoration(
         color: colorScheme.surface,
@@ -469,6 +477,7 @@ class _AddJournalEntryFormState extends State<AddJournalEntryForm> {
           ],
         ),
       ),
+    ),
     );
   }
 

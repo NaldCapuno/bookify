@@ -66,6 +66,7 @@ class _IncomeStatementScreenState extends State<IncomeStatementScreen> {
       ),
       backgroundColor: theme.colorScheme.surfaceContainerHighest,
       body: SafeArea(
+        top: false,
         child: FutureBuilder<IncomeStatement>(
           future: _statementFuture,
           builder: (context, snapshot) {

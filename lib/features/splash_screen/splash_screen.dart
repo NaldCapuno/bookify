@@ -47,10 +47,12 @@ class _SplashScreenState extends State<SplashScreen>
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFF0F172A),
-      body: Center(
+      body: SafeArea(
+        child: Center(
         child: CustomPaint(
           painter: TsekBooksPainter(_animation),
           size: const Size(300, 250),
+        ),
         ),
       ),
     );

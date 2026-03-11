@@ -15,7 +15,9 @@ class UserGuideScreen extends StatelessWidget {
         showBackButton: true,
         onBackTap: () => Navigator.maybePop(context),
       ),
-      body: ListView(
+      body: SafeArea(
+        top: false,
+        child: ListView(
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
         children: [
           Padding(
@@ -52,6 +54,7 @@ class UserGuideScreen extends StatelessWidget {
             ),
           ),
         ],
+        ),
       ),
     );
   }

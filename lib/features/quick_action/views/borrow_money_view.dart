@@ -109,7 +109,9 @@ class _BorrowMoneyViewState extends State<BorrowMoneyView> {
               TextStyle(color: scheme.onSurface, fontWeight: FontWeight.bold),
         ),
       ),
-      body: ListView(
+      body: SafeArea(
+        top: false,
+        child: ListView(
         padding: const EdgeInsets.all(20),
         children: [
           QuickActionAmountCard(
@@ -176,6 +178,7 @@ class _BorrowMoneyViewState extends State<BorrowMoneyView> {
             onDescriptionChanged: () => setState(() {}),
           ),
         ],
+      ),
       ),
       bottomNavigationBar: QuickActionSaveButton(
         onPressed: _save,

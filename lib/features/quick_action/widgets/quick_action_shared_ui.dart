@@ -1,3 +1,4 @@
+import 'package:bookkeeping/core/constants/app_insets.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
@@ -632,6 +633,7 @@ class QuickActionDetailsCard extends StatelessWidget {
 }
 
 /// Green full-width save button.
+/// Uses [AppInsets.formBottom] for consistent space below across all forms.
 class QuickActionSaveButton extends StatelessWidget {
   const QuickActionSaveButton({
     super.key,
@@ -648,8 +650,16 @@ class QuickActionSaveButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
-    return Padding(
-      padding: const EdgeInsets.all(20),
+    final viewInsets = MediaQuery.of(context).viewInsets.bottom;
+    return SafeArea(
+      top: false,
+      child: Padding(
+      padding: EdgeInsets.fromLTRB(
+        AppInsets.formHorizontal,
+        AppInsets.formTop,
+        AppInsets.formHorizontal,
+        AppInsets.formBottom + viewInsets,
+      ),
       child: SizedBox(
         width: double.infinity,
         child: ElevatedButton(
@@ -669,6 +679,7 @@ class QuickActionSaveButton extends StatelessWidget {
                 const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
           ),
         ),
+      ),
       ),
     );
   }

@@ -26,7 +26,9 @@ class CategoryDetailScreen extends StatelessWidget {
     return Scaffold(
       backgroundColor: colorScheme.surface,
       appBar: CustomAppBar(title: categoryName, showBackButton: true),
-      body: StreamBuilder<List<LedgerEntry>>(
+      body: SafeArea(
+        top: false,
+        child: StreamBuilder<List<LedgerEntry>>(
         stream: appDb.ledgerDao.watchLedgerEntries(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
@@ -60,6 +62,7 @@ class CategoryDetailScreen extends StatelessWidget {
                 _buildAccountTable(context, entries[index]),
           );
         },
+        ),
       ),
     );
   }

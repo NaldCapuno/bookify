@@ -58,6 +58,7 @@ class _BalanceSheetScreenState extends State<BalanceSheetScreen> {
       appBar: const CustomAppBar(title: "Balance Sheet", showBackButton: true),
       backgroundColor: theme.colorScheme.surfaceContainerHighest,
       body: SafeArea(
+        top: false,
         child: FutureBuilder<BalanceSheet>(
           future: _reportFuture,
           builder: (context, snapshot) {

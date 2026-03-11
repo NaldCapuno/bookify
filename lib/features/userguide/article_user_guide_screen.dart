@@ -15,7 +15,9 @@ class ArticleUserGuideScreen extends StatelessWidget {
         showBackButton: true,
         onBackTap: () => Navigator.maybePop(context),
       ),
-      body: ListView(
+      body: SafeArea(
+        top: false,
+        child: ListView(
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
         children: [
           _Section(
@@ -122,6 +124,7 @@ class ArticleUserGuideScreen extends StatelessWidget {
           ),
           const SizedBox(height: 32),
         ],
+        ),
       ),
     );
   }

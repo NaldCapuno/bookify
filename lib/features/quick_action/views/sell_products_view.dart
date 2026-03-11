@@ -191,7 +191,9 @@ class _SellProductsViewState extends State<SellProductsView> {
               _discount >= _sellingPrice &&
               _sellingPrice > 0;
 
-          return ListView(
+          return SafeArea(
+            top: false,
+            child: ListView(
             padding: const EdgeInsets.all(20),
             children: [
               Container(
@@ -542,6 +544,7 @@ class _SellProductsViewState extends State<SellProductsView> {
               ),
               const SizedBox(height: 24),
             ],
+          ),
           );
         },
       ),

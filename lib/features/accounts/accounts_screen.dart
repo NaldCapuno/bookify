@@ -92,6 +92,7 @@ class _AccountsScreenState extends State<AccountsScreen> {
         onPressed: () => _showAddAccountDialog(context),
       ),
       body: SafeArea(
+        top: false,
         // We use a Column to stack the search bar on top of the list
         child: Column(
           children: [

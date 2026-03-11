@@ -51,7 +51,9 @@ class QuickActionScreen extends StatelessWidget {
               TextStyle(color: scheme.onSurface, fontWeight: FontWeight.bold),
         ),
       ),
-      body: ListView(
+      body: SafeArea(
+        top: false,
+        child: ListView(
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
         children: [
           // 1. HERO TILE: RECEIVE MONEY (green)
@@ -253,6 +255,7 @@ class QuickActionScreen extends StatelessWidget {
 
           const SizedBox(height: 40),
         ],
+        ),
       ),
     );
   }
@@ -265,13 +268,16 @@ class QuickActionScreen extends StatelessWidget {
       context: context,
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
-      builder: (context) => Container(
+      builder: (context) => SafeArea(
+        top: false,
+        child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
         decoration: BoxDecoration(
           color: scheme.surface,
           borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
         ),
         child: content,
+      ),
       ),
     );
   }

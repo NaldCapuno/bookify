@@ -108,7 +108,9 @@ class _ConsumeSuppliesViewState extends State<ConsumeSuppliesView> {
               TextStyle(color: scheme.onSurface, fontWeight: FontWeight.bold),
         ),
       ),
-      body: ListView(
+      body: SafeArea(
+        top: false,
+        child: ListView(
         padding: const EdgeInsets.all(20),
         children: [
           QuickActionAmountCard(
@@ -158,6 +160,7 @@ class _ConsumeSuppliesViewState extends State<ConsumeSuppliesView> {
             onDescriptionChanged: () => setState(() {}),
           ),
         ],
+      ),
       ),
       bottomNavigationBar: QuickActionSaveButton(
         onPressed: _save,

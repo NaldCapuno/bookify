@@ -12,7 +12,9 @@ class SettingsScreen extends StatelessWidget {
 
     return Scaffold(
       appBar: const CustomAppBar(title: 'Settings', showBackButton: true),
-      body: ListView(
+      body: SafeArea(
+        top: false,
+        child: ListView(
         padding: const EdgeInsets.all(16),
         children: [
           Text(
@@ -63,6 +65,7 @@ class SettingsScreen extends StatelessWidget {
             },
           ),
         ],
+        ),
       ),
     );
   }

@@ -94,7 +94,9 @@ class _MainNavigationState extends State<MainNavigation> {
           onUserGuideTap: () => Navigator.pushNamed(context, '/user-guide'),
           onAboutUsTap: () => Navigator.pushNamed(context, '/about-us'),
         ),
-        body: IndexedStack(
+        body: SafeArea(
+          top: false,
+          child: IndexedStack(
           index: _selectedIndex,
           children: [
             DashboardScreen(
@@ -120,6 +122,7 @@ class _MainNavigationState extends State<MainNavigation> {
               myIndex: 4,
             ),
           ],
+          ),
         ),
         bottomNavigationBar: CustomNavBar(
           currentIndex: _selectedIndex,
