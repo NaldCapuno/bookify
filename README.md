@@ -1,4 +1,4 @@
-## Bookify (TsekBooks)
+## TsekBook)
 
 A Flutter-based **digital bookkeeping** app for small businesses. The app uses **double‑entry accounting** and a seeded **Chart of Accounts** to power:
 
@@ -8,8 +8,6 @@ A Flutter-based **digital bookkeeping** app for small businesses. The app uses *
 - **Reports** (Income Statement, Balance Sheet, Cash Flow + PDF export)
 - **Accounts** (Chart of Accounts management)
 - **Quick Actions** (guided “quick entry” forms that post balanced Dr/Cr journal entries)
-
-> Branding note: parts of the UI refer to the product as **TsekBooks**, while the repo/folder name is **bookify**.
 
 ---
 
@@ -176,7 +174,8 @@ Common UX patterns include:
 
 - `lib/core/utils/pdf_export_service.dart`
   - `exportIncomeStatement(...)`
-  - (also exports other reports)
+  - `exportBalanceSheet(...)`
+  - `exportCashFlowStatement(...)`
 
 ---
 
@@ -281,4 +280,4 @@ Walkthrough persistence helpers exist in `lib/core/services/walkthrough_service.
 
 ## License
 
-Add a license here if/when you decide one.
+This project is licensed under the [Apache-2.0 License](https://github.com/NaldCapuno/bookify/blob/main/LICENSE)
