@@ -1,4 +1,4 @@
-## TsekBook)
+## TsekBooks
 
 A Flutter-based **digital bookkeeping** app for small businesses. The app uses **double‑entry accounting** and a seeded **Chart of Accounts** to power:
 
