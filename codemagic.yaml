@@ -1,26 +1,54 @@
 workflows:
-  ios-free-build:
-    name: Bookify iOS Free
-    instance_type: mac_mini_m2 # Included in your 500 free mins/month
+  ios-workflow:
+    name: Bookify iOS Physical Device Build
     max_build_duration: 30
+    instance_type: mac_mini_m2 # Optimized for faster builds
     environment:
+      groups:
+        - appstore_credentials # Create this group in Codemagic UI for your API keys
+      vars:
+        XCODE_WORKSPACE: "ios/Runner.xcworkspace"
+        XCODE_SCHEME: "Runner"
+        APP_ID: 1234567890 # Replace with your Apple App ID
+        BUNDLE_ID: "com.yourname.bookify" # Ensure this matches your Info.plist
       flutter: stable
       xcode: latest
       cocoapods: default
+
     scripts:
-      - name: Install Dependencies
+      - name: Set up code signing settings on Xcode project
+        script: | 
+          keychain initialize
+          # This command fetches certificates and profiles for your physical device automatically
+          app-store-connect fetch-signing-files "$BUNDLE_ID" \
+            --platform IOS \
+            --type IOS_APP_DEVELOPMENT \
+            --create
+          keychain add-certificates
+          xcode-project use-profiles
+
+      - name: Get Flutter dependencies
         script: |
           flutter pub get
-          cd ios && pod install
-      - name: Build iOS (No Signing)
-        script: |
-          # We build without signing because we don't have the $99 account
-          flutter build ios --debug --no-codesign
-      - name: Package IPA for Sideloadly
-        script: |
-          # This is the "Admin Trick" to create an IPA without a Mac
-          mkdir -p build/ios/iphoneos/Payload
-          cp -r build/ios/iphoneos/Runner.app build/ios/iphoneos/Payload/
-          cd build/ios/iphoneos && zip -r bookify_debug.ipa Payload
+          # Generate your minimalist icons for iOS
+          flutter pub run flutter_launcher_icons
+
+      - name: Build iOS IPA
+        script: | 
+          # Build specifically for your physical iPhone 14 Pro Max
+          flutter build ipa --release \
+            --build-number=$BUILD_NUMBER \
+            --export-options-plist=/Users/builder/export_options.plist \
+            --no-codesign
+
     artifacts:
-      - build/ios/iphoneos/*.ipa
+      - build/ios/ipa/*.ipa
+      - /tmp/xcodebuild_logs/*.log
+
+    publishing:
+      email:
+        recipients:
+          - your-email@example.com # You'll get the install link here
+        notify:
+          success: true
+          failure: true
