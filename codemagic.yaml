@@ -1,0 +1,26 @@
+workflows:
+  ios-free-build:
+    name: Bookify iOS Free
+    instance_type: mac_mini_m2 # Included in your 500 free mins/month
+    max_build_duration: 30
+    environment:
+      flutter: stable
+      xcode: latest
+      cocoapods: default
+    scripts:
+      - name: Install Dependencies
+        script: |
+          flutter pub get
+          cd ios && pod install
+      - name: Build iOS (No Signing)
+        script: |
+          # We build without signing because we don't have the $99 account
+          flutter build ios --debug --no-codesign
+      - name: Package IPA for Sideloadly
+        script: |
+          # This is the "Admin Trick" to create an IPA without a Mac
+          mkdir -p build/ios/iphoneos/Payload
+          cp -r build/ios/iphoneos/Runner.app build/ios/iphoneos/Payload/
+          cd build/ios/iphoneos && zip -r bookify_debug.ipa Payload
+    artifacts:
+      - build/ios/iphoneos/*.ipa
